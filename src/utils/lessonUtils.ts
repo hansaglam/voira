@@ -39,6 +39,13 @@ export function getSegmentCount(lesson: Lesson): number {
   return lesson.segments.length;
 }
 
+export function isLastLessonSegment(lesson: Lesson, segmentId?: string): boolean {
+  const sorted = [...lesson.segments].sort((a, b) => a.order - b.order);
+  if (sorted.length <= 1) return true;
+  if (!segmentId) return false;
+  return sorted[sorted.length - 1]?.id === segmentId;
+}
+
 export function getAllKeywords(lesson: Lesson): string[] {
   const fromSegments = lesson.segments.flatMap((s) => s.keywords);
   return [...new Set([...lesson.keywords, ...fromSegments])];

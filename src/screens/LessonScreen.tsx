@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootScreenProps } from '../navigation/types';
+import type { RootStackParamList } from '../navigation/types';
 import { goBackOrFallback } from '../navigation/safeGoBack';
 import { resolveLessonActiveTab } from '../navigation/lessonTabContext';
 import {
@@ -16,6 +17,7 @@ import {
   RecordingSessionFeedback,
   PracticeStepIndicator,
   PracticePlaybackControls,
+  LessonSegmentNavigator,
 } from '../components';
 import { getAllLessons, getLessonById } from '../services/contentRepository';
 import { Lesson } from '../types/lesson';
@@ -161,9 +163,63 @@ function buildDetailAccordionContent(
   return parts.join('\n\n');
 }
 
+function resolveInitialSegmentIndex(
+  lesson: Lesson,
+  params: RootStackParamList['Lesson'],
+): number {
+  const total = getSegmentCount(lesson);
+  if (total <= 1) return 0;
+
+  if (typeof params.segmentIndex === 'number' && Number.isFinite(params.segmentIndex)) {
+    return Math.min(Math.max(0, params.segmentIndex), total - 1);
+  }
+
+  if (params.segmentId) {
+    const sorted = [...lesson.segments].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex((item) => item.id === params.segmentId);
+    if (idx >= 0) return idx;
+  }
+
+  return 0;
+}
+
+async function resetSegmentPracticeMedia(options: {
+  stopRecordingIfActive: () => Promise<void>;
+  resetRecording: () => Promise<void>;
+  setLessonAudioPlaying: (value: boolean) => void;
+  setLessonAudioMessage: (value: string | null) => void;
+  isRecording: boolean;
+}) {
+  await stopLessonAudio();
+  options.setLessonAudioPlaying(false);
+  options.setLessonAudioMessage(null);
+  if (options.isRecording) {
+    await options.stopRecordingIfActive();
+  }
+  await options.resetRecording();
+}
+
 export function LessonScreen({ navigation, route }: Props) {
+  const { recordActiveLesson } = useLearning();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    recordActiveLesson({
+      lessonId: route.params.lessonId,
+      categoryId: route.params.categoryId,
+      source: route.params.source,
+      sessionId: route.params.sessionId,
+      practiceIndex: route.params.practiceIndex,
+    });
+  }, [
+    recordActiveLesson,
+    route.params.categoryId,
+    route.params.lessonId,
+    route.params.practiceIndex,
+    route.params.sessionId,
+    route.params.source,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -251,7 +307,9 @@ function QuickLessonScreenContent({
   const totalLessons = route.params.totalLessons;
   const showSession =
     isDailySession && typeof practiceIndex === 'number' && typeof totalLessons === 'number';
-  const [segmentIndex] = useState(0);
+  const [segmentIndex, setSegmentIndex] = useState(() =>
+    resolveInitialSegmentIndex(lesson, route.params),
+  );
   const segment = getActiveSegment(lesson, segmentIndex);
   const segmentTotal = getSegmentCount(lesson);
   const highlightedWords = getSegmentHighlightedWords(segment);
@@ -283,6 +341,7 @@ function QuickLessonScreenContent({
     recordingState,
     toggleRecording,
     resetRecording,
+    stopRecording,
     prepareForNavigation,
     cleanupAudio,
     retryPermission,
@@ -300,6 +359,53 @@ function QuickLessonScreenContent({
     () => buildDetailAccordionContent(segment, pauseMarkedText, highlightedWords),
     [segment, pauseMarkedText, highlightedWords],
   );
+
+  const goToSegment = useCallback(
+    async (nextIndex: number) => {
+      if (nextIndex === segmentIndex) return;
+      if (nextIndex < 0 || nextIndex >= segmentTotal) return;
+
+      await resetSegmentPracticeMedia({
+        stopRecordingIfActive: stopRecording,
+        resetRecording,
+        setLessonAudioPlaying: setIsLessonAudioPlaying,
+        setLessonAudioMessage,
+        isRecording,
+      });
+      setDetailsExpanded(false);
+      setSegmentIndex(nextIndex);
+    },
+    [
+      isRecording,
+      resetRecording,
+      segmentIndex,
+      segmentTotal,
+      stopRecording,
+    ],
+  );
+
+  const handlePreviousSegment = useCallback(() => {
+    void goToSegment(segmentIndex - 1);
+  }, [goToSegment, segmentIndex]);
+
+  const handleNextSegment = useCallback(() => {
+    void goToSegment(segmentIndex + 1);
+  }, [goToSegment, segmentIndex]);
+
+  const handleSelectSegment = useCallback(
+    (index: number) => {
+      void goToSegment(index);
+    },
+    [goToSegment],
+  );
+
+  useEffect(() => {
+    if (typeof route.params.segmentIndex !== 'number' && !route.params.segmentId) {
+      return;
+    }
+    const nextIndex = resolveInitialSegmentIndex(lesson, route.params);
+    void goToSegment(nextIndex);
+  }, [goToSegment, lesson.id, route.params.segmentId, route.params.segmentIndex]);
 
   useFocusEffect(
     useCallback(() => {
@@ -394,6 +500,7 @@ function QuickLessonScreenContent({
         hasSpeech: validationSnapshot.hasSpeech,
         recordingValidation: validationSnapshot,
         segmentId: segment.id,
+        segmentIndex,
         practiceStep: 'subtitle_shadowing',
         shadowingMode: 'shadowing',
       });
@@ -413,6 +520,7 @@ function QuickLessonScreenContent({
     route.params.categoryId,
     route.params.sessionId,
     segment.id,
+    segmentIndex,
     totalLessons,
   ]);
 
@@ -456,16 +564,19 @@ function QuickLessonScreenContent({
             Pratik {practiceIndex + 1} / {totalLessons}
           </Text>
         </View>
-      ) : segmentTotal > 1 ? (
-        <View style={styles.sessionRow}>
-          <Text style={styles.segmentLabel}>Bölüm</Text>
-          <Text style={styles.sessionProgress}>
-            {segmentIndex + 1} / {segmentTotal}
-          </Text>
-        </View>
       ) : null}
 
       <LessonHeader lesson={lesson} variant="quick" />
+
+      {segmentTotal > 1 ? (
+        <LessonSegmentNavigator
+          segmentIndex={segmentIndex}
+          segmentTotal={segmentTotal}
+          onPrevious={handlePreviousSegment}
+          onNext={handleNextSegment}
+          onSelectSegment={handleSelectSegment}
+        />
+      ) : null}
 
       {lessonAudioMessage ? (
         <View style={styles.lessonAudioMessageCard}>
@@ -543,7 +654,9 @@ function GuidedLessonScreenContent({
   const totalLessons = route.params.totalLessons;
   const showSession =
     isDailySession && typeof practiceIndex === 'number' && typeof totalLessons === 'number';
-  const [segmentIndex] = useState(0);
+  const [segmentIndex, setSegmentIndex] = useState(() =>
+    resolveInitialSegmentIndex(lesson, route.params),
+  );
   const segment = getActiveSegment(lesson, segmentIndex);
   const segmentTotal = getSegmentCount(lesson);
   const visibleSteps = useMemo(
@@ -604,6 +717,7 @@ function GuidedLessonScreenContent({
     recordingState,
     toggleRecording,
     resetRecording,
+    stopRecording,
     prepareForNavigation,
     cleanupAudio,
     retryPermission,
@@ -624,6 +738,56 @@ function GuidedLessonScreenContent({
     canAnalyze;
   const footerClearance =
     isShadowingStep(currentStep) && hasBlindNext ? 108 : undefined;
+
+  const goToSegment = useCallback(
+    async (nextIndex: number) => {
+      if (nextIndex === segmentIndex) return;
+      if (nextIndex < 0 || nextIndex >= segmentTotal) return;
+
+      await resetSegmentPracticeMedia({
+        stopRecordingIfActive: stopRecording,
+        resetRecording,
+        setLessonAudioPlaying: setIsLessonAudioPlaying,
+        setLessonAudioMessage,
+        isRecording,
+      });
+      setCurrentStep('listen_only');
+      setCompletedSteps([]);
+      setHasCompletedLessonListen(false);
+      setExpandedNotes(new Set(['pronunciation']));
+      setSegmentIndex(nextIndex);
+    },
+    [
+      isRecording,
+      resetRecording,
+      segmentIndex,
+      segmentTotal,
+      stopRecording,
+    ],
+  );
+
+  const handlePreviousSegment = useCallback(() => {
+    void goToSegment(segmentIndex - 1);
+  }, [goToSegment, segmentIndex]);
+
+  const handleNextSegment = useCallback(() => {
+    void goToSegment(segmentIndex + 1);
+  }, [goToSegment, segmentIndex]);
+
+  const handleSelectSegment = useCallback(
+    (index: number) => {
+      void goToSegment(index);
+    },
+    [goToSegment],
+  );
+
+  useEffect(() => {
+    if (typeof route.params.segmentIndex !== 'number' && !route.params.segmentId) {
+      return;
+    }
+    const nextIndex = resolveInitialSegmentIndex(lesson, route.params);
+    void goToSegment(nextIndex);
+  }, [goToSegment, lesson.id, route.params.segmentId, route.params.segmentIndex]);
 
   useFocusEffect(
     useCallback(() => {
@@ -746,6 +910,7 @@ function GuidedLessonScreenContent({
         hasSpeech: validationSnapshot.hasSpeech,
         recordingValidation: validationSnapshot,
         segmentId: segment.id,
+        segmentIndex,
         practiceStep: currentStep,
         shadowingMode: activeShadowingMode,
       });
@@ -768,6 +933,7 @@ function GuidedLessonScreenContent({
     route.params.categoryId,
     route.params.sessionId,
     segment.id,
+    segmentIndex,
     totalLessons,
   ]);
 
@@ -899,16 +1065,19 @@ function GuidedLessonScreenContent({
             Pratik {practiceIndex + 1} / {totalLessons}
           </Text>
         </View>
-      ) : segmentTotal > 1 ? (
-        <View style={styles.sessionRow}>
-          <Text style={styles.segmentLabel}>Bölüm</Text>
-          <Text style={styles.sessionProgress}>
-            {segmentIndex + 1} / {segmentTotal}
-          </Text>
-        </View>
       ) : null}
 
       <LessonHeader lesson={lesson} variant="methodology" />
+
+      {segmentTotal > 1 ? (
+        <LessonSegmentNavigator
+          segmentIndex={segmentIndex}
+          segmentTotal={segmentTotal}
+          onPrevious={handlePreviousSegment}
+          onNext={handleNextSegment}
+          onSelectSegment={handleSelectSegment}
+        />
+      ) : null}
 
       <PracticeStepIndicator
         steps={indicatorSteps}
@@ -1291,6 +1460,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   scrollEndSpacer: {
-    height: spacing.lg,
+    height: spacing.xl + spacing.lg,
   },
 });

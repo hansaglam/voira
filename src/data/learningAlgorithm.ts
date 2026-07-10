@@ -6,8 +6,9 @@ import {
   PracticeResult,
   UserLearningProfile,
 } from '../types/learning';
-import { getExampleFeedback, getAllKeywords, resolveLessonPremium } from '../utils/lessonUtils';
+import { getExampleFeedback, getAllKeywords, resolveLessonPremium, isLastLessonSegment } from '../utils/lessonUtils';
 import { LessonSegment } from '../types/segment';
+import { lessons } from './lessons';
 
 const DAILY_LESSON_COUNT = 3;
 
@@ -324,16 +325,20 @@ export function updateProgressFromResult(
 ): UserLearningProfile {
   const today = practiceResult.createdAt.slice(0, 10);
   const alreadyCompleted = userProfile.completedLessonIds.includes(practiceResult.lessonId);
+  const lesson = lessons.find((item) => item.id === practiceResult.lessonId);
+  const shouldMarkLessonComplete =
+    !lesson || isLastLessonSegment(lesson, practiceResult.segmentId);
+  const newlyCompletingLesson = shouldMarkLessonComplete && !alreadyCompleted;
   const completedCount = userProfile.completedLessonIds.length;
 
-  const newAverage = alreadyCompleted
-    ? userProfile.averageScore
-    : completedCount === 0
+  const newAverage = newlyCompletingLesson
+    ? completedCount === 0
       ? practiceResult.nativeScore
       : Math.round(
           (userProfile.averageScore * completedCount + practiceResult.nativeScore) /
             (completedCount + 1),
-        );
+        )
+    : userProfile.averageScore;
 
   let currentStreak = userProfile.currentStreak;
   if (!userProfile.lastPracticeDate) {
@@ -346,9 +351,11 @@ export function updateProgressFromResult(
     currentStreak = 1;
   }
 
-  const completedLessonIds = userProfile.completedLessonIds.includes(practiceResult.lessonId)
+  const completedLessonIds = alreadyCompleted
     ? userProfile.completedLessonIds
-    : [...userProfile.completedLessonIds, practiceResult.lessonId];
+    : shouldMarkLessonComplete
+      ? [...userProfile.completedLessonIds, practiceResult.lessonId]
+      : userProfile.completedLessonIds;
 
   const weakAreas = [
     ...new Set([...userProfile.weakAreas, ...practiceResult.weakAreasDetected]),

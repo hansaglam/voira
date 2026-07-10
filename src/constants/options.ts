@@ -2,7 +2,7 @@ import { EnglishLevel, UserGoal } from '../types';
 
 export const PRIMARY_GOAL_OPTIONS = [
   { id: 'daily_conversation', label: 'Günlük konuşma', icon: 'chatbubbles-outline' },
-  { id: 'cafe_restaurant', label: 'Kafe & restoran', icon: 'cafe-outline' },
+  { id: 'cafe_restaurant', label: 'Kafe, restoran & alışveriş', icon: 'cafe-outline' },
   { id: 'travel', label: 'Seyahat', icon: 'airplane-outline' },
   { id: 'job_interview', label: 'İş görüşmesi', icon: 'briefcase-outline' },
   { id: 'pronunciation', label: 'Telaffuz', icon: 'mic-outline' },
@@ -13,7 +13,7 @@ export type PrimaryGoalId = (typeof PRIMARY_GOAL_OPTIONS)[number]['id'];
 
 export const PRIMARY_GOAL_LABELS: Record<PrimaryGoalId, string> = {
   daily_conversation: 'Günlük konuşma',
-  cafe_restaurant: 'Kafe & restoran',
+  cafe_restaurant: 'Kafe, restoran & alışveriş',
   travel: 'Seyahat',
   job_interview: 'İş görüşmesi',
   pronunciation: 'Telaffuz',
@@ -44,7 +44,7 @@ export const GOAL_CONVERSATION_OPTIONS = [
   { id: 'daily_conversation', label: 'Günlük konuşma', icon: 'chatbubbles-outline' },
   { id: 'job_interview', label: 'İş görüşmesi', icon: 'briefcase-outline' },
   { id: 'travel', label: 'Seyahat', icon: 'airplane-outline' },
-  { id: 'cafe_restaurant', label: 'Kafe & restoran', icon: 'cafe-outline' },
+  { id: 'cafe_restaurant', label: 'Kafe, restoran & alışveriş', icon: 'cafe-outline' },
   { id: 'media', label: 'Dizi ve podcastleri anlamak', icon: 'headset-outline' },
   { id: 'pronunciation', label: 'Telaffuzumu geliştirmek', icon: 'mic-outline' },
 ] as const;
@@ -120,7 +120,7 @@ export const GOAL_LABELS: Record<UserGoal, string> = {
   daily_conversation: 'Günlük konuşma',
   job_interview: 'İş görüşmesi',
   travel: 'Seyahat',
-  cafe_restaurant: 'Kafe & restoran',
+  cafe_restaurant: 'Kafe, restoran & alışveriş',
   series_english: 'Dizi ve podcast İngilizcesi',
   media: 'Dizi ve podcastleri anlamak',
   pronunciation: 'Telaffuz',

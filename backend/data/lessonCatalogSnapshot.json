@@ -1,10 +1,62 @@
 [
   {
+    "lessonId": "cafe-prod-asking-about-product",
+    "title": "Asking About a Product",
+    "subtitle": "Mağazada ürün sorma — alışveriş",
+    "category": "cafe_restaurant",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "cafe-prod-asking-about-product-s1",
+        "text": "Excuse me, do you carry this in other colors?",
+        "translationTr": "Affedersiniz, bunun başka renkleri var mı?"
+      },
+      {
+        "segmentId": "cafe-prod-asking-about-product-s2",
+        "text": "Is this on sale right now?",
+        "translationTr": "Bu şu an indirimde mi?"
+      },
+      {
+        "segmentId": "cafe-prod-asking-about-product-s3",
+        "text": "Could you tell me more about the material?",
+        "translationTr": "Malzemesi hakkında biraz daha bilgi verebilir misiniz?"
+      }
+    ]
+  },
+  {
+    "lessonId": "cafe-prod-size-and-color",
+    "title": "Asking About Size and Color",
+    "subtitle": "Beden ve renk sorma — alışveriş",
+    "category": "cafe_restaurant",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "cafe-prod-size-and-color-s1",
+        "text": "Do you have this in a medium?",
+        "translationTr": "Bunun orta bedeni var mı?"
+      },
+      {
+        "segmentId": "cafe-prod-size-and-color-s2",
+        "text": "I think I need one size up.",
+        "translationTr": "Sanırım bir beden büyük lazım."
+      },
+      {
+        "segmentId": "cafe-prod-size-and-color-s3",
+        "text": "Do you have it in black as well?",
+        "translationTr": "Siyah seçeneği de var mı?"
+      }
+    ]
+  },
+  {
     "lessonId": "cafe-pack-asking-about-spice",
     "title": "Asking About Spice",
-    "subtitle": "Menü hakkında soru sorma",
+    "subtitle": "Yemek acılığını sorma",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "beginner",
     "segments": [
@@ -20,7 +72,7 @@
     "title": "Asking for Recommendations",
     "subtitle": "Tavsiye isteme",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "beginner",
     "segments": [
@@ -34,9 +86,9 @@
   {
     "lessonId": "cafe-pack-asking-for-the-check",
     "title": "Asking for the Check",
-    "subtitle": "Hesap isteme",
+    "subtitle": "Hesap isteme — temel paket",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "intermediate",
     "segments": [
@@ -52,7 +104,7 @@
     "title": "Changing an Order",
     "subtitle": "Siparişi değiştirme",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "intermediate",
     "segments": [
@@ -68,7 +120,7 @@
     "title": "Fast Native Cafe Order",
     "subtitle": "Hızlı kafe siparişini anlama",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": true,
     "level": "intermediate",
     "segments": [
@@ -84,7 +136,7 @@
     "title": "Handling a Wrong Order",
     "subtitle": "Yanlış siparişi kibarca düzeltme",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": true,
     "level": "intermediate",
     "segments": [
@@ -106,11 +158,63 @@
     ]
   },
   {
+    "lessonId": "cafe-prod-ordering-coffee",
+    "title": "Natural Coffee Order",
+    "subtitle": "Kahve siparişi — doğal 3 bölüm",
+    "category": "cafe_restaurant",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "cafe-prod-ordering-coffee-s1",
+        "text": "Can I get an iced latte, please?",
+        "translationTr": "Buzlu latte alabilir miyim lütfen?"
+      },
+      {
+        "segmentId": "cafe-prod-ordering-coffee-s2",
+        "text": "Could you make it with oat milk?",
+        "translationTr": "Yulaf sütüyle yapabilir misiniz?"
+      },
+      {
+        "segmentId": "cafe-prod-ordering-coffee-s3",
+        "text": "That's all, thank you.",
+        "translationTr": "Hepsi bu, teşekkürler."
+      }
+    ]
+  },
+  {
+    "lessonId": "cafe-prod-restaurant-ordering",
+    "title": "Ordering at a Restaurant",
+    "subtitle": "Restoranda sipariş",
+    "category": "cafe_restaurant",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "cafe-prod-restaurant-ordering-s1",
+        "text": "I'll have the grilled chicken, please.",
+        "translationTr": "Izgara tavuk alacağım lütfen."
+      },
+      {
+        "segmentId": "cafe-prod-restaurant-ordering-s2",
+        "text": "Could I get the sauce on the side?",
+        "translationTr": "Sosu yanında alabilir miyim?"
+      },
+      {
+        "segmentId": "cafe-prod-restaurant-ordering-s3",
+        "text": "And a glass of water, please.",
+        "translationTr": "Ve bir bardak su lütfen."
+      }
+    ]
+  },
+  {
     "lessonId": "cafe-pack-ordering-coffee",
     "title": "Ordering Coffee",
-    "subtitle": "Kibar sipariş verme",
+    "subtitle": "Kibar sipariş — temel paket",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "beginner",
     "segments": [
@@ -118,6 +222,16 @@
         "segmentId": "cafe-pack-ordering-coffee-s1",
         "text": "Can I get an iced latte, please?",
         "translationTr": "Buzlu latte alabilir miyim lütfen?"
+      },
+      {
+        "segmentId": "cafe-pack-ordering-coffee-s2",
+        "text": "Could you make it with oat milk?",
+        "translationTr": "Yulaf sütüyle yapabilir misiniz?"
+      },
+      {
+        "segmentId": "cafe-pack-ordering-coffee-s3",
+        "text": "That's all, thank you.",
+        "translationTr": "Hepsi bu, teşekkürler."
       }
     ]
   },
@@ -126,7 +240,7 @@
     "title": "Ordering Takeaway",
     "subtitle": "Paket sipariş verme",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "beginner",
     "segments": [
@@ -138,11 +252,63 @@
     ]
   },
   {
+    "lessonId": "cafe-prod-asking-for-check",
+    "title": "Polite Check Request",
+    "subtitle": "Hesabı kibarca isteme",
+    "category": "cafe_restaurant",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "cafe-prod-asking-for-check-s1",
+        "text": "Could we get the check, please?",
+        "translationTr": "Hesabı alabilir miyiz lütfen?"
+      },
+      {
+        "segmentId": "cafe-prod-asking-for-check-s2",
+        "text": "Are we all set here?",
+        "translationTr": "Her şey tamam mı burada?"
+      },
+      {
+        "segmentId": "cafe-prod-asking-for-check-s3",
+        "text": "We can pay by card.",
+        "translationTr": "Kartla ödeyebiliriz."
+      }
+    ]
+  },
+  {
+    "lessonId": "cafe-prod-polite-complaint",
+    "title": "Polite Complaint",
+    "subtitle": "Kibar şikayet etme",
+    "category": "cafe_restaurant",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
+    "isPremium": true,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "cafe-prod-polite-complaint-s1",
+        "text": "Excuse me, I think there might be a mistake with my order.",
+        "translationTr": "Affedersiniz, sanırım siparişimde bir hata olabilir."
+      },
+      {
+        "segmentId": "cafe-prod-polite-complaint-s2",
+        "text": "I ordered the soup, but I got the salad.",
+        "translationTr": "Çorba sipariş ettim ama salata geldi."
+      },
+      {
+        "segmentId": "cafe-prod-polite-complaint-s3",
+        "text": "Would it be possible to fix that?",
+        "translationTr": "Bunu düzeltmek mümkün olur mu?"
+      }
+    ]
+  },
+  {
     "lessonId": "cafe-pack-requesting-a-table",
     "title": "Requesting a Table",
     "subtitle": "Restoranda masa isteme",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "beginner",
     "segments": [
@@ -154,11 +320,37 @@
     ]
   },
   {
+    "lessonId": "cafe-prod-return-exchange",
+    "title": "Return or Exchange",
+    "subtitle": "İade ve değişim — alışveriş",
+    "category": "cafe_restaurant",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "cafe-prod-return-exchange-s1",
+        "text": "I'd like to return this, please.",
+        "translationTr": "Bunu iade etmek istiyorum lütfen."
+      },
+      {
+        "segmentId": "cafe-prod-return-exchange-s2",
+        "text": "I have the receipt with me.",
+        "translationTr": "Fişim yanımda."
+      },
+      {
+        "segmentId": "cafe-prod-return-exchange-s3",
+        "text": "Could I exchange it for a different size?",
+        "translationTr": "Farklı bir bedenle değiştirebilir miyim?"
+      }
+    ]
+  },
+  {
     "lessonId": "cafe-pack-saying-something-is-missing",
     "title": "Saying Something Is Missing",
     "subtitle": "Eksik bir şeyi söyleme",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": false,
     "level": "intermediate",
     "segments": [
@@ -174,7 +366,7 @@
     "title": "Small Talk with a Barista",
     "subtitle": "Baristayla kısa sohbet",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": true,
     "level": "intermediate",
     "segments": [
@@ -200,7 +392,7 @@
     "title": "Talking to a Waiter Naturally",
     "subtitle": "Garsonla doğal konuşma",
     "category": "cafe_restaurant",
-    "categoryLabel": "Kafe & Restoran",
+    "categoryLabel": "Kafe, Restoran & Alışveriş",
     "isPremium": true,
     "level": "intermediate",
     "segments": [
@@ -224,7 +416,7 @@
   {
     "lessonId": "custom-ai-confidence",
     "title": "Personal Confidence Goal",
-    "subtitle": "AI özel ders placeholder",
+    "subtitle": "Özgüven hedefi cümlesi",
     "category": "custom",
     "categoryLabel": "Özel Dersler",
     "isPremium": true,
@@ -239,8 +431,8 @@
   },
   {
     "lessonId": "rhythm-video-practice-placeholder",
-    "title": "Video Rhythm Practice",
-    "subtitle": "Video pratik placeholder",
+    "title": "Ritim ile Shadowing",
+    "subtitle": "Dinle ve akışı kopyala",
     "category": "custom",
     "categoryLabel": "Özel Dersler",
     "isPremium": true,
@@ -248,15 +440,15 @@
     "segments": [
       {
         "segmentId": "rhythm-video-s1",
-        "text": "Listen first, then shadow the rhythm, not every single word.",
-        "translationTr": "Önce dinle, sonra her kelimeyi değil ritmi shadowing yap."
+        "text": "Listen first, then shadow the rhythm.",
+        "translationTr": "Önce dinle, sonra ritmi shadowing yap."
       }
     ]
   },
   {
     "lessonId": "custom-ai-work-meeting",
     "title": "Work Meeting Phrase",
-    "subtitle": "AI iş toplantısı placeholder",
+    "subtitle": "Toplantıda fikir belirtme",
     "category": "custom",
     "categoryLabel": "Özel Dersler",
     "isPremium": true,
@@ -264,8 +456,8 @@
     "segments": [
       {
         "segmentId": "custom-work-s1",
-        "text": "I'd like to share my perspective on the timeline we discussed.",
-        "translationTr": "Tartıştığımız zaman çizelgesi hakkındaki bakış açımı paylaşmak istiyorum."
+        "text": "I'd like to share my perspective on this.",
+        "translationTr": "Bu konudaki bakış açımı paylaşmak istiyorum."
       }
     ]
   },
@@ -320,7 +512,7 @@
   {
     "lessonId": "daily-native-gonna-plans",
     "title": "Casual Evening Plans",
-    "subtitle": "Native hız — gonna",
+    "subtitle": "Akşam planı — native hız",
     "category": "daily",
     "categoryLabel": "Günlük Konuşma",
     "isPremium": true,
@@ -336,7 +528,7 @@
   {
     "lessonId": "daily-pack-ending-a-conversation",
     "title": "Ending a Conversation",
-    "subtitle": "Sohbeti doğal bitirme",
+    "subtitle": "Sohbeti doğal bitirme — başlangıç paketi",
     "category": "daily",
     "categoryLabel": "Günlük Konuşma",
     "isPremium": false,
@@ -350,25 +542,9 @@
     ]
   },
   {
-    "lessonId": "daily-podcast-opinion",
-    "title": "Honest Opinion",
-    "subtitle": "Podcast tarzı fikir",
-    "category": "daily",
-    "categoryLabel": "Günlük Konuşma",
-    "isPremium": true,
-    "level": "advanced",
-    "segments": [
-      {
-        "segmentId": "daily-opinion-s1",
-        "text": "Honestly, I think we underestimate how much daily practice matters.",
-        "translationTr": "Dürüst olmak gerekirse, günlük pratiğin ne kadar önemli olduğunu hafife aldığımızı düşünüyorum."
-      }
-    ]
-  },
-  {
     "lessonId": "daily-feelings-checkin",
     "title": "How Have You Been?",
-    "subtitle": "Uzun süre görüşmeyen biriyle",
+    "subtitle": "Uzun aradan sonra hal hatır",
     "category": "daily",
     "categoryLabel": "Günlük Konuşma",
     "isPremium": false,
@@ -378,6 +554,58 @@
         "segmentId": "daily-feelings-s1",
         "text": "Hey, it's been a while! How have you been?",
         "translationTr": "Hey, uzun zaman oldu! Nasılsın, ne haber?"
+      }
+    ]
+  },
+  {
+    "lessonId": "daily-prod-dont-understand",
+    "title": "I Don't Understand",
+    "subtitle": "Anlamadığını söyleme",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": true,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "daily-prod-dont-understand-s1",
+        "text": "Sorry, I didn't catch that.",
+        "translationTr": "Pardon, onu duyamadım / anlayamadım."
+      },
+      {
+        "segmentId": "daily-prod-dont-understand-s2",
+        "text": "Could you say that again, please?",
+        "translationTr": "Bunu tekrar söyleyebilir misiniz lütfen?"
+      },
+      {
+        "segmentId": "daily-prod-dont-understand-s3",
+        "text": "Could you speak a little slower?",
+        "translationTr": "Biraz daha yavaş konuşabilir misiniz?"
+      }
+    ]
+  },
+  {
+    "lessonId": "daily-prod-introducing-yourself",
+    "title": "Introducing Yourself",
+    "subtitle": "Kendini tanıtma",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "daily-prod-introducing-yourself-s1",
+        "text": "Hi, nice to meet you.",
+        "translationTr": "Merhaba, tanıştığımıza memnun oldum."
+      },
+      {
+        "segmentId": "daily-prod-introducing-yourself-s2",
+        "text": "I'm from Istanbul, but I live here now.",
+        "translationTr": "İstanbul'dan geliyorum ama şimdi burada yaşıyorum."
+      },
+      {
+        "segmentId": "daily-prod-introducing-yourself-s3",
+        "text": "I work in marketing, and I love learning languages.",
+        "translationTr": "Pazarlama alanında çalışıyorum ve dil öğrenmeyi seviyorum."
       }
     ]
   },
@@ -398,9 +626,35 @@
     ]
   },
   {
+    "lessonId": "daily-prod-making-plans",
+    "title": "Making Plans",
+    "subtitle": "Plan yapma",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": false,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "daily-prod-making-plans-s1",
+        "text": "Are you free on Saturday afternoon?",
+        "translationTr": "Cumartesi öğleden sonra müsait misin?"
+      },
+      {
+        "segmentId": "daily-prod-making-plans-s2",
+        "text": "We could grab coffee somewhere nearby.",
+        "translationTr": "Yakındaki bir yerde kahve içebiliriz."
+      },
+      {
+        "segmentId": "daily-prod-making-plans-s3",
+        "text": "How does three o'clock sound?",
+        "translationTr": "Saat üç nasıl olur?"
+      }
+    ]
+  },
+  {
     "lessonId": "daily-neighbor-greeting",
     "title": "Morning Greeting",
-    "subtitle": "Komşuyla kısa selamlaşma",
+    "subtitle": "Komşu selamlaşması — tek cümle",
     "category": "daily",
     "categoryLabel": "Günlük Konuşma",
     "isPremium": false,
@@ -415,8 +669,8 @@
   },
   {
     "lessonId": "daily-pack-morning-greeting",
-    "title": "Morning Greeting",
-    "subtitle": "Komşuyla kısa selamlaşma",
+    "title": "Morning Greeting Basics",
+    "subtitle": "Günaydın — başlangıç paketi",
     "category": "daily",
     "categoryLabel": "Günlük Konuşma",
     "isPremium": false,
@@ -426,6 +680,84 @@
         "segmentId": "daily-pack-morning-greeting-s1",
         "text": "Good morning! How are you doing today?",
         "translationTr": "Günaydın! Bugün nasıl gidiyor?"
+      }
+    ]
+  },
+  {
+    "lessonId": "daily-prod-morning-greeting",
+    "title": "Natural Morning Greeting",
+    "subtitle": "Sabah selamlaşması — coach paketi",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "daily-prod-morning-greeting-s1",
+        "text": "Good morning! How are you doing?",
+        "translationTr": "Günaydın! Nasılsın, nasıl gidiyor?"
+      },
+      {
+        "segmentId": "daily-prod-morning-greeting-s2",
+        "text": "I'm doing well, thanks. How about you?",
+        "translationTr": "İyiyim, teşekkürler. Sen nasılsın?"
+      },
+      {
+        "segmentId": "daily-prod-morning-greeting-s3",
+        "text": "Have a great day!",
+        "translationTr": "İyi günler!"
+      }
+    ]
+  },
+  {
+    "lessonId": "daily-prod-ending-conversation",
+    "title": "Polite Conversation Closing",
+    "subtitle": "Kibar kapanış kalıpları — 3 bölüm",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "daily-prod-ending-conversation-s1",
+        "text": "It was really nice talking to you.",
+        "translationTr": "Seninle konuşmak gerçekten güzeldi."
+      },
+      {
+        "segmentId": "daily-prod-ending-conversation-s2",
+        "text": "I should get going, but let's catch up soon.",
+        "translationTr": "Gitmem lazım ama yakında tekrar konuşalım."
+      },
+      {
+        "segmentId": "daily-prod-ending-conversation-s3",
+        "text": "Take care! Talk to you later.",
+        "translationTr": "Kendine iyi bak! Sonra konuşuruz."
+      }
+    ]
+  },
+  {
+    "lessonId": "daily-prod-polite-requests",
+    "title": "Polite Requests",
+    "subtitle": "Kibarca rica etme",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "daily-prod-polite-requests-s1",
+        "text": "Could you help me with this, please?",
+        "translationTr": "Bana bununla yardım edebilir misiniz lütfen?"
+      },
+      {
+        "segmentId": "daily-prod-polite-requests-s2",
+        "text": "Would you mind opening the window?",
+        "translationTr": "Pencereyi açmanızı rica edebilir miyim?"
+      },
+      {
+        "segmentId": "daily-prod-polite-requests-s3",
+        "text": "I'd really appreciate it if you could send it today.",
+        "translationTr": "Bugün gönderebilirseniz gerçekten minnettar olurum."
       }
     ]
   },
@@ -445,8 +777,8 @@
       },
       {
         "segmentId": "daily-call-s2",
-        "text": "Sure, I was just thinking about you actually.",
-        "translationTr": "Tabii, aslında tam seni düşünüyordum."
+        "text": "Sure, I was just thinking about you.",
+        "translationTr": "Tabii, tam seni düşünüyordum."
       }
     ]
   },
@@ -461,8 +793,8 @@
     "segments": [
       {
         "segmentId": "daily-late-s1",
-        "text": "I'm running a bit late, but I'll be there in ten minutes.",
-        "translationTr": "Biraz geç kalıyorum ama on dakika içinde orada olacağım."
+        "text": "I'm running a bit late, but I'll be there soon.",
+        "translationTr": "Biraz geç kalıyorum ama yakında orada olacağım."
       }
     ]
   },
@@ -499,6 +831,48 @@
     ]
   },
   {
+    "lessonId": "daily-podcast-opinion",
+    "title": "Sharing an Opinion",
+    "subtitle": "Fikrini doğal söyleme",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": true,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "daily-opinion-s1",
+        "text": "Honestly, I think daily practice really matters.",
+        "translationTr": "Dürüst olmak gerekirse, günlük pratik gerçekten önemli."
+      }
+    ]
+  },
+  {
+    "lessonId": "daily-prod-sharing-opinion",
+    "title": "Sharing Your Opinion",
+    "subtitle": "Fikrini söyleme",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "daily-prod-sharing-opinion-s1",
+        "text": "I think this is a really good idea.",
+        "translationTr": "Bence bu gerçekten iyi bir fikir."
+      },
+      {
+        "segmentId": "daily-prod-sharing-opinion-s2",
+        "text": "To be honest, I'm not sure about that.",
+        "translationTr": "Dürüst olmak gerekirse, bundan emin değilim."
+      },
+      {
+        "segmentId": "daily-prod-sharing-opinion-s3",
+        "text": "What do you think? Does that make sense?",
+        "translationTr": "Sen ne düşünüyorsun? Mantıklı mı?"
+      }
+    ]
+  },
+  {
     "lessonId": "daily-pack-weather-small-talk",
     "title": "Small Talk About Weather",
     "subtitle": "Hava durumu üzerinden sohbet",
@@ -511,6 +885,32 @@
         "segmentId": "daily-pack-weather-small-talk-s1",
         "text": "It's really nice out today, isn't it?",
         "translationTr": "Bugün dışarıda hava gerçekten güzel, değil mi?"
+      }
+    ]
+  },
+  {
+    "lessonId": "daily-prod-starting-small-talk",
+    "title": "Starting Small Talk",
+    "subtitle": "Kısa sohbet başlatma",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "daily-prod-starting-small-talk-s1",
+        "text": "It's a busy day, isn't it?",
+        "translationTr": "Yoğun bir gün, değil mi?"
+      },
+      {
+        "segmentId": "daily-prod-starting-small-talk-s2",
+        "text": "Looks like the weather is finally clearing up.",
+        "translationTr": "Görünüşe göre hava sonunda açılıyor."
+      },
+      {
+        "segmentId": "daily-prod-starting-small-talk-s3",
+        "text": "Are you doing anything fun this weekend?",
+        "translationTr": "Bu hafta sonu eğlenceli bir şey yapıyor musun?"
       }
     ]
   },
@@ -533,7 +933,7 @@
   {
     "lessonId": "daily-weather-smalltalk",
     "title": "Weather Small Talk",
-    "subtitle": "Hava durumu sohbeti",
+    "subtitle": "Hava durumu small talk",
     "category": "daily",
     "categoryLabel": "Günlük Konuşma",
     "isPremium": false,
@@ -542,7 +942,7 @@
       {
         "segmentId": "daily-weather-s1",
         "text": "It's really nice out today, isn't it?",
-        "translationTr": "Bugün hava gerçekten güzel, değil mi?"
+        "translationTr": "Bugün dışarıda hava çok güzel, değil mi?"
       }
     ]
   },
@@ -595,6 +995,84 @@
     ]
   },
   {
+    "lessonId": "job-prod-describing-experience",
+    "title": "Describing Your Experience",
+    "subtitle": "Deneyimini anlatma",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "job-prod-describing-experience-s1",
+        "text": "In my previous role, I managed social media campaigns.",
+        "translationTr": "Önceki rolümde sosyal medya kampanyalarını yönettim."
+      },
+      {
+        "segmentId": "job-prod-describing-experience-s2",
+        "text": "I worked closely with the sales and design teams.",
+        "translationTr": "Satış ve tasarım ekipleriyle yakın çalıştım."
+      },
+      {
+        "segmentId": "job-prod-describing-experience-s3",
+        "text": "That experience helped me grow as a communicator.",
+        "translationTr": "Bu deneyim iletişimci olarak gelişmeme yardımcı oldu."
+      }
+    ]
+  },
+  {
+    "lessonId": "job-prod-email-followup",
+    "title": "Email Follow-up",
+    "subtitle": "E-posta / takip cümleleri",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "job-prod-email-followup-s1",
+        "text": "Thank you again for taking the time to meet with me.",
+        "translationTr": "Benimle görüşmek için zaman ayırdığınız için tekrar teşekkür ederim."
+      },
+      {
+        "segmentId": "job-prod-email-followup-s2",
+        "text": "I enjoyed learning more about the team and the role.",
+        "translationTr": "Ekip ve rol hakkında daha fazla bilgi edinmekten memnun oldum."
+      },
+      {
+        "segmentId": "job-prod-email-followup-s3",
+        "text": "Please let me know if you need any additional information.",
+        "translationTr": "Ek bilgiye ihtiyacınız olursa lütfen bana bildirin."
+      }
+    ]
+  },
+  {
+    "lessonId": "job-prod-explaining-weakness",
+    "title": "Explaining a Weakness",
+    "subtitle": "Zayıf yönünü açıklama",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "job-prod-explaining-weakness-s1",
+        "text": "One area I am working on is public speaking.",
+        "translationTr": "Üzerinde çalıştığım alanlardan biri topluluk önünde konuşma."
+      },
+      {
+        "segmentId": "job-prod-explaining-weakness-s2",
+        "text": "In the past, I felt nervous presenting to large groups.",
+        "translationTr": "Geçmişte büyük gruplara sunum yaparken gergin hissediyordum."
+      },
+      {
+        "segmentId": "job-prod-explaining-weakness-s3",
+        "text": "Recently, I have been practicing more to build confidence.",
+        "translationTr": "Son zamanlarda özgüven kazanmak için daha çok pratik yapıyorum."
+      }
+    ]
+  },
+  {
     "lessonId": "job-pack-explaining-your-strengths",
     "title": "Explaining Your Strengths",
     "subtitle": "Güçlü yönlerini söyleme",
@@ -629,7 +1107,7 @@
   {
     "lessonId": "job-pack-handling-pressure-question",
     "title": "Handling Pressure Question",
-    "subtitle": "Baskı altında çalışmayı anlatma",
+    "subtitle": "Baskı sorusuna profesyonel cevap",
     "category": "job_interview",
     "categoryLabel": "İş Görüşmesi",
     "isPremium": true,
@@ -642,8 +1120,8 @@
       },
       {
         "segmentId": "job-pack-handling-pressure-question-s2",
-        "text": "I try to stay organized and focus on one task at a time. When things get busy, I stay calm and prioritize what matters most.",
-        "translationTr": "Düzenli kalmaya ve aynı anda tek bir göreve odaklanmaya çalışırım. İşler yoğunlaştığında sakin kalır ve en önemli olana öncelik veririm."
+        "text": "I stay organized and focus on one task. When busy, I prioritize what matters most.",
+        "translationTr": "Düzenli kalır ve tek bir göreve odaklanırım. Yoğunken en önemli olana öncelik veririm."
       }
     ]
   },
@@ -658,8 +1136,60 @@
     "segments": [
       {
         "segmentId": "job-pack-introducing-yourself-s1",
-        "text": "Hi, my name is Ethem, and I'm excited to be here today.",
-        "translationTr": "Merhaba, adım Ethem ve bugün burada olduğum için heyecanlıyım."
+        "text": "Hi, nice to meet you. I'm excited to be here today.",
+        "translationTr": "Merhaba, tanıştığımıza memnun oldum. Bugün burada olduğum için heyecanlıyım."
+      }
+    ]
+  },
+  {
+    "lessonId": "job-prod-polite-disagreement",
+    "title": "Polite Disagreement",
+    "subtitle": "Katılmadığını kibarca söyleme",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "job-prod-polite-disagreement-s1",
+        "text": "I see your point, but I have a slightly different view.",
+        "translationTr": "Ne demek istediğinizi anlıyorum ama biraz farklı düşünüyorum."
+      },
+      {
+        "segmentId": "job-prod-polite-disagreement-s2",
+        "text": "My concern is that the timeline might be too tight.",
+        "translationTr": "Endişem zaman çizelgesinin çok sıkı olabileceği yönünde."
+      },
+      {
+        "segmentId": "job-prod-polite-disagreement-s3",
+        "text": "Could we explore a phased approach instead?",
+        "translationTr": "Bunun yerine aşamalı bir yaklaşımı değerlendirebilir miyiz?"
+      }
+    ]
+  },
+  {
+    "lessonId": "job-prod-professional-intro",
+    "title": "Professional Self-Introduction",
+    "subtitle": "Kendini profesyonel tanıtma",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "job-prod-professional-intro-s1",
+        "text": "Hi, nice to meet you. I work as a marketing specialist.",
+        "translationTr": "Merhaba, tanıştığımıza memnun oldum. Pazarlama uzmanı olarak çalışıyorum."
+      },
+      {
+        "segmentId": "job-prod-professional-intro-s2",
+        "text": "I've been with the company for about three years.",
+        "translationTr": "Yaklaşık üç yıldır şirketteyim."
+      },
+      {
+        "segmentId": "job-prod-professional-intro-s3",
+        "text": "Nice to meet you all.",
+        "translationTr": "Hepinizle tanıştığıma memnun oldum."
       }
     ]
   },
@@ -691,6 +1221,84 @@
         "segmentId": "job-pack-salary-and-availability-s4",
         "text": "I'm open to discussing a fair range based on the role.",
         "translationTr": "Pozisyona göre adil bir aralığı konuşmaya açığım."
+      }
+    ]
+  },
+  {
+    "lessonId": "job-prod-salary-terms",
+    "title": "Salary and Terms",
+    "subtitle": "Maaş / çalışma şartı sorma",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "job-prod-salary-terms-s1",
+        "text": "Could you share the salary range for this role?",
+        "translationTr": "Bu rol için maaş aralığını paylaşabilir misiniz?"
+      },
+      {
+        "segmentId": "job-prod-salary-terms-s2",
+        "text": "What benefits are included besides the base salary?",
+        "translationTr": "Temel maaş dışında hangi yan haklar dahil?"
+      },
+      {
+        "segmentId": "job-prod-salary-terms-s3",
+        "text": "Is remote work possible for this position?",
+        "translationTr": "Bu pozisyon için uzaktan çalışma mümkün mü?"
+      }
+    ]
+  },
+  {
+    "lessonId": "job-prod-meeting-opinion",
+    "title": "Sharing Ideas in a Meeting",
+    "subtitle": "Toplantıda fikir belirtme",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "job-prod-meeting-opinion-s1",
+        "text": "From my perspective, we should focus on the user experience first.",
+        "translationTr": "Benim bakış açımdan önce kullanıcı deneyimine odaklanmalıyız."
+      },
+      {
+        "segmentId": "job-prod-meeting-opinion-s2",
+        "text": "The data shows that onboarding is our biggest drop-off point.",
+        "translationTr": "Veriler, kullanıcı kaydının en büyük düşüş noktamız olduğunu gösteriyor."
+      },
+      {
+        "segmentId": "job-prod-meeting-opinion-s3",
+        "text": "Would it make sense to test a simpler flow next sprint?",
+        "translationTr": "Gelecek sprintte daha basit bir akışı test etmek mantıklı olur mu?"
+      }
+    ]
+  },
+  {
+    "lessonId": "job-prod-stating-strengths",
+    "title": "Stating Your Strengths",
+    "subtitle": "Güçlü yönlerini söyleme",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "job-prod-stating-strengths-s1",
+        "text": "One of my strengths is staying organized under pressure.",
+        "translationTr": "Güçlü yönlerimden biri baskı altında düzenli kalmak."
+      },
+      {
+        "segmentId": "job-prod-stating-strengths-s2",
+        "text": "For example, I handled multiple deadlines last quarter.",
+        "translationTr": "Örneğin geçen çeyrekte birden fazla teslim tarihini yönettim."
+      },
+      {
+        "segmentId": "job-prod-stating-strengths-s3",
+        "text": "I also communicate clearly with different teams.",
+        "translationTr": "Ayrıca farklı ekiplerle net iletişim kurarım."
       }
     ]
   },
@@ -745,7 +1353,7 @@
   {
     "lessonId": "job-pack-tell-me-about-yourself",
     "title": "Tell Me About Yourself",
-    "subtitle": "En yaygın mülakat sorusuna cevap",
+    "subtitle": "Tell me about yourself cevabı",
     "category": "job_interview",
     "categoryLabel": "İş Görüşmesi",
     "isPremium": true,
@@ -758,8 +1366,8 @@
       },
       {
         "segmentId": "job-pack-tell-me-about-yourself-s2",
-        "text": "Sure. I have a background in customer service and retail. I enjoy helping people, solving problems, and working in fast-paced environments.",
-        "translationTr": "Tabii. Müşteri hizmetleri ve perakende alanında bir geçmişim var. İnsanlara yardım etmeyi, problem çözmeyi ve hızlı tempolu ortamlarda çalışmayı seviyorum."
+        "text": "Sure. I have a background in customer service and retail. I enjoy helping people.",
+        "translationTr": "Tabii. Müşteri hizmetleri ve perakende alanında bir geçmişim var. İnsanlara yardım etmeyi seviyorum."
       }
     ]
   },
@@ -782,7 +1390,7 @@
   {
     "lessonId": "pron-pack-advanced-th-practice",
     "title": "Advanced TH Practice",
-    "subtitle": "th sesini doğal konuşmada kullanma",
+    "subtitle": "TH sesi — doğal konuşma pratiği",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": true,
@@ -808,7 +1416,7 @@
   {
     "lessonId": "rhythm-confidence-flow",
     "title": "Confidence Rhythm",
-    "subtitle": "Orijinal ritim cümlesi",
+    "subtitle": "Özgüven ritmi",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": true,
@@ -817,14 +1425,14 @@
       {
         "segmentId": "rhythm-conf-s1",
         "text": "Every step I take builds my confidence.",
-        "translationTr": "Attığım her adım özgüvenimi inşa eder."
+        "translationTr": "Attığım her adım özgüvenimi güçlendirir."
       }
     ]
   },
   {
     "lessonId": "pron-pack-fast-linking-practice",
     "title": "Fast Linking Practice",
-    "subtitle": "Hızlı konuşmada kelime bağlama",
+    "subtitle": "Hızlı kelime bağlama — ileri paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": true,
@@ -849,8 +1457,8 @@
   },
   {
     "lessonId": "pron-pack-final-sounds",
-    "title": "Final Sounds",
-    "subtitle": "Kelime sonlarını net söyleme",
+    "title": "Final Sounds Basics",
+    "subtitle": "Kelime sonları — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -864,9 +1472,61 @@
     ]
   },
   {
+    "lessonId": "pron-prod-final-sounds",
+    "title": "Final Sounds in Sentences",
+    "subtitle": "Kelime sonları — cümle pratiği",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "pron-prod-final-sounds-s1",
+        "text": "I need to send the file today.",
+        "translationTr": "Dosyayı bugün göndermem gerekiyor."
+      },
+      {
+        "segmentId": "pron-prod-final-sounds-s2",
+        "text": "Please check the list before the meeting.",
+        "translationTr": "Lütfen toplantıdan önce listeyi kontrol et."
+      },
+      {
+        "segmentId": "pron-prod-final-sounds-s3",
+        "text": "It looks good to me.",
+        "translationTr": "Bana iyi görünüyor."
+      }
+    ]
+  },
+  {
+    "lessonId": "pron-prod-linking-words",
+    "title": "Linking in Natural Speech",
+    "subtitle": "Doğal konuşmada kelime bağlama",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "pron-prod-linking-words-s1",
+        "text": "Pick it up on your way home.",
+        "translationTr": "Eve giderken onu al."
+      },
+      {
+        "segmentId": "pron-prod-linking-words-s2",
+        "text": "Can I ask you a quick question?",
+        "translationTr": "Sana hızlı bir soru sorabilir miyim?"
+      },
+      {
+        "segmentId": "pron-prod-linking-words-s3",
+        "text": "Turn off the light when you leave.",
+        "translationTr": "Çıkarken ışığı kapat."
+      }
+    ]
+  },
+  {
     "lessonId": "pron-pack-linking-words",
-    "title": "Linking Words",
-    "subtitle": "Kelimeleri bağlama",
+    "title": "Linking Words Basics",
+    "subtitle": "Kelime bağlama — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -882,7 +1542,7 @@
   {
     "lessonId": "pron-pack-polite-intonation",
     "title": "Polite Intonation",
-    "subtitle": "Kibar tonlama",
+    "subtitle": "Kibar tonlama — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -898,7 +1558,7 @@
   {
     "lessonId": "pron-pack-reductions-gonna-wanna-gotta",
     "title": "Reductions: gonna / wanna / gotta",
-    "subtitle": "Günlük konuşma kısaltmaları",
+    "subtitle": "Günlük kısaltmalar — ileri paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": true,
@@ -924,7 +1584,7 @@
   {
     "lessonId": "pron-pack-rhythm-and-stress",
     "title": "Rhythm and Stress",
-    "subtitle": "Cümle ritmi ve vurgu",
+    "subtitle": "Cümle ritmi ve vurgu — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -940,7 +1600,7 @@
   {
     "lessonId": "pron-pack-rhythm-drill-natural-flow",
     "title": "Rhythm Drill: Natural Flow",
-    "subtitle": "Native ritme yaklaşma",
+    "subtitle": "Doğal ritme yaklaşma — ileri paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": true,
@@ -964,9 +1624,35 @@
     ]
   },
   {
+    "lessonId": "pron-prod-rhythm-practice",
+    "title": "Rhythm Practice",
+    "subtitle": "Ritim pratiği — pratik paketi",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "pron-prod-rhythm-practice-s1",
+        "text": "When you get a chance, send me the update.",
+        "translationTr": "Fırsatın olunca bana güncellemeyi gönder."
+      },
+      {
+        "segmentId": "pron-prod-rhythm-practice-s2",
+        "text": "Let me know if anything changes.",
+        "translationTr": "Bir şey değişirse bana haber ver."
+      },
+      {
+        "segmentId": "pron-prod-rhythm-practice-s3",
+        "text": "Thanks for your help on this project.",
+        "translationTr": "Bu projede yardımın için teşekkürler."
+      }
+    ]
+  },
+  {
     "lessonId": "pron-pack-sentence-grouping",
     "title": "Sentence Grouping",
-    "subtitle": "Cümleyi anlam gruplarıyla söyleme",
+    "subtitle": "Anlam gruplarıyla konuşma — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -980,9 +1666,87 @@
     ]
   },
   {
+    "lessonId": "pron-prod-sentence-stress",
+    "title": "Sentence Stress",
+    "subtitle": "Cümle vurgusu — pratik paketi",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "pron-prod-sentence-stress-s1",
+        "text": "I NEED to finish this TODAY.",
+        "translationTr": "Bunu BUGÜN bitirmem GEREKİYOR."
+      },
+      {
+        "segmentId": "pron-prod-sentence-stress-s2",
+        "text": "SHE said the meeting is at THREE.",
+        "translationTr": "Toplantının SAAT ÜÇTE olduğunu O söyledi."
+      },
+      {
+        "segmentId": "pron-prod-sentence-stress-s3",
+        "text": "I did NOT say that.",
+        "translationTr": "Bunu söylemedim."
+      }
+    ]
+  },
+  {
+    "lessonId": "pron-prod-slow-to-natural",
+    "title": "Slow to Natural Speech",
+    "subtitle": "Yavaştan doğal konuşma — pratik paketi",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": true,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "pron-prod-slow-to-natural-s1",
+        "text": "What are you up to this weekend?",
+        "translationTr": "Bu hafta sonu ne yapıyorsun?"
+      },
+      {
+        "segmentId": "pron-prod-slow-to-natural-s2",
+        "text": "I was gonna grab coffee if you want to join.",
+        "translationTr": "Katılmak istersen kahve içmeye gidecektim."
+      },
+      {
+        "segmentId": "pron-prod-slow-to-natural-s3",
+        "text": "Sounds good, let me check my schedule.",
+        "translationTr": "Kulağa iyi geliyor, takvimime bakayım."
+      }
+    ]
+  },
+  {
+    "lessonId": "pron-prod-th-basics",
+    "title": "TH in Real Sentences",
+    "subtitle": "TH sesi — gerçek cümle pratiği",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "pron-prod-th-basics-s1",
+        "text": "I think this is the right thing.",
+        "translationTr": "Bence bu doğru şey."
+      },
+      {
+        "segmentId": "pron-prod-th-basics-s2",
+        "text": "Thank you for meeting me today.",
+        "translationTr": "Bugün benimle görüştüğün için teşekkürler."
+      },
+      {
+        "segmentId": "pron-prod-th-basics-s3",
+        "text": "Both of them went there together.",
+        "translationTr": "İkisi de oraya birlikte gitti."
+      }
+    ]
+  },
+  {
     "lessonId": "pron-pack-th-sound-basics",
     "title": "TH Sound Basics",
-    "subtitle": "th sesine giriş",
+    "subtitle": "TH sesi — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -997,8 +1761,8 @@
   },
   {
     "lessonId": "pron-pack-w-v-difference",
-    "title": "W and V Difference",
-    "subtitle": "w ve v farkını ayırt etme",
+    "title": "W and V Basics",
+    "subtitle": "W/V farkı — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -1012,9 +1776,35 @@
     ]
   },
   {
+    "lessonId": "pron-prod-w-v-difference",
+    "title": "W vs V in Real Sentences",
+    "subtitle": "W/V farkı — cümle pratiği",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "pron-prod-w-v-difference-s1",
+        "text": "We visited a very warm city.",
+        "translationTr": "Çok sıcak bir şehri ziyaret ettik."
+      },
+      {
+        "segmentId": "pron-prod-w-v-difference-s2",
+        "text": "I would like water, not wine.",
+        "translationTr": "Şarap değil, su istiyorum."
+      },
+      {
+        "segmentId": "pron-prod-w-v-difference-s3",
+        "text": "Every week we review our progress.",
+        "translationTr": "Her hafta ilerlememizi gözden geçiriyoruz."
+      }
+    ]
+  },
+  {
     "lessonId": "pron-pack-weak-forms",
-    "title": "Weak Forms",
-    "subtitle": "Zayıf sesleri tanıma",
+    "title": "Weak Forms Basics",
+    "subtitle": "Zayıf formlar — temel paket",
     "category": "pronunciation",
     "categoryLabel": "Telaffuz Egzersizleri",
     "isPremium": false,
@@ -1028,9 +1818,35 @@
     ]
   },
   {
+    "lessonId": "pron-prod-weak-forms",
+    "title": "Weak Forms in Sentences",
+    "subtitle": "Zayıf formlar — cümle pratiği",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "pron-prod-weak-forms-s1",
+        "text": "I want to go to the store.",
+        "translationTr": "Mağazaya gitmek istiyorum."
+      },
+      {
+        "segmentId": "pron-prod-weak-forms-s2",
+        "text": "A cup of tea and a piece of cake.",
+        "translationTr": "Bir fincan çay ve bir dilim kek."
+      },
+      {
+        "segmentId": "pron-prod-weak-forms-s3",
+        "text": "Can you come for a minute?",
+        "translationTr": "Bir dakika gelebilir misin?"
+      }
+    ]
+  },
+  {
     "lessonId": "series-emotional-line",
     "title": "Emotional Moment",
-    "subtitle": "Duygusal sahne",
+    "subtitle": "Duygusal sahne cümlesi",
     "category": "series_english",
     "categoryLabel": "Dizi İngilizcesi",
     "isPremium": true,
@@ -1038,15 +1854,15 @@
     "segments": [
       {
         "segmentId": "series-emotion-s1",
-        "text": "I didn't think I'd ever see you again.",
-        "translationTr": "Seni bir daha göreceğimi hiç düşünmemiştim."
+        "text": "I didn't think I'd see you again.",
+        "translationTr": "Seni bir daha göreceğimi sanmıyordum."
       }
     ]
   },
   {
     "lessonId": "series-dialogue-snippet",
     "title": "Plot Twist Reaction",
-    "subtitle": "Mini dizi diyaloğu",
+    "subtitle": "Sürpriz an diyaloğu",
     "category": "series_english",
     "categoryLabel": "Dizi İngilizcesi",
     "isPremium": true,
@@ -1059,15 +1875,15 @@
       },
       {
         "segmentId": "series-twist-s2",
-        "text": "Wait, what? What are you talking about?",
-        "translationTr": "Bekle, ne? Ne diyorsun sen?"
+        "text": "Wait, what? What do you mean?",
+        "translationTr": "Bekle, ne? Ne demek istiyorsun?"
       }
     ]
   },
   {
     "lessonId": "series-fast-banter",
     "title": "Quick Banter",
-    "subtitle": "Hızlı atışma",
+    "subtitle": "Hızlı atışma — native hız",
     "category": "series_english",
     "categoryLabel": "Dizi İngilizcesi",
     "isPremium": true,
@@ -1075,15 +1891,15 @@
     "segments": [
       {
         "segmentId": "series-banter-s1",
-        "text": "Come on, you know I'm right about this.",
-        "translationTr": "Hadi ama, bu konuda haklı olduğumu biliyorsun."
+        "text": "Come on, you know I'm right.",
+        "translationTr": "Hadi ama, haklı olduğumu biliyorsun."
       }
     ]
   },
   {
     "lessonId": "series-sarcastic-reply",
     "title": "Sarcastic Comeback",
-    "subtitle": "İronik cevap",
+    "subtitle": "İronik cevap tonu",
     "category": "series_english",
     "categoryLabel": "Dizi İngilizcesi",
     "isPremium": false,
@@ -1091,15 +1907,15 @@
     "segments": [
       {
         "segmentId": "series-sarc-s1",
-        "text": "Oh sure, because that always works out perfectly.",
-        "translationTr": "Tabii ya, çünkü o her zaman mükemmel sonuçlanır."
+        "text": "Oh sure, that always works out perfectly.",
+        "translationTr": "Tabii ya, bu her zaman mükemmel sonuçlanır."
       }
     ]
   },
   {
     "lessonId": "series-reaction-wow",
     "title": "Surprised Reaction",
-    "subtitle": "Şaşkınlık ifadesi",
+    "subtitle": "Şaşkınlık tepkisi",
     "category": "series_english",
     "categoryLabel": "Dizi İngilizcesi",
     "isPremium": false,
@@ -1109,6 +1925,32 @@
         "segmentId": "series-wow-s1",
         "text": "Wait, are you serious right now?",
         "translationTr": "Bekle, şu an ciddi misin?"
+      }
+    ]
+  },
+  {
+    "lessonId": "travel-prod-airport-checkin",
+    "title": "Airport Check-in",
+    "subtitle": "Havalimanında check-in",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "travel-prod-airport-checkin-s1",
+        "text": "Hi, I'd like to check in for my flight.",
+        "translationTr": "Merhaba, uçuşum için check-in yapmak istiyorum."
+      },
+      {
+        "segmentId": "travel-prod-airport-checkin-s2",
+        "text": "Here is my passport and booking confirmation.",
+        "translationTr": "İşte pasaportum ve rezervasyon onayım."
+      },
+      {
+        "segmentId": "travel-prod-airport-checkin-s3",
+        "text": "Could I get a window seat, if possible?",
+        "translationTr": "Mümkünse cam kenarı koltuk alabilir miyim?"
       }
     ]
   },
@@ -1162,7 +2004,7 @@
   {
     "lessonId": "travel-pack-asking-for-directions",
     "title": "Asking for Directions",
-    "subtitle": "Yol tarifi sorma",
+    "subtitle": "Yol tarifi sorma — temel paket",
     "category": "travel",
     "categoryLabel": "Seyahat",
     "isPremium": false,
@@ -1234,8 +2076,34 @@
     "segments": [
       {
         "segmentId": "travel-pack-checking-in-at-hotel-s1",
-        "text": "I have a reservation under the name Sincar.",
-        "translationTr": "Sincar adına bir rezervasyonum var."
+        "text": "I have a reservation for tonight.",
+        "translationTr": "Bu gece için bir rezervasyonum var."
+      }
+    ]
+  },
+  {
+    "lessonId": "travel-prod-emergency-phrases",
+    "title": "Emergency Phrases",
+    "subtitle": "Acil durum cümleleri",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "travel-prod-emergency-phrases-s1",
+        "text": "I need help, please!",
+        "translationTr": "Yardıma ihtiyacım var lütfen!"
+      },
+      {
+        "segmentId": "travel-prod-emergency-phrases-s2",
+        "text": "Can you call an ambulance?",
+        "translationTr": "Ambulans çağırabilir misiniz?"
+      },
+      {
+        "segmentId": "travel-prod-emergency-phrases-s3",
+        "text": "I lost my passport.",
+        "translationTr": "Pasaportumu kaybettim."
       }
     ]
   },
@@ -1252,6 +2120,32 @@
         "segmentId": "travel-pack-fast-native-directions-s1",
         "text": "Go straight for two blocks, then turn left at the lights.",
         "translationTr": "İki blok düz gidin, sonra ışıklardan sola dönün."
+      }
+    ]
+  },
+  {
+    "lessonId": "travel-prod-hotel-checkin",
+    "title": "Hotel Check-in",
+    "subtitle": "Otelde giriş",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "travel-prod-hotel-checkin-s1",
+        "text": "I have a reservation for tonight.",
+        "translationTr": "Bu gece için bir rezervasyonum var."
+      },
+      {
+        "segmentId": "travel-prod-hotel-checkin-s2",
+        "text": "What time is check-out tomorrow?",
+        "translationTr": "Yarın çıkış saati kaç?"
+      },
+      {
+        "segmentId": "travel-prod-hotel-checkin-s3",
+        "text": "Is breakfast included in the room rate?",
+        "translationTr": "Kahvaltı oda fiyatına dahil mi?"
       }
     ]
   },
@@ -1282,6 +2176,32 @@
     ]
   },
   {
+    "lessonId": "travel-prod-asking-directions",
+    "title": "Natural Direction Questions",
+    "subtitle": "Yol sorma — günlük kalıplar",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "travel-prod-asking-directions-s1",
+        "text": "Excuse me, how do I get to the train station?",
+        "translationTr": "Affedersiniz, tren istasyonuna nasıl giderim?"
+      },
+      {
+        "segmentId": "travel-prod-asking-directions-s2",
+        "text": "Is it within walking distance?",
+        "translationTr": "Yürüme mesafesinde mi?"
+      },
+      {
+        "segmentId": "travel-prod-asking-directions-s3",
+        "text": "Could you show me on the map?",
+        "translationTr": "Haritada gösterebilir misiniz?"
+      }
+    ]
+  },
+  {
     "lessonId": "travel-pack-reporting-a-problem",
     "title": "Reporting a Problem",
     "subtitle": "Bir sorunu kibarca bildirme",
@@ -1294,6 +2214,32 @@
         "segmentId": "travel-pack-reporting-a-problem-s1",
         "text": "There seems to be a problem with my room.",
         "translationTr": "Odamla ilgili bir sorun var gibi görünüyor."
+      }
+    ]
+  },
+  {
+    "lessonId": "travel-prod-security-check",
+    "title": "Security Check",
+    "subtitle": "Güvenlik kontrolü",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": false,
+    "level": "beginner",
+    "segments": [
+      {
+        "segmentId": "travel-prod-security-check-s1",
+        "text": "Do I need to take my laptop out?",
+        "translationTr": "Laptopumu çıkarmam gerekiyor mu?"
+      },
+      {
+        "segmentId": "travel-prod-security-check-s2",
+        "text": "I have a small bottle of water here.",
+        "translationTr": "Burada küçük bir su şişem var."
+      },
+      {
+        "segmentId": "travel-prod-security-check-s3",
+        "text": "Sure, no problem.",
+        "translationTr": "Tabii, sorun değil."
       }
     ]
   },
@@ -1336,6 +2282,58 @@
         "segmentId": "travel-pack-taking-a-taxi-s1",
         "text": "Could you take me to this address, please?",
         "translationTr": "Beni bu adrese götürebilir misiniz lütfen?"
+      }
+    ]
+  },
+  {
+    "lessonId": "travel-prod-taxi-transport",
+    "title": "Taxi and Transport",
+    "subtitle": "Taksi / ulaşım",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "travel-prod-taxi-transport-s1",
+        "text": "Could you take me to this address, please?",
+        "translationTr": "Beni bu adrese götürebilir misiniz lütfen?"
+      },
+      {
+        "segmentId": "travel-prod-taxi-transport-s2",
+        "text": "How much will it cost approximately?",
+        "translationTr": "Yaklaşık ne kadar tutar?"
+      },
+      {
+        "segmentId": "travel-prod-taxi-transport-s3",
+        "text": "Can you drop me off near the main entrance?",
+        "translationTr": "Beni ana girişin yakınında bırakabilir misiniz?"
+      }
+    ]
+  },
+  {
+    "lessonId": "travel-prod-tourist-info",
+    "title": "Tourist Information",
+    "subtitle": "Turistik bilgi sorma",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": true,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "travel-prod-tourist-info-s1",
+        "text": "What are the must-see places around here?",
+        "translationTr": "Buralarda mutlaka görülmesi gereken yerler nereler?"
+      },
+      {
+        "segmentId": "travel-prod-tourist-info-s2",
+        "text": "How long does it take to get there?",
+        "translationTr": "Oraya gitmek ne kadar sürer?"
+      },
+      {
+        "segmentId": "travel-prod-tourist-info-s3",
+        "text": "Do you recommend going early in the morning?",
+        "translationTr": "Sabah erken gitmeyi önerir misiniz?"
       }
     ]
   }

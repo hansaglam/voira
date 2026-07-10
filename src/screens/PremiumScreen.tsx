@@ -15,6 +15,7 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { RootScreenProps } from '../navigation/types';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { AppCard } from '../components/AppCard';
+import { PremiumDebugPanel } from '../components/PremiumDebugPanel';
 import { PremiumFeatureItem } from '../components/PremiumFeatureItem';
 import { usePremium } from '../context/PremiumContext';
 import type { PremiumPackageOption } from '../services/premium';
@@ -126,6 +127,7 @@ function PremiumFooter({
   disabled,
   loading,
   restoring,
+  activeSubscriber = false,
 }: {
   ctaTitle: string;
   onPrimary: () => void;
@@ -136,6 +138,7 @@ function PremiumFooter({
   disabled?: boolean;
   loading?: boolean;
   restoring?: boolean;
+  activeSubscriber?: boolean;
 }) {
   return (
     <View style={styles.footerShell}>
@@ -156,36 +159,40 @@ function PremiumFooter({
           disabled={disabled}
           loading={loading}
         />
-        <TouchableOpacity
-          onPress={onRestore}
-          activeOpacity={0.65}
-          style={styles.restoreTouchable}
-          disabled={restoring}
-          hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
-        >
-          {restoring ? (
-            <ActivityIndicator size="small" color={colors.textMuted} />
-          ) : (
-            <Text style={styles.restoreText}>Satın alımları geri yükle</Text>
-          )}
-        </TouchableOpacity>
-        <View style={styles.legalRow}>
-          <TouchableOpacity onPress={onPrivacy} hitSlop={8}>
-            <Text style={styles.legalLink}>Gizlilik Politikası</Text>
-          </TouchableOpacity>
-          <Text style={styles.legalDivider}>•</Text>
-          <TouchableOpacity onPress={onTerms} hitSlop={8}>
-            <Text style={styles.legalLink}>Kullanım Şartları</Text>
-          </TouchableOpacity>
-        </View>
-        <TouchableOpacity
-          onPress={onSkip}
-          activeOpacity={0.65}
-          style={styles.skipTouchable}
-          hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
-        >
-          <Text style={styles.skipText}>Şimdilik devam et</Text>
-        </TouchableOpacity>
+        {!activeSubscriber ? (
+          <>
+            <TouchableOpacity
+              onPress={onRestore}
+              activeOpacity={0.65}
+              style={styles.restoreTouchable}
+              disabled={restoring}
+              hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
+            >
+              {restoring ? (
+                <ActivityIndicator size="small" color={colors.textMuted} />
+              ) : (
+                <Text style={styles.restoreText}>Satın alımları geri yükle</Text>
+              )}
+            </TouchableOpacity>
+            <View style={styles.legalRow}>
+              <TouchableOpacity onPress={onPrivacy} hitSlop={8}>
+                <Text style={styles.legalLink}>Gizlilik Politikası</Text>
+              </TouchableOpacity>
+              <Text style={styles.legalDivider}>•</Text>
+              <TouchableOpacity onPress={onTerms} hitSlop={8}>
+                <Text style={styles.legalLink}>Kullanım Şartları</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={onSkip}
+              activeOpacity={0.65}
+              style={styles.skipTouchable}
+              hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
+            >
+              <Text style={styles.skipText}>Şimdilik devam et</Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
       </View>
     </View>
   );
@@ -213,9 +220,14 @@ export function PremiumScreen({ navigation }: Props) {
     purchasePackage,
     restorePurchases,
     refreshOfferings,
+    refreshCustomerInfo,
   } = usePremium();
 
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+
+  useEffect(() => {
+    void refreshCustomerInfo();
+  }, [refreshCustomerInfo]);
 
   useEffect(() => {
     setSelectedPackage(defaultSelectedPackage(packageOptions));
@@ -260,7 +272,13 @@ export function PremiumScreen({ navigation }: Props) {
       return;
     }
     if (result === 'not_found') {
-      Alert.alert('Aktif SpeakPlus aboneliği bulunamadı.');
+      Alert.alert(
+        'Abonelik bulunamadı',
+        'Bu Google Play hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.',
+      );
+    }
+    if (result === 'error') {
+      Alert.alert('Geri yükleme başarısız', 'Satın alımlar geri yüklenemedi. Lütfen tekrar dene.');
     }
   };
 
@@ -281,6 +299,7 @@ export function PremiumScreen({ navigation }: Props) {
       disabled={!isPremium && (!selectedPackage || packageOptions.length === 0)}
       loading={isPurchasing}
       restoring={isRestoring}
+      activeSubscriber={isPremium}
     />
   );
 
@@ -328,10 +347,21 @@ export function PremiumScreen({ navigation }: Props) {
           <Ionicons name="diamond" size={26} color={colors.textPrimary} />
         </LinearGradient>
         <Text style={styles.brand}>SpeakPlus</Text>
-        <Text style={styles.title}>SpeakPlus ile sınırsız konuşma pratiği</Text>
-        <Text style={styles.subtitle}>
-          Gelişmiş geri bildirim, tüm ders paketleri ve kişisel gelişim raporu.
-        </Text>
+        {isPremium ? (
+          <>
+            <Text style={styles.title}>SpeakPlus aktif</Text>
+            <Text style={styles.subtitle}>
+              Premium derslere ve gelişmiş geri bildirimlere erişimin var.
+            </Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.title}>SpeakPlus ile sınırsız konuşma pratiği</Text>
+            <Text style={styles.subtitle}>
+              Gelişmiş geri bildirim, tüm ders paketleri ve kişisel gelişim raporu.
+            </Text>
+          </>
+        )}
       </View>
 
       {isPremium ? (
@@ -341,34 +371,38 @@ export function PremiumScreen({ navigation }: Props) {
             Premium derslere ve gelişmiş geri bildirimlere erişimin var.
           </Text>
         </AppCard>
-      ) : null}
+      ) : (
+        <>
+          <View style={styles.benefitRow}>
+            {BENEFIT_PILLS.map((pill) => (
+              <BenefitPill key={pill.label} icon={pill.icon} label={pill.label} />
+            ))}
+          </View>
 
-      <View style={styles.benefitRow}>
-        {BENEFIT_PILLS.map((pill) => (
-          <BenefitPill key={pill.label} icon={pill.icon} label={pill.label} />
-        ))}
-      </View>
+          <AppCard style={styles.featuresCard}>
+            <Text style={styles.sectionTitle}>Neler açılır?</Text>
+            {PREMIUM_UNLOCKS.map((feature, index) => (
+              <PremiumFeatureItem
+                key={feature}
+                text={feature}
+                compact
+                isLast={index === PREMIUM_UNLOCKS.length - 1}
+              />
+            ))}
+          </AppCard>
+        </>
+      )}
 
-      <AppCard style={styles.featuresCard}>
-        <Text style={styles.sectionTitle}>Neler açılır?</Text>
-        {PREMIUM_UNLOCKS.map((feature, index) => (
-          <PremiumFeatureItem
-            key={feature}
-            text={feature}
-            compact
-            isLast={index === PREMIUM_UNLOCKS.length - 1}
-          />
-        ))}
-      </AppCard>
+      <PremiumDebugPanel />
 
-      {isPackagesLoading ? (
+      {!isPremium && isPackagesLoading ? (
         <View style={styles.loadingBlock}>
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.loadingText}>Abonelik seçenekleri yükleniyor…</Text>
         </View>
       ) : null}
 
-      {showOfferingsFallback ? (
+      {!isPremium && showOfferingsFallback ? (
         <AppCard style={styles.fallbackCard}>
           <Text style={styles.fallbackTitle}>Paketler yüklenemedi</Text>
           <Text style={styles.fallbackBody}>
@@ -389,13 +423,13 @@ export function PremiumScreen({ navigation }: Props) {
         </AppCard>
       ) : null}
 
-      {!isPackagesLoading && errorMessage ? (
+      {!isPremium && !isPackagesLoading && errorMessage ? (
         <AppCard style={styles.errorCard}>
           <Text style={styles.errorText}>{errorMessage}</Text>
         </AppCard>
       ) : null}
 
-      {!isPackagesLoading && packageOptions.length > 0 ? (
+      {!isPremium && !isPackagesLoading && packageOptions.length > 0 ? (
         <View style={styles.packageRow}>
           {packageOptions.map((option) => (
             <PackageCard
@@ -408,7 +442,7 @@ export function PremiumScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      {!isPackagesLoading && selectedPackage ? (
+      {!isPremium && !isPackagesLoading && selectedPackage ? (
         <AppCard style={styles.priceCard}>
           <Text style={styles.priceAmount}>{selectedPackage.product.priceString}</Text>
           <Text style={styles.pricePeriod}>

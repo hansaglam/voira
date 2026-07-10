@@ -16,6 +16,7 @@ import { SupportScreen } from '../screens/SupportScreen';
 import { DataDeletionScreen } from '../screens/DataDeletionScreen';
 import { AboutScreen } from '../screens/AboutScreen';
 import { useUser } from '../context/UserContext';
+import { useLearning } from '../context/LearningContext';
 import { lessons } from '../data/lessons';
 import { colors } from '../theme';
 
@@ -80,8 +81,9 @@ function MainNavigator() {
 
 export function RootNavigator() {
   const { onboardingComplete, isOnboardingHydrated } = useUser();
+  const { isLearningHydrated } = useLearning();
 
-  if (!isOnboardingHydrated) {
+  if (!isOnboardingHydrated || !isLearningHydrated) {
     return <View style={styles.bootSplash} />;
   }
 

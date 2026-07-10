@@ -113,6 +113,37 @@ export function completeDailySession(
   };
 }
 
+export function getLearningSessionSnapshot(): {
+  sessions: Record<string, DailyPracticeSession>;
+  results: Record<string, PracticeResult[]>;
+  todaySessionKey: string | null;
+} {
+  return {
+    sessions: Object.fromEntries(store.sessions.entries()),
+    results: Object.fromEntries(store.results.entries()),
+    todaySessionKey: store.todaySessionKey,
+  };
+}
+
+export function hydrateLearningSessionStore(snapshot: {
+  sessions: Record<string, DailyPracticeSession>;
+  results: Record<string, PracticeResult[]>;
+  todaySessionKey: string | null;
+}): void {
+  store.sessions.clear();
+  store.results.clear();
+
+  for (const [sessionId, session] of Object.entries(snapshot.sessions)) {
+    store.sessions.set(sessionId, session);
+  }
+
+  for (const [sessionId, sessionResults] of Object.entries(snapshot.results)) {
+    store.results.set(sessionId, sessionResults);
+  }
+
+  store.todaySessionKey = snapshot.todaySessionKey;
+}
+
 /** Test helper — reset in-memory session state. */
 export function resetLearningSessionStore(): void {
   store.sessions.clear();

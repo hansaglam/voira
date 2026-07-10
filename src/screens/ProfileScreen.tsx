@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TabScreenProps } from '../navigation/types';
 import { ScreenContainer, AppCard, SectionHeader, AppButton } from '../components';
+import { PremiumDebugPanel } from '../components/PremiumDebugPanel';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
@@ -23,7 +24,7 @@ import { buildProgressSummary } from '../services/progress';
 import { lessons } from '../data/lessons';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.4';
 
 type Props = TabScreenProps<'Profile'>;
 
@@ -238,7 +239,10 @@ export function ProfileScreen({ navigation }: Props) {
       return;
     }
     if (result === 'not_found') {
-      Alert.alert('Aktif SpeakPlus aboneliği bulunamadı.');
+      Alert.alert(
+        'Abonelik bulunamadı',
+        'Bu Google Play hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.',
+      );
     }
   };
 
@@ -380,6 +384,8 @@ export function ProfileScreen({ navigation }: Props) {
           </View>
         </LinearGradient>
       </TouchableOpacity>
+
+      <PremiumDebugPanel />
 
       <SectionHeader title="İstatistikler" />
       <View style={styles.statsGrid}>

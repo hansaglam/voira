@@ -12,6 +12,7 @@ import {
   FuturePracticeCard,
 } from '../components';
 import { useUser } from '../context/UserContext';
+import { usePremium } from '../context/PremiumContext';
 import { useLearning } from '../context/LearningContext';
 import {
   getContinueLesson,
@@ -24,6 +25,7 @@ type Props = TabScreenProps<'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { profile, pendingFirstLesson, clearPendingFirstLesson } = useUser();
+  const { isPremium } = usePremium();
   const openedPendingLessonRef = useRef(false);
   const { learningProfile, getDailySession } = useLearning();
   const session = getDailySession();
@@ -60,7 +62,7 @@ export function HomeScreen({ navigation }: Props) {
             Bugün kısa bir shadowing pratiğiyle konuşmanı geliştir.
           </Text>
         </View>
-        {!profile.isPremium ? (
+        {!isPremium ? (
           <TouchableOpacity
             style={styles.premiumBadge}
             onPress={() => navigation.navigate('Premium')}
@@ -127,7 +129,7 @@ export function HomeScreen({ navigation }: Props) {
           title="Devam et"
           size="compact"
           onPress={() =>
-            openLessonFromLibrary(navigation, continueLesson, profile.isPremium)
+            openLessonFromLibrary(navigation, continueLesson, isPremium)
           }
           style={styles.continueButton}
         />
@@ -151,10 +153,10 @@ export function HomeScreen({ navigation }: Props) {
           <LibraryLessonCard
             key={lesson.id}
             lesson={lesson}
-            isPremiumUser={profile.isPremium}
+            isPremiumUser={isPremium}
             variant="compact"
             completedLessonIds={learningProfile.completedLessonIds}
-            onPress={() => openLessonFromLibrary(navigation, lesson, profile.isPremium)}
+            onPress={() => openLessonFromLibrary(navigation, lesson, isPremium)}
           />
         ))}
       </ScrollView>

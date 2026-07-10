@@ -4,8 +4,11 @@ import React, {
   useContext,
   useMemo,
   useState,
+  useEffect,
+  useRef,
   ReactNode,
 } from 'react';
+import { AppState } from 'react-native';
 import { DailyPracticeSession } from '../types/dailyPractice';
 import {
   createDefaultLearningProfile,
@@ -38,15 +41,24 @@ import {
   getOrCreateDailySession,
   getSessionById,
   getSessionResults,
+  hydrateLearningSessionStore,
   recordPracticeResult,
   resetLearningSessionStore,
 } from '../data/learningSessionStore';
+import {
+  buildLearningProgressSnapshot,
+  clearLearningProgress,
+  loadLearningProgress,
+  saveLearningProgress,
+  type LastLessonState,
+} from '../data/learningProgressStorage';
 import { lessons } from '../data/lessons';
 import { getActiveSegment } from '../utils/lessonUtils';
 import type { RecordingValidationResult } from '../services/audio/recordingValidation';
 
 interface LearningContextType {
   learningProfile: UserLearningProfile;
+  isLearningHydrated: boolean;
   getDailySession: () => DailyPracticeSession;
   getSession: (sessionId: string) => DailyPracticeSession | undefined;
   getResultsForSession: (sessionId: string) => PracticeResult[];
@@ -89,6 +101,7 @@ interface LearningContextType {
   setPremium: (premium: boolean) => void;
   setUserId: (userId: string) => void;
   isLessonCompleted: (lessonId: string) => boolean;
+  recordActiveLesson: (state: Omit<LastLessonState, 'updatedAt'>) => void;
   resetLocalPracticeData: () => void;
 }
 
@@ -96,19 +109,97 @@ const LearningContext = createContext<LearningContextType | undefined>(undefined
 
 export function LearningProvider({ children }: { children: ReactNode }) {
   const [learningProfile, setLearningProfile] = useState<UserLearningProfile>(() =>
-    createDefaultLearningProfile({
-      currentStreak: 3,
-      averageScore: 71,
-      bestScore: 84,
-      completedLessonIds: [
-        'daily-weekend-plans',
-        'daily-weather-smalltalk',
-        'cafe-order-latte',
-      ],
-      weakAreas: ['th sesi', 'kelime bağlama', 'ritim'],
-      lastPracticeDate: null,
-    }),
+    createDefaultLearningProfile(),
   );
+  const [lastLessonState, setLastLessonState] = useState<LastLessonState | null>(null);
+  const [isLearningHydrated, setIsLearningHydrated] = useState(false);
+  const learningProfileRef = useRef(learningProfile);
+  const lastLessonStateRef = useRef(lastLessonState);
+  const isLearningHydratedRef = useRef(isLearningHydrated);
+
+  learningProfileRef.current = learningProfile;
+  lastLessonStateRef.current = lastLessonState;
+  isLearningHydratedRef.current = isLearningHydrated;
+
+  const persistProgressSnapshot = useCallback(
+    async (profile: UserLearningProfile, lessonState: LastLessonState | null) => {
+      if (!isLearningHydratedRef.current) return;
+
+      try {
+        const snapshot = buildLearningProgressSnapshot(profile, lessonState);
+        await saveLearningProgress(snapshot);
+        if (__DEV__) {
+          console.log('[EchoSpeak Progress] persisted', {
+            completedLessons: snapshot.completedLessonIds.length,
+            practiceResults: snapshot.totalPracticeCount,
+            streak: snapshot.currentStreak,
+          });
+        }
+      } catch (error) {
+        console.warn('[EchoSpeak Progress] persist failed', error);
+      }
+    },
+    [],
+  );
+
+  const persistProgress = useCallback(async () => {
+    await persistProgressSnapshot(learningProfileRef.current, lastLessonStateRef.current);
+  }, [persistProgressSnapshot]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const saved = await loadLearningProgress();
+      if (cancelled) return;
+
+      if (saved) {
+        hydrateLearningSessionStore({
+          sessions: saved.sessions,
+          results: saved.results,
+          todaySessionKey: saved.todaySessionKey,
+        });
+
+        setLearningProfile((prev) => ({
+          ...prev,
+          completedLessonIds: saved.completedLessonIds,
+          completedDailySessionIds: saved.completedDailySessionIds,
+          currentStreak: saved.currentStreak,
+          lastPracticeDate: saved.lastPracticeDate,
+          averageScore: saved.averageScore,
+          bestScore: saved.bestScore,
+          weakAreas: saved.weakAreas.length > 0 ? saved.weakAreas : prev.weakAreas,
+        }));
+        setLastLessonState(saved.lastLessonState);
+
+        if (__DEV__) {
+          console.log('[EchoSpeak Progress] hydrated', {
+            completedLessons: saved.completedLessonIds.length,
+            practiceResults: saved.totalPracticeCount,
+            streak: saved.currentStreak,
+          });
+        }
+      }
+
+      setIsLearningHydrated(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'background' || nextState === 'inactive') {
+        void persistProgress();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [persistProgress]);
 
   const getDailySession = useCallback(
     () => getOrCreateDailySession(learningProfile, lessons),
@@ -257,16 +348,38 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     [learningProfile],
   );
 
-  const submitPracticeResult = useCallback((result: PracticeResult) => {
-    setLearningProfile((prev) => {
-      const { profile } = recordPracticeResult(prev, result);
-      return profile;
-    });
-  }, []);
+  const submitPracticeResult = useCallback(
+    (result: PracticeResult) => {
+      const nextLastLessonState: LastLessonState = {
+        lessonId: result.lessonId,
+        source: result.mode === 'daily' ? 'dailySession' : 'library',
+        sessionId: result.sessionId,
+        updatedAt: result.createdAt,
+      };
+      lastLessonStateRef.current = nextLastLessonState;
+      setLastLessonState(nextLastLessonState);
 
-  const finishDailySession = useCallback((sessionId: string) => {
-    setLearningProfile((prev) => completeDailySession(prev, sessionId));
-  }, []);
+      setLearningProfile((prev) => {
+        const { profile } = recordPracticeResult(prev, result);
+        learningProfileRef.current = profile;
+        void persistProgressSnapshot(profile, nextLastLessonState);
+        return profile;
+      });
+    },
+    [persistProgressSnapshot],
+  );
+
+  const finishDailySession = useCallback(
+    (sessionId: string) => {
+      setLearningProfile((prev) => {
+        const profile = completeDailySession(prev, sessionId);
+        learningProfileRef.current = profile;
+        void persistProgressSnapshot(profile, lastLessonStateRef.current);
+        return profile;
+      });
+    },
+    [persistProgressSnapshot],
+  );
 
   const setName = useCallback((name: string) => {
     setLearningProfile((p) => ({ ...p, name }));
@@ -304,10 +417,21 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     [learningProfile.completedLessonIds],
   );
 
+  const recordActiveLesson = useCallback((state: Omit<LastLessonState, 'updatedAt'>) => {
+    const nextLastLessonState: LastLessonState = {
+      ...state,
+      updatedAt: new Date().toISOString(),
+    };
+    lastLessonStateRef.current = nextLastLessonState;
+    setLastLessonState(nextLastLessonState);
+  }, []);
+
   const resetLocalPracticeData = useCallback(() => {
     resetLearningSessionStore();
-    setLearningProfile((prev) =>
-      createDefaultLearningProfile({
+    setLastLessonState(null);
+    lastLessonStateRef.current = null;
+    setLearningProfile((prev) => {
+      const profile = createDefaultLearningProfile({
         userId: prev.userId,
         name: prev.name,
         level: prev.level,
@@ -315,13 +439,17 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         weakAreas: prev.weakAreas,
         dailyMinutes: prev.dailyMinutes,
         premium: prev.premium,
-      }),
-    );
-  }, []);
+      });
+      learningProfileRef.current = profile;
+      void clearLearningProgress().then(() => persistProgressSnapshot(profile, null));
+      return profile;
+    });
+  }, [persistProgressSnapshot]);
 
   const value = useMemo(
     (): LearningContextType => ({
       learningProfile,
+      isLearningHydrated,
       getDailySession,
       getSession,
       getResultsForSession,
@@ -338,10 +466,12 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       setPremium,
       setUserId,
       isLessonCompleted,
+      recordActiveLesson,
       resetLocalPracticeData,
     }),
     [
       learningProfile,
+      isLearningHydrated,
       getDailySession,
       getSession,
       getResultsForSession,
@@ -358,6 +488,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       setPremium,
       setUserId,
       isLessonCompleted,
+      recordActiveLesson,
       resetLocalPracticeData,
     ],
   );

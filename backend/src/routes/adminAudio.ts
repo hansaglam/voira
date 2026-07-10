@@ -5,7 +5,7 @@ import { IS_DEV, MAX_LESSON_AUDIO_UPLOAD_BYTES } from '../config.js';
 import { requireAdminAccess } from '../middleware/adminAuth.js';
 import { getAudioStorageProvider } from '../services/audio/audioRegistryRepository.js';
 import { uploadLessonAudio } from '../services/audio/audioStorageService.js';
-import { readLessonCatalogSnapshot } from '../services/lessonCatalogService.js';
+import { loadLessonCatalog } from '../services/lessonCatalogService.js';
 import type { LessonAudioType } from '../types/audioRegistry.js';
 import { failed, sendFailed } from '../utils/response.js';
 
@@ -55,14 +55,19 @@ adminAudioRouter.get('/admin/audio/status', requireAdminAccess, (_req, res) => {
 
 adminAudioRouter.get('/admin/audio/catalog', requireAdminAccess, async (_req, res) => {
   try {
-    const lessons = await readLessonCatalogSnapshot();
-    const segmentCount = lessons.reduce((total, lesson) => total + lesson.segments.length, 0);
+    const { lessons, meta } = await loadLessonCatalog();
 
     if (IS_DEV) {
-      console.log('[EchoSpeak Admin Audio] catalog lessons:', lessons.length, 'segments:', segmentCount);
+      console.log('[EchoSpeak Admin Audio] catalog', {
+        source: meta.source,
+        lessons: meta.totalLessons,
+        segments: meta.totalSegments,
+        productionLessons: meta.productionLessons,
+        productionSegments: meta.productionSegments,
+      });
     }
 
-    return res.status(200).json({ ok: true, lessons });
+    return res.status(200).json({ ok: true, lessons, meta });
   } catch (error) {
     if (IS_DEV) {
       console.error('[EchoSpeak Admin Audio] catalog_read_error', {

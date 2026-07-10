@@ -3,8 +3,21 @@ import { View, StyleSheet, Platform, TouchableOpacity, Text } from 'react-native
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { TAB_CONFIG } from './tabBarConfig';
+import { TAB_CONFIG, type TabConfigItem } from './tabBarConfig';
+import type { MainTabParamList } from './types';
 import { colors, spacing, layout } from '../theme';
+
+type TabRouteName = keyof MainTabParamList;
+
+function isTabRouteName(name: string): name is TabRouteName {
+  return Object.prototype.hasOwnProperty.call(TAB_CONFIG, name);
+}
+
+const FALLBACK_TAB_CONFIG: TabConfigItem = {
+  label: 'Tab',
+  icon: 'ellipse-outline',
+  iconFocused: 'ellipse',
+};
 
 export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -15,8 +28,10 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
       <View style={styles.inner}>
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const config = TAB_CONFIG[route.name];
-          if (!config) return null;
+          const routeName = route.name;
+          const config = isTabRouteName(routeName)
+            ? TAB_CONFIG[routeName]
+            : FALLBACK_TAB_CONFIG;
 
           const isFocused = state.index === index;
 
@@ -26,8 +41,8 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
               target: route.key,
               canPreventDefault: true,
             });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            if (!isFocused && !event.defaultPrevented && isTabRouteName(routeName)) {
+              navigation.navigate(routeName);
             }
           };
 

@@ -1,43 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootScreenProps } from '../navigation/types';
 import { ScreenContainer, LibraryLessonCard, SectionHeader, EmptyState } from '../components';
-import { getContinueLesson, openLessonFromLibrary, type LessonProgressState } from '../data/lessonLibrary';
-import { getCategoryById } from '../data/lessons';
-import { getLessonsByCategory } from '../services/contentRepository';
+import {
+  getContinueLesson,
+  getCategoryLessonStats,
+  openLessonFromLibrary,
+  type LessonProgressState,
+} from '../data/lessonLibrary';
 import { usePremium } from '../context/PremiumContext';
 import { useLearning } from '../context/LearningContext';
 import { resolveLessonPremium } from '../utils/lessonUtils';
-import { Lesson, LessonCategory, LessonLevel } from '../types/lesson';
+import { Lesson, LessonLevel } from '../types/lesson';
 import { colors, spacing, typography } from '../theme';
 
 type Props = RootScreenProps<'CategoryLessons'>;
-
-type CategoryLessonStats = {
-  total: number;
-  freeCount: number;
-  premiumCount: number;
-  lessons: Lesson[];
-  category: ReturnType<typeof getCategoryById>;
-};
-
-async function loadCategoryLessonStats(
-  categoryId: LessonCategory,
-): Promise<CategoryLessonStats> {
-  const lessons = await getLessonsByCategory(categoryId, { includePremium: true });
-  const freeCount = lessons.filter((lesson) => !resolveLessonPremium(lesson)).length;
-  const premiumCount = lessons.filter((lesson) => resolveLessonPremium(lesson)).length;
-
-  return {
-    total: lessons.length,
-    freeCount,
-    premiumCount,
-    lessons,
-    category: getCategoryById(categoryId),
-  };
-}
 
 const CATEGORY_GOAL_COPY: Partial<Record<string, { title: string; text: string }>> = {
   daily: {
@@ -73,25 +52,10 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
   const { isPremium } = usePremium();
   const { learningProfile } = useLearning();
   const { categoryId } = route.params;
-  const [stats, setStats] = useState<CategoryLessonStats | null>(null);
+  const stats = useMemo(() => getCategoryLessonStats(categoryId), [categoryId]);
   const continueLesson = getContinueLesson(learningProfile);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      const nextStats = await loadCategoryLessonStats(categoryId);
-      if (!cancelled) {
-        setStats(nextStats);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId]);
-
-  const category = stats?.category;
+  const category = stats.category;
 
   const continueInCategory =
     continueLesson.category === categoryId ? continueLesson : null;
@@ -103,10 +67,6 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
   };
 
   const { continueLessons, allLessons } = useMemo(() => {
-    if (!stats) {
-      return { continueLessons: [] as Lesson[], allLessons: [] as Lesson[] };
-    }
-
     const sorted = sortCategoryLessons(stats.lessons, learningProfile.completedLessonIds);
     const continueLessonId = continueInCategory?.id;
     const inProgress = sorted.filter(
@@ -123,12 +83,12 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
   const categoryGoal = CATEGORY_GOAL_COPY[categoryId];
 
   const handleLessonPress = (lessonId: string) => {
-    const lesson = stats?.lessons.find((l) => l.id === lessonId);
+    const lesson = stats.lessons.find((l) => l.id === lessonId);
     if (!lesson) return;
     openLessonFromLibrary(navigation, lesson, isPremium, categoryId);
   };
 
-  if (!stats || !category) {
+  if (!category) {
     return (
       <ScreenContainer withPersistentTabBar activeTab="Categories" contentStyle={styles.content}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>

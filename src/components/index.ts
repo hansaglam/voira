@@ -31,6 +31,7 @@ export { OnboardingBottomBar } from './OnboardingBottomBar';
 export { PersonalizationSection } from './PersonalizationSection';
 export { LessonTeachingCard } from './LessonTeachingCard';
 export { LessonHeader } from './LessonHeader';
+export { LessonSegmentNavigator } from './LessonSegmentNavigator';
 export { SentenceCard } from './SentenceCard';
 export {
   AnimatedMic,

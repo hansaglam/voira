@@ -311,21 +311,21 @@ export const lessonContent: LegacyLessonFlat[] = [
     level: 'intermediate',
     estimatedMinutes: 5,
     focusSkill: 'Otel resepsiyonu',
-    targetSentence: 'I have a reservation under the name Ethem.',
-    naturalSpeedNote: '"Have a" reduces to "hav-a" and "under the name" flows as one phrase.',
-    slowPracticeSentence: 'I have a / reservation / under the name / Ethem',
-    TurkishTranslation: 'Ethem adına bir rezervasyonum var.',
+    targetSentence: 'I have a reservation for tonight.',
+    naturalSpeedNote: '"Have a" reduces to "hav-a" and "for tonight" flows as one phrase.',
+    slowPracticeSentence: 'I have a / reservation / for tonight',
+    TurkishTranslation: 'Bu gece için bir rezervasyonum var.',
     usageExplanationTr:
-      'Otele vardığında resepsiyona söylenir. "Under the name" rezervasyonun kimin adına olduğunu belirtir — otellerde standart ifadedir.',
+      'Otele vardığında resepsiyona söylenir. "For tonight" bu geceki konaklamayı belirtir — otellerde sık kullanılan doğal ifadedir.',
     pronunciationTipTr:
-      '"Reservation" kelimesinde vurgu 3. hecede: re-zer-VA-tion. "Under the" hızlı ve zayıf söylenir.',
+      '"Reservation" kelimesinde vurgu 3. hecede: re-zer-VA-tion. "For tonight" hızlı ve akıcı söylenir.',
     commonMistakeTr:
-      '"I have reservation on name Ethem" — "under the name" doğru kalıptır.',
+      '"I have reservation tonight" — I have a reservation for tonight doğru kalıptır.',
     shadowingInstructionTr:
       'Önce doğal hızda 2 kez dinle. Sonra yavaş bölümlere ayırarak tekrar et. En son net tonla 3 kez söyle.',
     aiCoachExampleFeedbackTr:
-      'Cümle anlaşılır söylendi. "Under the name" birleşimini daha akıcı söylersen resepsiyonda daha doğal duyulursun.',
-    keywords: ['I have a reservation', 'under the name'],
+      'Cümle anlaşılır söylendi. "For tonight" birleşimini daha akıcı söylersen resepsiyonda daha doğal duyulursun.',
+    keywords: ['I have a reservation', 'for tonight'],
     difficulty: 'Orta',
     isPremium: false,
   },

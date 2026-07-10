@@ -31,6 +31,9 @@ export type RootStackParamList = {
     practiceIndex?: number;
     totalLessons?: number;
     categoryId?: LessonCategory;
+    /** Resume a specific segment after analysis retry */
+    segmentId?: string;
+    segmentIndex?: number;
   };
   AnalysisResult: {
     lessonId: string;
@@ -45,6 +48,7 @@ export type RootStackParamList = {
     hasSpeech?: boolean;
     recordingValidation?: RecordingValidationResult;
     segmentId?: string;
+    segmentIndex?: number;
     practiceStep?: import('../types/practiceMethodology').PracticeStep;
     shadowingMode?: import('../types/practiceMethodology').ShadowingPracticeMode;
   };

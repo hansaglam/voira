@@ -21,6 +21,7 @@ import type {
   FetchOfferingsResult,
 } from './premiumTypes';
 import { OFFERINGS_SAFE_ERROR_MESSAGE } from './premiumTypes';
+import { logPremiumIdentityState } from './premiumIdentityDebug';
 
 const LOG_PREFIX = '[EchoSpeak Premium]';
 
@@ -82,7 +83,11 @@ export async function configureRevenueCat(appUserId?: string): Promise<boolean> 
     }
 
     if (__DEV__) {
-      console.log(`${LOG_PREFIX} RevenueCat configured`);
+      const appUserID = await getRevenueCatAppUserID();
+      logPremiumIdentityState('configure', {
+        revenueCatAppUserID: appUserID,
+        learningProfileUserId: stableUserId ?? null,
+      });
     }
 
     return true;
@@ -94,34 +99,68 @@ export async function configureRevenueCat(appUserId?: string): Promise<boolean> 
   }
 }
 
-export async function logoutRevenueCatUser(): Promise<void> {
-  if (!isRevenueCatConfigured()) return;
+export async function getRevenueCatAppUserID(): Promise<string | null> {
+  if (!isRevenueCatConfigured()) return null;
+
+  try {
+    const appUserID = await Purchases.getAppUserID();
+    if (__DEV__) {
+      console.log(`${LOG_PREFIX} app user id fetched`);
+    }
+    return appUserID;
+  } catch {
+    if (__DEV__) {
+      console.warn(`${LOG_PREFIX} getAppUserID failed`);
+    }
+    return null;
+  }
+}
+
+export async function logoutRevenueCatUser(): Promise<CustomerInfo | null> {
+  if (!isRevenueCatConfigured()) return null;
 
   try {
     await Purchases.logOut();
+    const customerInfo = await fetchCustomerInfo();
     if (__DEV__) {
-      console.log(`${LOG_PREFIX} RevenueCat logged out`);
+      const appUserID = await getRevenueCatAppUserID();
+      logPremiumIdentityState('logOut', {
+        revenueCatAppUserID: appUserID,
+        customerInfo,
+      });
     }
+    return customerInfo;
   } catch {
     if (__DEV__) {
       console.warn(`${LOG_PREFIX} logOut failed`);
     }
+    return null;
   }
 }
 
-export async function identifyRevenueCatUser(appUserId: string): Promise<void> {
+export async function identifyRevenueCatUser(
+  appUserId: string,
+): Promise<CustomerInfo | null> {
   const stableUserId = resolveStableAppUserId(appUserId);
-  if (!stableUserId || !isRevenueCatConfigured()) return;
+  if (!stableUserId || !isRevenueCatConfigured()) return null;
 
   try {
-    await Purchases.logIn(stableUserId);
+    const { customerInfo } = await Purchases.logIn(stableUserId);
+    const latestInfo = (await fetchCustomerInfo()) ?? customerInfo;
     if (__DEV__) {
-      console.log(`${LOG_PREFIX} RevenueCat identified user`);
+      const appUserID = await getRevenueCatAppUserID();
+      logPremiumIdentityState('logIn', {
+        revenueCatAppUserID: appUserID,
+        learningProfileUserId: stableUserId,
+        customerInfo: latestInfo,
+      });
     }
+    return latestInfo;
   } catch {
     if (__DEV__) {
       console.warn(`${LOG_PREFIX} logIn failed`);
     }
+    return null;
   }
 }
 
@@ -131,7 +170,11 @@ export async function fetchCustomerInfo(): Promise<CustomerInfo | null> {
   try {
     const customerInfo = await Purchases.getCustomerInfo();
     if (__DEV__) {
-      console.log(`${LOG_PREFIX} customer info fetched`);
+      const appUserID = await getRevenueCatAppUserID();
+      logPremiumIdentityState('getCustomerInfo', {
+        revenueCatAppUserID: appUserID,
+        customerInfo,
+      });
     }
     return customerInfo;
   } catch {
@@ -243,6 +286,13 @@ export async function purchaseRevenueCatPackage(
 ): Promise<PremiumPurchaseResult> {
   try {
     const { customerInfo } = await Purchases.purchasePackage(selectedPackage);
+    if (__DEV__) {
+      const appUserID = await getRevenueCatAppUserID();
+      logPremiumIdentityState('purchasePackage', {
+        revenueCatAppUserID: appUserID,
+        customerInfo,
+      });
+    }
     return { customerInfo, cancelled: false };
   } catch (error) {
     if (isUserCancelledPurchase(error)) {
@@ -256,7 +306,15 @@ export async function purchaseRevenueCatPackage(
 }
 
 export async function restoreRevenueCatPurchases(): Promise<PremiumRestoreResult> {
-  const customerInfo = await Purchases.restorePurchases();
+  await Purchases.restorePurchases();
+  const customerInfo = await Purchases.getCustomerInfo();
+  if (__DEV__) {
+    const appUserID = await getRevenueCatAppUserID();
+    logPremiumIdentityState('restorePurchases', {
+      revenueCatAppUserID: appUserID,
+      customerInfo,
+    });
+  }
   return {
     customerInfo,
     hasEntitlement: hasActivePremiumEntitlement(customerInfo),

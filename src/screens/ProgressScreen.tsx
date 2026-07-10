@@ -10,11 +10,12 @@ import {
 } from '../components';
 import { useLearning } from '../context/LearningContext';
 import { useUser } from '../context/UserContext';
+import { usePremium } from '../context/PremiumContext';
 import { lessons, getLessonById } from '../data/lessons';
 import { getAllPracticeResults } from '../data/learningSessionStore';
 import { buildProgressSummary } from '../services/progress';
 import { getRecommendedLessonsFromAnalysis } from '../services/recommendations';
-import { resolveLessonPremium } from '../utils/lessonUtils';
+import { isLessonLocked } from '../utils/premiumAccess';
 import { CATEGORY_LABELS, LEVEL_TO_DIFFICULTY } from '../types/lesson';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
@@ -29,6 +30,7 @@ const SEVERITY_LABELS: Record<'low' | 'medium' | 'high', string> = {
 export function ProgressScreen({ navigation }: Props) {
   const { learningProfile, getDailySession } = useLearning();
   const { profile } = useUser();
+  const { isPremium } = usePremium();
   const allResults = getAllPracticeResults();
   const resultCount = allResults.length;
   const isEmpty = resultCount === 0;
@@ -45,12 +47,12 @@ export function ProgressScreen({ navigation }: Props) {
       getRecommendedLessonsFromAnalysis(
         {
           weakAreasDetected: summary.weakAreas.map((item) => item.labelTr),
-          isPremiumUser: profile.isPremium,
+          isPremiumUser: isPremium,
           userLevel: profile.level,
         },
         lessons,
-      ).slice(0, profile.isPremium ? 2 : 1),
-    [profile.isPremium, profile.level, summary.weakAreas],
+      ).slice(0, isPremium ? 2 : 1),
+    [isPremium, profile.level, summary.weakAreas],
   );
 
   const trendAverageNative = summary.scoreTrend.length
@@ -93,7 +95,7 @@ export function ProgressScreen({ navigation }: Props) {
   const handleRecommendationPress = (lessonId: string) => {
     const lesson = getLessonById(lessonId);
     if (!lesson) return;
-    const locked = resolveLessonPremium(lesson) && !profile.isPremium;
+    const locked = isLessonLocked(lesson, isPremium);
     if (locked) {
       navigation.navigate('Premium');
       return;
@@ -216,7 +218,7 @@ export function ProgressScreen({ navigation }: Props) {
         {recommendedLessons.length > 0 ? (
           recommendedLessons.map((item) => {
             const lesson = getLessonById(item.lessonId);
-            const locked = item.isPremium && !profile.isPremium;
+            const locked = item.isPremium && !isPremium;
             return (
               <Pressable
                 key={item.lessonId}
@@ -278,7 +280,7 @@ export function ProgressScreen({ navigation }: Props) {
       {showDayReport ? (
       <AppCard style={styles.dayCard}>
         <Text style={styles.cardTitle}>Day 1 vs Day 7 gelişim raporu</Text>
-        {!profile.isPremium ? (
+        {!isPremium ? (
           <View style={styles.lockedWrap}>
             <Text style={styles.lockedText}>
               İlk kaydınla 7. gün kaydını karşılaştırarak gelişimini gör.

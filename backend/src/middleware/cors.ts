@@ -17,7 +17,7 @@ function isBackendPublicOrigin(origin: string): boolean {
 function isOriginAllowed(origin: string): boolean {
   const normalized = normalizeOrigin(origin);
 
-  if (ALLOWED_ORIGINS.some((allowed) => normalizeOrigin(allowed) === normalized)) {
+  if (ALLOWED_ORIGINS.some((allowed: string) => normalizeOrigin(allowed) === normalized)) {
     return true;
   }
 
@@ -25,7 +25,7 @@ function isOriginAllowed(origin: string): boolean {
 }
 
 export const corsMiddleware = cors({
-  origin(origin, callback) {
+  origin(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     // Mobile/native clients often omit Origin — always allow.
     if (!origin) {
       callback(null, true);

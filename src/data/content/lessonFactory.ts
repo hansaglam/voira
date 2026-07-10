@@ -24,6 +24,7 @@ import {
   SpeechSpeedLevel,
 } from '../../types/practiceMethodology';
 import { LessonSegment } from '../../types/segment';
+import { DEFAULT_COACH_SHADOWING } from './catalog/coachCopy';
 
 export interface SegmentInput {
   id: string;
@@ -85,8 +86,7 @@ export interface LessonInput {
   maxRecommendedDurationSeconds?: number;
 }
 
-const DEFAULT_SHADOWING =
-  'Önce yavaş bölümlere ayır, anlamı kavra, sonra doğal ritimle 3 kez shadowing yap.';
+const DEFAULT_SHADOWING = DEFAULT_COACH_SHADOWING;
 
 const WPM_BY_LEVEL = { beginner: 120, intermediate: 145, advanced: 165 } as const;
 const SPEED_BY_LEVEL = { beginner: 'slow', intermediate: 'natural', advanced: 'fast' } as const;

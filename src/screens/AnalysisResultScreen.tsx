@@ -16,6 +16,7 @@ import { lessons } from '../data/lessons';
 import { getLessonIdForPractice } from '../data/learningAlgorithm';
 import { useLearning } from '../context/LearningContext';
 import { useUser } from '../context/UserContext';
+import { usePremium } from '../context/PremiumContext';
 import { analysisOutputToPracticeResult } from '../services/ai';
 import type { AiSpeechAnalysisOutput } from '../services/ai';
 import {
@@ -38,7 +39,7 @@ import {
 import { CATEGORY_LABELS } from '../types/lesson';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { getRecommendedLessonsFromAnalysis } from '../services/recommendations';
-import { resolveLessonPremium } from '../utils/lessonUtils';
+import { isLessonLocked } from '../utils/premiumAccess';
 import {
   buildImproveDisplayWords,
   buildMissingDisplayWords,
@@ -152,10 +153,12 @@ function sanitizeWordChips(words: string[]): string[] {
 
 export function AnalysisResultScreen({ navigation, route }: Props) {
   const { profile } = useUser();
+  const { isPremium } = usePremium();
   const { generateAnalysisAsync, submitPracticeResult, getSession } = useLearning();
 
   const lessonId = route.params.lessonId;
   const segmentId = route.params.segmentId;
+  const segmentIndexParam = route.params.segmentIndex;
   const source = route.params.source;
   const practiceIndex = route.params.practiceIndex ?? 0;
   const totalLessons = route.params.totalLessons ?? 3;
@@ -307,12 +310,12 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
               lessonId,
               segmentId,
               userLevel: profile.level,
-              isPremiumUser: profile.isPremium,
+              isPremiumUser: isPremium,
             },
             lessons,
           )
         : [],
-    [analysis, lessonId, profile.isPremium, profile.level, segmentId, wordMatchScore],
+    [analysis, lessonId, isPremium, profile.level, segmentId, wordMatchScore],
   );
 
   const focusDisplayText = useMemo(() => {
@@ -372,6 +375,10 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
           ? currentLesson.segments.find((s) => s.id === segmentId) ??
             getActiveSegment(currentLesson, 0)
           : getActiveSegment(currentLesson, 0);
+        const resolvedSegmentIndex =
+          typeof segmentIndexParam === 'number' && Number.isFinite(segmentIndexParam)
+            ? segmentIndexParam
+            : currentLesson.segments.findIndex((s) => s.id === currentSegment.id);
 
         const analysisMode = inDailySession
           ? 'daily'
@@ -381,7 +388,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
         const output = await generateAnalysisAsync(currentLesson, mode, {
           sessionId,
-          segmentIndex: 0,
+          segmentIndex: resolvedSegmentIndex >= 0 ? resolvedSegmentIndex : 0,
           audioUri: audioUri!,
           durationMillis,
           segmentId: currentSegment.id,
@@ -418,6 +425,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
   }, [
     lessonId,
     segmentId,
+    segmentIndexParam,
     audioUri,
     durationMillis,
     recordedAt,
@@ -515,6 +523,13 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     : 'Derslere dön';
 
   const handleRetry = () => {
+    const resumeSegmentIndex =
+      typeof segmentIndexParam === 'number' && Number.isFinite(segmentIndexParam)
+        ? segmentIndexParam
+        : segmentId
+          ? lesson.segments.findIndex((item) => item.id === segmentId)
+          : undefined;
+
     if (inDailySession) {
       navigation.navigate('Lesson', {
         lessonId,
@@ -522,10 +537,22 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
         sessionId,
         practiceIndex,
         totalLessons,
+        segmentId,
+        segmentIndex:
+          resumeSegmentIndex !== undefined && resumeSegmentIndex >= 0
+            ? resumeSegmentIndex
+            : undefined,
       });
       return;
     }
-    navigation.navigate('Lesson', libraryLessonParams);
+    navigation.navigate('Lesson', {
+      ...libraryLessonParams,
+      segmentId,
+      segmentIndex:
+        resumeSegmentIndex !== undefined && resumeSegmentIndex >= 0
+          ? resumeSegmentIndex
+          : undefined,
+    });
   };
   const handleReturnToLesson = () => {
     goBackOrFallback(navigation, handleRetry);
@@ -538,7 +565,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
     const recommended = getLessonById(recommendedLessonId);
     if (!recommended) return;
-    const locked = resolveLessonPremium(recommended) && !profile.isPremium;
+    const locked = isLessonLocked(recommended, isPremium);
     if (locked) {
       navigation.navigate('Premium');
       return;
@@ -774,7 +801,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
             Son analizine göre faydalı olabilecek bir sonraki egzersiz.
           </Text>
           {actionableRecommendations.map((item) => {
-            const isLocked = item.isPremium && !profile.isPremium;
+            const isLocked = item.isPremium && !isPremium;
             const lessonInfo = getLessonById(item.lessonId);
             return (
               <Pressable

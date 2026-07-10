@@ -101,7 +101,7 @@ export interface Lesson {
 
 export const CATEGORY_LABELS: Record<LessonCategory, string> = {
   daily: 'Günlük Konuşma',
-  cafe_restaurant: 'Kafe & Restoran',
+  cafe_restaurant: 'Kafe, Restoran & Alışveriş',
   travel: 'Seyahat',
   job_interview: 'İş Görüşmesi',
   series_english: 'Dizi İngilizcesi',

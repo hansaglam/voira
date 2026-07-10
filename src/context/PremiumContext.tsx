@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -14,6 +15,7 @@ import type {
   PurchasesOffering,
   PurchasesPackage,
 } from 'react-native-purchases';
+import { useAuth } from './AuthContext';
 import { useLearning } from './LearningContext';
 import {
   addCustomerInfoListener,
@@ -21,16 +23,28 @@ import {
   configureRevenueCat,
   fetchCustomerInfo,
   fetchOfferings,
+  getActiveEntitlementIds,
+  getHasSpeakPlus,
+  getRevenueCatAppUserID,
   hasActivePremiumEntitlement,
   identifyRevenueCatUser,
   isRevenueCatConfigured,
+  logPremiumIdentityState,
   OFFERINGS_SAFE_ERROR_MESSAGE,
   purchaseRevenueCatPackage,
   removeCustomerInfoListener,
   resolveCurrentOffering,
+  resolveStableAppUserId,
   restoreRevenueCatPurchases,
+  shortenAppUserId,
   type PremiumPackageOption,
 } from '../services/premium';
+
+export interface PremiumDebugStatus {
+  revenueCatAppUserIdShort: string;
+  activeEntitlements: string[];
+  hasSpeakPlus: boolean;
+}
 
 interface PremiumContextType {
   isPremium: boolean;
@@ -46,6 +60,7 @@ interface PremiumContextType {
   customerInfo: CustomerInfo | null;
   errorMessage: string | null;
   offeringsError: string | null;
+  debugPremiumStatus: PremiumDebugStatus | null;
   refreshPremiumStatus: () => Promise<void>;
   refreshCustomerInfo: () => Promise<void>;
   refreshOfferings: () => Promise<void>;
@@ -58,8 +73,14 @@ interface PremiumContextType {
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined);
 
 export function PremiumProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const { learningProfile, setPremium } = useLearning();
   const revenueCatConfigured = isRevenueCatConfigured();
+  const stableUserId = useMemo(
+    () => resolveStableAppUserId(learningProfile.userId),
+    [learningProfile.userId],
+  );
+  const authUserId = user?.id ?? null;
 
   const [isLoadingPremium, setIsLoadingPremium] = useState(revenueCatConfigured);
   const [isOfferingsLoading, setIsOfferingsLoading] = useState(false);
@@ -69,8 +90,13 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const [offerings, setOfferings] = useState<PurchasesOfferings | null>(null);
   const [currentOffering, setCurrentOffering] = useState<PurchasesOffering | null>(null);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
+  const [revenueCatAppUserID, setRevenueCatAppUserID] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [offeringsError, setOfferingsError] = useState<string | null>(null);
+
+  const configuredRef = useRef(false);
+  const identifiedUserRef = useRef<string | null>(null);
+  const foregroundRefreshRef = useRef(false);
 
   const isPremium = useMemo(
     () => hasActivePremiumEntitlement(customerInfo),
@@ -80,6 +106,37 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const packageOptions = useMemo(
     () => buildPackageOptions(currentOffering),
     [currentOffering],
+  );
+
+  const debugPremiumStatus = useMemo((): PremiumDebugStatus | null => {
+    if (!__DEV__) return null;
+    return {
+      revenueCatAppUserIdShort: shortenAppUserId(revenueCatAppUserID),
+      activeEntitlements: getActiveEntitlementIds(customerInfo),
+      hasSpeakPlus: getHasSpeakPlus(customerInfo),
+    };
+  }, [customerInfo, revenueCatAppUserID]);
+
+  const syncRevenueCatAppUserID = useCallback(async (): Promise<string | null> => {
+    const appUserID = await getRevenueCatAppUserID();
+    setRevenueCatAppUserID(appUserID);
+    return appUserID;
+  }, []);
+
+  const applyCustomerInfo = useCallback(
+    async (info: CustomerInfo | null, phase: string) => {
+      if (info) {
+        setCustomerInfo(info);
+      }
+      const rcUserId = await syncRevenueCatAppUserID();
+      logPremiumIdentityState(phase, {
+        revenueCatAppUserID: rcUserId,
+        learningProfileUserId: learningProfile.userId,
+        authUserId,
+        customerInfo: info,
+      });
+    },
+    [authUserId, learningProfile.userId, syncRevenueCatAppUserID],
   );
 
   useEffect(() => {
@@ -132,10 +189,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
 
     const info = await fetchCustomerInfo();
-    if (info) {
-      setCustomerInfo(info);
-    }
-  }, [isRevenueCatReady, revenueCatConfigured]);
+    await applyCustomerInfo(info, 'foreground-refresh');
+  }, [applyCustomerInfo, isRevenueCatReady, revenueCatConfigured]);
 
   const refreshPremiumStatus = useCallback(async () => {
     if (!revenueCatConfigured) {
@@ -149,14 +204,24 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
     try {
       const info = await fetchCustomerInfo();
-      setCustomerInfo(info);
+      await applyCustomerInfo(info, 'app-start-sync');
       await refreshOfferings();
     } catch {
       setErrorMessage('Abonelik seçenekleri şu anda yüklenemedi. Lütfen tekrar dene.');
     } finally {
       setIsLoadingPremium(false);
     }
-  }, [refreshOfferings, revenueCatConfigured]);
+  }, [applyCustomerInfo, refreshOfferings, revenueCatConfigured]);
+
+  const syncEntitlementForUser = useCallback(
+    async (nextUserId: string, phase: string) => {
+      const loginInfo = await identifyRevenueCatUser(nextUserId);
+      const latestInfo = (await fetchCustomerInfo()) ?? loginInfo;
+      await applyCustomerInfo(latestInfo, phase);
+      return latestInfo;
+    },
+    [applyCustomerInfo],
+  );
 
   useEffect(() => {
     if (!revenueCatConfigured) {
@@ -164,10 +229,14 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (!stableUserId || configuredRef.current) {
+      return;
+    }
+
     let cancelled = false;
 
     void (async () => {
-      const configured = await configureRevenueCat();
+      const configured = await configureRevenueCat(stableUserId);
       if (cancelled) return;
 
       if (!configured) {
@@ -176,13 +245,37 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      configuredRef.current = true;
+      identifiedUserRef.current = stableUserId;
       setIsRevenueCatReady(true);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [revenueCatConfigured]);
+  }, [revenueCatConfigured, stableUserId]);
+
+  useEffect(() => {
+    if (!revenueCatConfigured || !isRevenueCatReady || !stableUserId) {
+      return;
+    }
+
+    if (identifiedUserRef.current === stableUserId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      await syncEntitlementForUser(stableUserId, 'auth-identity-sync');
+      if (cancelled) return;
+      identifiedUserRef.current = stableUserId;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isRevenueCatReady, revenueCatConfigured, stableUserId, syncEntitlementForUser]);
 
   useEffect(() => {
     if (!revenueCatConfigured || !isRevenueCatReady) {
@@ -192,20 +285,12 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     const onCustomerInfoUpdated = (info: CustomerInfo) => {
-      setCustomerInfo(info);
+      void applyCustomerInfo(info, 'customer-info-listener');
     };
 
     addCustomerInfoListener(onCustomerInfoUpdated);
 
     void (async () => {
-      const stableUserId = learningProfile.userId?.trim();
-      if (stableUserId && stableUserId !== 'local-user') {
-        await identifyRevenueCatUser(stableUserId);
-        if (__DEV__) {
-          console.log('[EchoSpeak Premium] RevenueCat identified user');
-        }
-      }
-
       if (cancelled) return;
       await refreshPremiumStatus();
     })();
@@ -214,7 +299,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       removeCustomerInfoListener(onCustomerInfoUpdated);
     };
-  }, [isRevenueCatReady, learningProfile.userId, refreshPremiumStatus, revenueCatConfigured]);
+  }, [applyCustomerInfo, isRevenueCatReady, refreshPremiumStatus, revenueCatConfigured]);
 
   useEffect(() => {
     if (!revenueCatConfigured || !isRevenueCatReady) {
@@ -222,9 +307,18 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
 
     const subscription = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        void refreshCustomerInfo();
+      if (nextState !== 'active' || foregroundRefreshRef.current) {
+        return;
       }
+
+      foregroundRefreshRef.current = true;
+      void (async () => {
+        try {
+          await refreshCustomerInfo();
+        } finally {
+          foregroundRefreshRef.current = false;
+        }
+      })();
     });
 
     return () => {
@@ -243,7 +337,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
       try {
         const result = await purchaseRevenueCatPackage(selectedPackage);
-        setCustomerInfo(result.customerInfo);
+        await applyCustomerInfo(result.customerInfo, 'purchasePackage-context');
         return hasActivePremiumEntitlement(result.customerInfo) ? 'unlocked' : 'failed';
       } catch (error) {
         if (
@@ -270,7 +364,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         setIsPurchasing(false);
       }
     },
-    [isRevenueCatReady],
+    [applyCustomerInfo, isRevenueCatReady],
   );
 
   const restorePurchases = useCallback(async (): Promise<
@@ -282,17 +376,17 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     setErrorMessage(null);
 
     try {
-      const result = await restoreRevenueCatPurchases();
-      setCustomerInfo(result.customerInfo);
-      await refreshCustomerInfo();
-      return result.hasEntitlement ? 'restored' : 'not_found';
+      await restoreRevenueCatPurchases();
+      const latestInfo = await fetchCustomerInfo();
+      await applyCustomerInfo(latestInfo, 'restorePurchases-context');
+      return hasActivePremiumEntitlement(latestInfo) ? 'restored' : 'not_found';
     } catch {
       setErrorMessage('Satın alımlar geri yüklenemedi. Lütfen tekrar dene.');
       return 'error';
     } finally {
       setIsRestoring(false);
     }
-  }, [isRevenueCatReady, refreshCustomerInfo]);
+  }, [applyCustomerInfo, isRevenueCatReady]);
 
   const value = useMemo(
     (): PremiumContextType => ({
@@ -309,6 +403,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       customerInfo,
       errorMessage,
       offeringsError,
+      debugPremiumStatus,
       refreshPremiumStatus,
       refreshCustomerInfo,
       refreshOfferings,
@@ -329,6 +424,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       customerInfo,
       errorMessage,
       offeringsError,
+      debugPremiumStatus,
       refreshPremiumStatus,
       refreshCustomerInfo,
       refreshOfferings,

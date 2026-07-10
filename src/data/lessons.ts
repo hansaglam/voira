@@ -5,6 +5,7 @@ import {
   getAllKeywords,
   getActiveSegment,
   getLessonDifficulty,
+  resolveLessonPremium,
 } from '../utils/lessonUtils';
 import { analysisOutputToPracticeResult } from '../services/ai/aiTypes';
 import { normalizeLessonForRuntime } from '../services/contentRepository/contentVersioning';
@@ -22,8 +23,8 @@ export const categories: Category[] = [
   },
   {
     id: 'cafe_restaurant',
-    title: 'Kafe & Restoran',
-    description: 'Sipariş verme ve sosyal ortamlar',
+    title: 'Kafe, Restoran & Alışveriş',
+    description: 'Kafe, restoran ve alışverişte sipariş ve iletişim',
     icon: 'cafe',
     gradient: ['#8B5CF6', '#A78BFA'],
   },
@@ -86,20 +87,24 @@ export function getCategoryLessonCount(categoryId: LessonCategory): number {
   return getLessonsByCategory(categoryId).length;
 }
 
-function dedupeLessons(lessonList: Lesson[]): Lesson[] {
-  const byKey = new Map<string, Lesson>();
-  for (const lesson of lessonList) {
-    const key = `${lesson.category}:${lesson.title.trim().toLowerCase()}`;
-    if (!byKey.has(key)) {
-      byKey.set(key, lesson);
-    }
-  }
-  return Array.from(byKey.values());
+/** Single source of truth for category lesson lists and counts (raw catalog, no title dedupe). */
+export function getCategoryLessonStats(categoryId: LessonCategory) {
+  const categoryLessons = getLessonsByCategory(categoryId);
+  const freeCount = categoryLessons.filter((lesson) => !resolveLessonPremium(lesson)).length;
+  const premiumCount = categoryLessons.filter((lesson) => resolveLessonPremium(lesson)).length;
+
+  return {
+    total: categoryLessons.length,
+    freeCount,
+    premiumCount,
+    lessons: categoryLessons,
+    category: getCategoryById(categoryId),
+  };
 }
 
 export function getCategoryWithCounts(): Array<Category & { lessonCount: number; difficulty: string }> {
   return categories.map((cat) => {
-    const catLessons = dedupeLessons(getLessonsByCategory(cat.id));
+    const { lessons: catLessons, total } = getCategoryLessonStats(cat.id);
     const levels = catLessons.map((l) => getLessonDifficulty(l));
     const difficulty = levels.includes('İleri')
       ? 'İleri'
@@ -108,7 +113,7 @@ export function getCategoryWithCounts(): Array<Category & { lessonCount: number;
         : 'Başlangıç';
     return {
       ...cat,
-      lessonCount: catLessons.length,
+      lessonCount: total,
       difficulty,
     };
   });

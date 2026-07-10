@@ -11,7 +11,8 @@ import {
   type LessonProgressState,
 } from '../data/lessonLibrary';
 import { isLessonCompleted as checkLessonCompleted } from '../data/lessonProgress';
-import { getLessonDifficulty, resolveLessonPremium } from '../utils/lessonUtils';
+import { getLessonDifficulty } from '../utils/lessonUtils';
+import { isLessonLocked } from '../utils/premiumAccess';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
 interface LibraryLessonCardProps {
@@ -38,7 +39,7 @@ export function LibraryLessonCard({
   progressState,
   ctaLabelOverride,
 }: LibraryLessonCardProps) {
-  const locked = resolveLessonPremium(lesson) && !isPremiumUser;
+  const locked = isLessonLocked(lesson, isPremiumUser);
   const isCompleted =
     completed ??
     (completedLessonIds
@@ -48,8 +49,8 @@ export function LibraryLessonCard({
     progressState ?? (isCompleted ? 'completed' : 'not_started');
   const cta =
     ctaLabelOverride ?? getLessonActionLabel(lesson, isPremiumUser, effectiveState);
-  const premiumLabel = resolveLessonPremium(lesson) ? getPremiumValueLabels(lesson)[0] : undefined;
-  const isPremiumLesson = resolveLessonPremium(lesson);
+  const premiumLabel = lesson.isPremium ? getPremiumValueLabels(lesson)[0] : undefined;
+  const isPremiumLesson = lesson.isPremium;
   const typeBadge = getLessonTypeBadge(lesson);
   const difficulty = getLessonDifficulty(lesson);
   const focusTag = lesson.focusSkill?.trim();
