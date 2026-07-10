@@ -10,7 +10,12 @@ import {
   buildPhonemeFeedback,
   buildWordPronunciationFeedback,
 } from '../services/pronunciationFeedbackService.js';
-import { assessPronunciation } from '../services/pronunciationAssessment/index.js';
+import {
+  assessPronunciation,
+  buildPronunciationAssessmentDebug,
+  isAnalysisDebugEnabled,
+  resolvePronunciationDecision,
+} from '../services/pronunciationAssessment/index.js';
 import { buildAnalysisScores } from '../services/speechScoreService.js';
 import { transcribeAudio } from '../services/speechToTextService.js';
 import { compareTranscriptToTarget } from '../services/textComparisonService.js';
@@ -120,12 +125,27 @@ analyzeSpeechRouter.post(
       const transcript = transcription.transcript;
       const comparison = compareTranscriptToTarget(transcript, target);
 
-      const pronunciationAssessment = await assessPronunciation({
+      const resolvedLessonId = typeof lessonId === 'string' ? lessonId : undefined;
+      const resolvedSegmentId = typeof segmentId === 'string' ? segmentId : undefined;
+      const audioMimeType = audioFile.mimetype || 'audio/mpeg';
+
+      const pronunciationRequest = {
         audioBuffer: audioFile.buffer,
-        mimeType: audioFile.mimetype || 'audio/mpeg',
+        mimeType: audioMimeType,
         referenceText: target,
-        language: 'en-US',
+        language: 'en-US' as const,
         durationMillis,
+        lessonId: resolvedLessonId,
+        segmentId: resolvedSegmentId,
+      };
+      const pronunciationDecision = resolvePronunciationDecision(pronunciationRequest);
+      const pronunciationAssessment = await assessPronunciation(pronunciationRequest);
+
+      console.log('[EchoSpeak API] pronunciation_result', {
+        ok: pronunciationAssessment.ok,
+        provider: pronunciationAssessment.provider ?? null,
+        errorCode: pronunciationAssessment.errorCode,
+        analysisMode: pronunciationAssessment.ok ? 'pronunciation_assessment' : 'text_match_only',
       });
 
       const scores = buildAnalysisScores({
@@ -218,6 +238,15 @@ analyzeSpeechRouter.post(
           ? wordPronunciationFeedback
           : undefined,
         phonemeFeedback: phonemeFeedback.length > 0 ? phonemeFeedback : undefined,
+        ...(isAnalysisDebugEnabled()
+          ? {
+              pronunciationAssessmentDebug: buildPronunciationAssessmentDebug(
+                pronunciationRequest,
+                pronunciationAssessment,
+                pronunciationDecision,
+              ),
+            }
+          : {}),
       };
 
       return sendSuccess(res, success);

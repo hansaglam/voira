@@ -8,7 +8,11 @@ import {
   buildPhonemeFeedback,
   buildWordPronunciationFeedback,
 } from './pronunciationFeedbackService.js';
-import { isAzurePronunciationConfigured } from './pronunciationAssessment/pronunciationAssessmentConfig.js';
+import { getPronunciationSkipReason, isAzurePronunciationConfigured } from './pronunciationAssessment/pronunciationAssessmentConfig.js';
+import {
+  buildPronunciationAssessmentDebug,
+  resolvePronunciationDecision,
+} from './pronunciationAssessment/pronunciationAssessmentProvider.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 
 test('compareTranscriptToTarget detects correct and missing words', () => {
@@ -450,6 +454,47 @@ test('pronunciation feedback helpers surface weak words and phonemes', () => {
   assert.ok(phonemeFeedback.some((entry) => entry.phoneme === 'th'));
 });
 
-test('azure pronunciation remains safely disabled without env configuration', () => {
-  assert.equal(isAzurePronunciationConfigured(), false);
+test('pronunciation skip reason reflects azure env configuration', () => {
+  const configured = isAzurePronunciationConfigured();
+  const skipReason = getPronunciationSkipReason();
+  assert.equal(skipReason === null, configured);
+});
+
+test('pronunciation decision skips when reference text is missing', () => {
+  const decision = resolvePronunciationDecision({
+    audioBuffer: Buffer.from('audio'),
+    mimeType: 'audio/m4a',
+    referenceText: '   ',
+    language: 'en-US',
+    durationMillis: 2000,
+    lessonId: 'lesson-1',
+    segmentId: 'segment-1',
+  });
+
+  assert.equal(decision.willAttempt, false);
+  assert.equal(decision.reasonIfSkipped, 'missing_reference_text');
+});
+
+test('pronunciation debug explains fallback reason', () => {
+  const request = {
+    audioBuffer: Buffer.from('audio'),
+    mimeType: 'audio/m4a',
+    referenceText: 'Good morning',
+    language: 'en-US' as const,
+    durationMillis: 2000,
+    lessonId: 'lesson-1',
+    segmentId: 'segment-1',
+  };
+  const decision = resolvePronunciationDecision(request);
+  const result: PronunciationAssessmentResult = {
+    ok: false,
+    errorCode: 'pronunciation_audio_unsupported',
+    messageTr: 'Ses formatı telaffuz değerlendirmesi için dönüştürülemedi.',
+  };
+
+  const debug = buildPronunciationAssessmentDebug(request, result, decision);
+
+  assert.equal(debug.referenceTextLength, 12);
+  assert.equal(debug.audioMimeType, 'audio/m4a');
+  assert.equal(debug.fallbackReason, 'pronunciation_audio_unsupported');
 });

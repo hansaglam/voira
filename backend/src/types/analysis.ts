@@ -34,6 +34,16 @@ export interface PhonemeFeedback {
   feedbackTr?: string;
 }
 
+export interface PronunciationAssessmentDebug {
+  enabled: boolean;
+  attempted: boolean;
+  skippedReason?: string | null;
+  fallbackReason?: string | null;
+  provider?: 'azure' | null;
+  audioMimeType?: string;
+  referenceTextLength?: number;
+}
+
 export interface AnalysisSuccessResponse {
   ok: true;
   transcript: string;
@@ -59,6 +69,7 @@ export interface AnalysisSuccessResponse {
   azurePronunciation?: AzurePronunciationResponse;
   wordPronunciationFeedback?: WordPronunciationFeedback[];
   phonemeFeedback?: PhonemeFeedback[];
+  pronunciationAssessmentDebug?: PronunciationAssessmentDebug;
 }
 
 export interface AnalysisFailedResponse {

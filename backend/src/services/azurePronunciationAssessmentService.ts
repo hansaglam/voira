@@ -179,6 +179,13 @@ export async function assessAzurePronunciation(
 
   const pcmAudio = await prepareAzurePcmAudio(input.audioBuffer, input.mimeType);
   if (!pcmAudio) {
+    console.log('[EchoSpeak Pronunciation] fallback', {
+      reason: 'pronunciation_audio_unsupported',
+      errorCode: 'pronunciation_audio_unsupported',
+      errorMessage: 'Audio could not be converted to PCM for Azure pronunciation assessment.',
+      audioMimeType: input.mimeType,
+      audioBytes: input.audioBuffer.length,
+    });
     return unavailableResult(
       'pronunciation_audio_unsupported',
       'Ses formatı telaffuz değerlendirmesi için dönüştürülemedi.',
@@ -249,6 +256,14 @@ export async function assessAzurePronunciation(
                 available: true,
                 provider: 'azure',
                 ...parsed,
+              });
+              console.log('[EchoSpeak Pronunciation] azure_result', {
+                pronunciationScore: parsed.pronunciationScore,
+                accuracyScore: parsed.accuracyScore,
+                fluencyScore: parsed.fluencyScore,
+                completenessScore: parsed.completenessScore,
+                prosodyScore: parsed.prosodyScore,
+                wordCount: parsed.words.length,
               });
               return;
             } catch (error) {

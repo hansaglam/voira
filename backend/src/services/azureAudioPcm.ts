@@ -9,6 +9,10 @@ const ffmpegStaticPath = typeof ffmpegStaticImport === 'string'
   ? ffmpegStaticImport
   : null;
 
+export function isFfmpegAvailable(): boolean {
+  return Boolean(ffmpegStaticPath);
+}
+
 export interface WavPcmInfo {
   pcmBuffer: Buffer;
   sampleRate: number;

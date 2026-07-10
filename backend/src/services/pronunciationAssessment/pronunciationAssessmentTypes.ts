@@ -4,6 +4,8 @@ export interface PronunciationAssessmentRequest {
   referenceText: string;
   language: 'en-US';
   durationMillis: number;
+  lessonId?: string;
+  segmentId?: string;
 }
 
 export interface PronunciationPhonemeScore {
