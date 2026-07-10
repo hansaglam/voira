@@ -1,0 +1,33 @@
+export const colors = {
+  background: '#0B0C18',
+  card: '#151628',
+  cardElevated: '#1C1D32',
+  primary: '#5B5FEF',
+  primaryDark: '#4A4ED4',
+  secondary: '#8B5CF6',
+  success: '#34D399',
+  warning: '#F59E0B',
+  error: '#F87171',
+  textPrimary: '#F4F6FB',
+  textSecondary: '#B8B9C9',
+  textMuted: '#7C7D90',
+  border: 'rgba(91, 95, 239, 0.14)',
+  borderLight: 'rgba(139, 92, 246, 0.22)',
+  gradientStart: '#5B5FEF',
+  gradientEnd: '#8B5CF6',
+  overlay: 'rgba(11, 12, 24, 0.88)',
+  tabBar: 'rgba(12, 13, 26, 0.97)',
+  tabBarBorder: 'rgba(255, 255, 255, 0.05)',
+  streak: '#F59E0B',
+  premium: '#E5B84A',
+  premiumMuted: 'rgba(229, 184, 74, 0.14)',
+  glow: 'rgba(91, 95, 239, 0.28)',
+  glowStrong: 'rgba(91, 95, 239, 0.45)',
+} as const;
+
+export const layout = {
+  screenPadding: 20,
+  tabBarHeight: 64,
+  tabBarBottomInset: 8,
+  footerClearance: 140,
+} as const;

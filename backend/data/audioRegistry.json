@@ -1,0 +1,484 @@
+{
+  "daily-neighbor-greeting": {
+    "daily-neighbor-greeting-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-neighbor-greeting/daily-neighbor-greeting-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-neighbor-greeting/daily-neighbor-greeting-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-ordering-coffee": {
+    "cafe-pack-ordering-coffee-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-ordering-coffee/cafe-pack-ordering-coffee-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-ordering-coffee/cafe-pack-ordering-coffee-s1/natural.mp3"
+    }
+  },
+  "daily-pack-asking-for-help": {
+    "daily-pack-asking-for-help-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-asking-for-help/daily-pack-asking-for-help-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-asking-for-help/daily-pack-asking-for-help-s1/natural.mp3"
+    }
+  },
+  "daily-pack-asking-to-repeat": {
+    "daily-pack-asking-to-repeat-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-asking-to-repeat/daily-pack-asking-to-repeat-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-asking-to-repeat/daily-pack-asking-to-repeat-s1/natural.mp3"
+    }
+  },
+  "daily-native-gonna-plans": {
+    "daily-gonna-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-native-gonna-plans/daily-gonna-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-native-gonna-plans/daily-gonna-s1/natural.mp3"
+    }
+  },
+  "daily-pack-ending-a-conversation": {
+    "daily-pack-ending-a-conversation-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-ending-a-conversation/daily-pack-ending-a-conversation-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-ending-a-conversation/daily-pack-ending-a-conversation-s1/natural.mp3"
+    }
+  },
+  "daily-podcast-opinion": {
+    "daily-opinion-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-podcast-opinion/daily-opinion-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-podcast-opinion/daily-opinion-s1/natural.mp3"
+    }
+  },
+  "daily-feelings-checkin": {
+    "daily-feelings-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-feelings-checkin/daily-feelings-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-feelings-checkin/daily-feelings-s1/natural.mp3"
+    }
+  },
+  "daily-pack-making-a-quick-plan": {
+    "daily-pack-making-a-quick-plan-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-making-a-quick-plan/daily-pack-making-a-quick-plan-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-making-a-quick-plan/daily-pack-making-a-quick-plan-s1/natural.mp3"
+    }
+  },
+  "daily-friend-call": {
+    "daily-call-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-friend-call/daily-call-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-friend-call/daily-call-s1/natural.mp3"
+    }
+  },
+  "daily-running-late": {
+    "daily-late-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-running-late/daily-late-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-running-late/daily-late-s1/natural.mp3"
+    }
+  },
+  "daily-pack-saying-you-are-busy": {
+    "daily-pack-saying-you-are-busy-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-saying-you-are-busy/daily-pack-saying-you-are-busy-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-saying-you-are-busy/daily-pack-saying-you-are-busy-s1/natural.mp3"
+    }
+  },
+  "daily-pack-saying-you-dont-understand": {
+    "daily-pack-saying-you-dont-understand-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-saying-you-dont-understand/daily-pack-saying-you-dont-understand-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-saying-you-dont-understand/daily-pack-saying-you-dont-understand-s1/natural.mp3"
+    }
+  },
+  "daily-pack-weather-small-talk": {
+    "daily-pack-weather-small-talk-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-weather-small-talk/daily-pack-weather-small-talk-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-weather-small-talk/daily-pack-weather-small-talk-s1/natural.mp3"
+    }
+  },
+  "daily-pack-thanking-politely": {
+    "daily-pack-thanking-politely-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-thanking-politely/daily-pack-thanking-politely-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-pack-thanking-politely/daily-pack-thanking-politely-s1/natural.mp3"
+    }
+  },
+  "daily-weather-smalltalk": {
+    "daily-weather-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-weather-smalltalk/daily-weather-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-weather-smalltalk/daily-weather-s1/natural.mp3"
+    }
+  },
+  "daily-weekend-plans": {
+    "daily-weekend-plans-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-weekend-plans/daily-weekend-plans-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/daily-weekend-plans/daily-weekend-plans-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-asking-about-spice": {
+    "cafe-pack-asking-about-spice-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-asking-about-spice/cafe-pack-asking-about-spice-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-asking-about-spice/cafe-pack-asking-about-spice-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-asking-for-recommendations": {
+    "cafe-pack-asking-for-recommendations-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-asking-for-recommendations/cafe-pack-asking-for-recommendations-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-asking-for-recommendations/cafe-pack-asking-for-recommendations-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-asking-for-the-check": {
+    "cafe-pack-asking-for-the-check-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-asking-for-the-check/cafe-pack-asking-for-the-check-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-asking-for-the-check/cafe-pack-asking-for-the-check-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-changing-an-order": {
+    "cafe-pack-changing-an-order-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-changing-an-order/cafe-pack-changing-an-order-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-changing-an-order/cafe-pack-changing-an-order-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-fast-native-order": {
+    "cafe-pack-fast-native-order-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-fast-native-order/cafe-pack-fast-native-order-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-fast-native-order/cafe-pack-fast-native-order-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-handling-wrong-order": {
+    "cafe-pack-handling-wrong-order-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-handling-wrong-order/cafe-pack-handling-wrong-order-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-handling-wrong-order/cafe-pack-handling-wrong-order-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-ordering-takeaway": {
+    "cafe-pack-ordering-takeaway-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-ordering-takeaway/cafe-pack-ordering-takeaway-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-ordering-takeaway/cafe-pack-ordering-takeaway-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-saying-something-is-missing": {
+    "cafe-pack-saying-something-is-missing-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-saying-something-is-missing/cafe-pack-saying-something-is-missing-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-saying-something-is-missing/cafe-pack-saying-something-is-missing-s1/natural.mp3"
+    }
+  },
+  "cafe-pack-small-talk-with-barista": {
+    "cafe-pack-small-talk-with-barista-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-small-talk-with-barista/cafe-pack-small-talk-with-barista-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-small-talk-with-barista/cafe-pack-small-talk-with-barista-s1/natural.mp3"
+    },
+    "cafe-pack-small-talk-with-barista-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-small-talk-with-barista/cafe-pack-small-talk-with-barista-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-small-talk-with-barista/cafe-pack-small-talk-with-barista-s2/natural.mp3"
+    },
+    "cafe-pack-small-talk-with-barista-s3": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-small-talk-with-barista/cafe-pack-small-talk-with-barista-s3/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-small-talk-with-barista/cafe-pack-small-talk-with-barista-s3/natural.mp3"
+    }
+  },
+  "cafe-pack-talking-to-waiter-naturally": {
+    "cafe-pack-talking-to-waiter-naturally-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-talking-to-waiter-naturally/cafe-pack-talking-to-waiter-naturally-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-talking-to-waiter-naturally/cafe-pack-talking-to-waiter-naturally-s1/natural.mp3"
+    },
+    "cafe-pack-talking-to-waiter-naturally-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-talking-to-waiter-naturally/cafe-pack-talking-to-waiter-naturally-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-talking-to-waiter-naturally/cafe-pack-talking-to-waiter-naturally-s2/natural.mp3"
+    },
+    "cafe-pack-talking-to-waiter-naturally-s3": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-talking-to-waiter-naturally/cafe-pack-talking-to-waiter-naturally-s3/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/cafe-pack-talking-to-waiter-naturally/cafe-pack-talking-to-waiter-naturally-s3/natural.mp3"
+    }
+  },
+  "travel-pack-airport-security-conversation": {
+    "travel-pack-airport-security-conversation-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s1/natural.mp3"
+    },
+    "travel-pack-airport-security-conversation-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s2/natural.mp3"
+    },
+    "travel-pack-airport-security-conversation-s3": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s3/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s3/natural.mp3"
+    },
+    "travel-pack-airport-security-conversation-s4": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s4/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-airport-security-conversation/travel-pack-airport-security-conversation-s4/natural.mp3"
+    }
+  },
+  "travel-pack-asking-about-breakfast": {
+    "travel-pack-asking-about-breakfast-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-asking-about-breakfast/travel-pack-asking-about-breakfast-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-asking-about-breakfast/travel-pack-asking-about-breakfast-s1/natural.mp3"
+    }
+  },
+  "travel-pack-asking-for-wifi": {
+    "travel-pack-asking-for-wifi-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-asking-for-wifi/travel-pack-asking-for-wifi-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-asking-for-wifi/travel-pack-asking-for-wifi-s1/natural.mp3"
+    }
+  },
+  "travel-pack-at-the-airport": {
+    "travel-pack-at-the-airport-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-at-the-airport/travel-pack-at-the-airport-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-at-the-airport/travel-pack-at-the-airport-s1/natural.mp3"
+    }
+  },
+  "travel-pack-buying-a-ticket": {
+    "travel-pack-buying-a-ticket-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-buying-a-ticket/travel-pack-buying-a-ticket-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-buying-a-ticket/travel-pack-buying-a-ticket-s1/natural.mp3"
+    }
+  },
+  "travel-pack-fast-native-directions": {
+    "travel-pack-fast-native-directions-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-fast-native-directions/travel-pack-fast-native-directions-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-fast-native-directions/travel-pack-fast-native-directions-s1/natural.mp3"
+    }
+  },
+  "travel-pack-hotel-room-issue": {
+    "travel-pack-hotel-room-issue-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-hotel-room-issue/travel-pack-hotel-room-issue-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-hotel-room-issue/travel-pack-hotel-room-issue-s1/natural.mp3"
+    }
+  },
+  "travel-pack-reporting-a-problem": {
+    "travel-pack-reporting-a-problem-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-reporting-a-problem/travel-pack-reporting-a-problem-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-reporting-a-problem/travel-pack-reporting-a-problem-s1/natural.mp3"
+    }
+  },
+  "travel-pack-small-talk-while-traveling": {
+    "travel-pack-small-talk-while-traveling-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-small-talk-while-traveling/travel-pack-small-talk-while-traveling-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-small-talk-while-traveling/travel-pack-small-talk-while-traveling-s1/natural.mp3"
+    }
+  },
+  "travel-pack-taking-a-taxi": {
+    "travel-pack-taking-a-taxi-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-taking-a-taxi/travel-pack-taking-a-taxi-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/travel-pack-taking-a-taxi/travel-pack-taking-a-taxi-s1/natural.mp3"
+    }
+  },
+  "job-pack-asking-a-question": {
+    "job-pack-asking-a-question-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-asking-a-question/job-pack-asking-a-question-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-asking-a-question/job-pack-asking-a-question-s1/natural.mp3"
+    }
+  },
+  "job-pack-closing-the-interview": {
+    "job-pack-closing-the-interview-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-closing-the-interview/job-pack-closing-the-interview-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-closing-the-interview/job-pack-closing-the-interview-s1/natural.mp3"
+    }
+  },
+  "job-pack-explaining-your-strengths": {
+    "job-pack-explaining-your-strengths-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-explaining-your-strengths/job-pack-explaining-your-strengths-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-explaining-your-strengths/job-pack-explaining-your-strengths-s1/natural.mp3"
+    }
+  },
+  "job-pack-fast-native-interview-question": {
+    "job-pack-fast-native-interview-question-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-fast-native-interview-question/job-pack-fast-native-interview-question-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-fast-native-interview-question/job-pack-fast-native-interview-question-s1/natural.mp3"
+    }
+  },
+  "job-pack-handling-pressure-question": {
+    "job-pack-handling-pressure-question-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-handling-pressure-question/job-pack-handling-pressure-question-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-handling-pressure-question/job-pack-handling-pressure-question-s1/natural.mp3"
+    },
+    "job-pack-handling-pressure-question-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-handling-pressure-question/job-pack-handling-pressure-question-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-handling-pressure-question/job-pack-handling-pressure-question-s2/natural.mp3"
+    }
+  },
+  "job-pack-salary-and-availability": {
+    "job-pack-salary-and-availability-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s1/natural.mp3"
+    },
+    "job-pack-salary-and-availability-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s2/natural.mp3"
+    },
+    "job-pack-salary-and-availability-s3": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s3/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s3/natural.mp3"
+    },
+    "job-pack-salary-and-availability-s4": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s4/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-salary-and-availability/job-pack-salary-and-availability-s4/natural.mp3"
+    }
+  },
+  "job-pack-talking-about-experience": {
+    "job-pack-talking-about-experience-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-talking-about-experience/job-pack-talking-about-experience-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-talking-about-experience/job-pack-talking-about-experience-s1/natural.mp3"
+    }
+  },
+  "job-pack-talking-about-teamwork": {
+    "job-pack-talking-about-teamwork-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-talking-about-teamwork/job-pack-talking-about-teamwork-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-talking-about-teamwork/job-pack-talking-about-teamwork-s1/natural.mp3"
+    }
+  },
+  "job-pack-talking-about-weaknesses": {
+    "job-pack-talking-about-weaknesses-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-talking-about-weaknesses/job-pack-talking-about-weaknesses-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-talking-about-weaknesses/job-pack-talking-about-weaknesses-s1/natural.mp3"
+    }
+  },
+  "job-pack-tell-me-about-yourself": {
+    "job-pack-tell-me-about-yourself-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-tell-me-about-yourself/job-pack-tell-me-about-yourself-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-tell-me-about-yourself/job-pack-tell-me-about-yourself-s1/natural.mp3"
+    },
+    "job-pack-tell-me-about-yourself-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-tell-me-about-yourself/job-pack-tell-me-about-yourself-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-tell-me-about-yourself/job-pack-tell-me-about-yourself-s2/natural.mp3"
+    }
+  },
+  "job-pack-why-this-job": {
+    "job-pack-why-this-job-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-why-this-job/job-pack-why-this-job-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/job-pack-why-this-job/job-pack-why-this-job-s1/natural.mp3"
+    }
+  },
+  "series-emotional-line": {
+    "series-emotion-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-emotional-line/series-emotion-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-emotional-line/series-emotion-s1/natural.mp3"
+    }
+  },
+  "series-dialogue-snippet": {
+    "series-twist-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-dialogue-snippet/series-twist-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-dialogue-snippet/series-twist-s1/natural.mp3"
+    },
+    "series-twist-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-dialogue-snippet/series-twist-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-dialogue-snippet/series-twist-s2/natural.mp3"
+    }
+  },
+  "series-fast-banter": {
+    "series-banter-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-fast-banter/series-banter-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-fast-banter/series-banter-s1/natural.mp3"
+    }
+  },
+  "series-sarcastic-reply": {
+    "series-sarc-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-sarcastic-reply/series-sarc-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-sarcastic-reply/series-sarc-s1/natural.mp3"
+    }
+  },
+  "series-reaction-wow": {
+    "series-wow-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-reaction-wow/series-wow-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/series-reaction-wow/series-wow-s1/natural.mp3"
+    }
+  },
+  "pron-pack-advanced-th-practice": {
+    "pron-pack-advanced-th-practice-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-advanced-th-practice/pron-pack-advanced-th-practice-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-advanced-th-practice/pron-pack-advanced-th-practice-s1/natural.mp3"
+    }
+  },
+  "rhythm-confidence-flow": {
+    "rhythm-conf-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/rhythm-confidence-flow/rhythm-conf-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/rhythm-confidence-flow/rhythm-conf-s1/natural.mp3"
+    }
+  },
+  "pron-pack-fast-linking-practice": {
+    "pron-pack-fast-linking-practice-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-fast-linking-practice/pron-pack-fast-linking-practice-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-fast-linking-practice/pron-pack-fast-linking-practice-s1/natural.mp3"
+    }
+  },
+  "pron-pack-final-sounds": {
+    "pron-pack-final-sounds-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-final-sounds/pron-pack-final-sounds-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-final-sounds/pron-pack-final-sounds-s1/natural.mp3"
+    }
+  },
+  "pron-pack-linking-words": {
+    "pron-pack-linking-words-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-linking-words/pron-pack-linking-words-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-linking-words/pron-pack-linking-words-s1/natural.mp3"
+    }
+  },
+  "pron-pack-polite-intonation": {
+    "pron-pack-polite-intonation-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-polite-intonation/pron-pack-polite-intonation-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-polite-intonation/pron-pack-polite-intonation-s1/natural.mp3"
+    }
+  },
+  "pron-pack-reductions-gonna-wanna-gotta": {
+    "pron-pack-reductions-gonna-wanna-gotta-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-reductions-gonna-wanna-gotta/pron-pack-reductions-gonna-wanna-gotta-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-reductions-gonna-wanna-gotta/pron-pack-reductions-gonna-wanna-gotta-s1/natural.mp3"
+    },
+    "pron-pack-reductions-gonna-wanna-gotta-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-reductions-gonna-wanna-gotta/pron-pack-reductions-gonna-wanna-gotta-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-reductions-gonna-wanna-gotta/pron-pack-reductions-gonna-wanna-gotta-s2/natural.mp3"
+    },
+    "pron-pack-reductions-gonna-wanna-gotta-s3": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-reductions-gonna-wanna-gotta/pron-pack-reductions-gonna-wanna-gotta-s3/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-reductions-gonna-wanna-gotta/pron-pack-reductions-gonna-wanna-gotta-s3/natural.mp3"
+    }
+  },
+  "pron-pack-rhythm-and-stress": {
+    "pron-pack-rhythm-and-stress-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-and-stress/pron-pack-rhythm-and-stress-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-and-stress/pron-pack-rhythm-and-stress-s1/natural.mp3"
+    }
+  },
+  "pron-pack-rhythm-drill-natural-flow": {
+    "pron-pack-rhythm-drill-natural-flow-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-drill-natural-flow/pron-pack-rhythm-drill-natural-flow-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-drill-natural-flow/pron-pack-rhythm-drill-natural-flow-s1/natural.mp3"
+    },
+    "pron-pack-rhythm-drill-natural-flow-s2": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-drill-natural-flow/pron-pack-rhythm-drill-natural-flow-s2/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-drill-natural-flow/pron-pack-rhythm-drill-natural-flow-s2/natural.mp3"
+    },
+    "pron-pack-rhythm-drill-natural-flow-s3": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-drill-natural-flow/pron-pack-rhythm-drill-natural-flow-s3/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-rhythm-drill-natural-flow/pron-pack-rhythm-drill-natural-flow-s3/natural.mp3"
+    }
+  },
+  "pron-pack-sentence-grouping": {
+    "pron-pack-sentence-grouping-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-sentence-grouping/pron-pack-sentence-grouping-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-sentence-grouping/pron-pack-sentence-grouping-s1/natural.mp3"
+    }
+  },
+  "pron-pack-th-sound-basics": {
+    "pron-pack-th-sound-basics-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-th-sound-basics/pron-pack-th-sound-basics-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-th-sound-basics/pron-pack-th-sound-basics-s1/natural.mp3"
+    }
+  },
+  "pron-pack-w-v-difference": {
+    "pron-pack-w-v-difference-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-w-v-difference/pron-pack-w-v-difference-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-w-v-difference/pron-pack-w-v-difference-s1/natural.mp3"
+    }
+  },
+  "pron-pack-weak-forms": {
+    "pron-pack-weak-forms-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-weak-forms/pron-pack-weak-forms-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/pron-pack-weak-forms/pron-pack-weak-forms-s1/natural.mp3"
+    }
+  },
+  "custom-ai-confidence": {
+    "custom-ai-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/custom-ai-confidence/custom-ai-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/custom-ai-confidence/custom-ai-s1/natural.mp3"
+    }
+  },
+  "rhythm-video-practice-placeholder": {
+    "rhythm-video-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/rhythm-video-practice-placeholder/rhythm-video-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/rhythm-video-practice-placeholder/rhythm-video-s1/natural.mp3"
+    }
+  },
+  "custom-ai-work-meeting": {
+    "custom-work-s1": {
+      "naturalAudioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/custom-ai-work-meeting/custom-work-s1/natural.mp3",
+      "audioUrl": "http://192.168.1.6:3001/uploads/audio/lessons/custom-ai-work-meeting/custom-work-s1/natural.mp3"
+    }
+  }
+}

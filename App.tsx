@@ -1,20 +1,76 @@
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { LogBox } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { UserProvider } from './src/context/UserContext';
+import { AuthProvider } from './src/context/AuthContext';
+import { LearningProvider } from './src/context/LearningContext';
+import { PremiumProvider } from './src/context/PremiumContext';
+import { RootNavigator } from './src/navigation/RootNavigator';
+import { navigationRef } from './src/navigation/navigationRef';
+import { colors } from './src/theme';
+import {
+  getAllLessons,
+  initializeContentRepository,
+} from './src/services/contentRepository';
+import { printContentQualitySummary, validateCatalog } from './src/services/contentQuality';
+import { initializeServicesConfig } from './src/config/servicesConfig';
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+const EchoSpeakTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: colors.primary,
+    background: colors.background,
+    card: colors.card,
+    text: colors.textPrimary,
+    border: colors.border,
+  },
+};
+
+if (__DEV__) {
+  LogBox.ignoreLogs([
+    'Error fetching offerings',
+    'There is an issue with your configuration',
+    'no Play Store products registered in the RevenueCat dashboard',
+  ]);
+
+  void getAllLessons().then((publishedLessons) => {
+    const report = validateCatalog(publishedLessons);
+    console.log('[EchoSpeak Content Quality]', report);
+    printContentQualitySummary(report);
+  });
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+export default function App() {
+  useEffect(() => {
+    void initializeContentRepository();
+    void initializeServicesConfig();
+  }, []);
+
+  return (
+    <SafeAreaProvider>
+      <LearningProvider>
+        <AuthProvider>
+          <PremiumProvider>
+            <UserProvider>
+            <NavigationContainer
+              ref={navigationRef}
+              theme={EchoSpeakTheme}
+              onReady={() => {
+                if (__DEV__) {
+                  console.log('[Navigation] ready');
+                }
+              }}
+            >
+              <StatusBar style="light" />
+              <RootNavigator />
+            </NavigationContainer>
+            </UserProvider>
+          </PremiumProvider>
+        </AuthProvider>
+      </LearningProvider>
+    </SafeAreaProvider>
+  );
+}

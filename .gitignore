@@ -7,6 +7,7 @@ node_modules/
 .expo/
 dist/
 web-build/
+backend/dist/
 expo-env.d.ts
 
 # Native
@@ -31,10 +32,19 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+backend/.env
+android/keystore.properties
 
 # typescript
 *.tsbuildinfo
+
+# backend uploaded lesson audio (keep folder structure via .gitkeep)
+backend/uploads/**
+!backend/uploads/audio/
+!backend/uploads/audio/lessons/
+!backend/uploads/audio/lessons/.gitkeep
 
 # generated native folders
 /ios

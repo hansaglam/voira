@@ -1,0 +1,291 @@
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import * as Linking from 'expo-linking';
+import { useLearning } from './LearningContext';
+import {
+  createSessionFromAuthUrl,
+  getAuthFeatures,
+  getCurrentAuthUser,
+  getOrCreateAnonymousUserId,
+  isAuthCallbackUrl,
+  isAuthServiceAvailable,
+  logAuthRedirectUrlForDev,
+  refreshSession,
+  signInWithEmailPassword,
+  signOut as signOutFromSupabase,
+  signUpWithEmailPassword,
+  subscribeToAuthChanges,
+  type AuthActionResult,
+  type AuthFeatures,
+  type AuthUser,
+} from '../services/auth';
+import { isRevenueCatConfigured, logoutRevenueCatUser } from '../services/premium';
+
+interface AuthContextType {
+  user: AuthUser | null;
+  isGuest: boolean;
+  isLoadingAuth: boolean;
+  isAuthAvailable: boolean;
+  authFeatures: AuthFeatures;
+  anonymousUserId: string | null;
+  errorMessage: string | null;
+  signInWithEmailPassword: (email: string, password: string) => Promise<AuthActionResult>;
+  signUpWithEmailPassword: (email: string, password: string) => Promise<AuthActionResult>;
+  signOut: () => Promise<boolean>;
+  refreshSession: () => Promise<void>;
+  clearError: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const { setUserId } = useLearning();
+  const authFeatures = useMemo(() => getAuthFeatures(), []);
+  const isAuthAvailable = isAuthServiceAvailable();
+
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [anonymousUserId, setAnonymousUserId] = useState<string | null>(null);
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const applyGuestIdentity = useCallback(
+    async (guestId: string) => {
+      setUser(null);
+      setAnonymousUserId(guestId);
+      setUserId(guestId);
+    },
+    [setUserId],
+  );
+
+  const applySignedInIdentity = useCallback(
+    async (nextUser: AuthUser) => {
+      setUser(nextUser);
+      setUserId(nextUser.id);
+      if (__DEV__) {
+        console.log('[EchoSpeak Auth] signed in');
+      }
+    },
+    [setUserId],
+  );
+
+  const hydrateAuth = useCallback(async () => {
+    setIsLoadingAuth(true);
+    setErrorMessage(null);
+
+    try {
+      const guestId = await getOrCreateAnonymousUserId();
+      setAnonymousUserId(guestId);
+
+      if (!isAuthAvailable) {
+        setUser(null);
+        setUserId(guestId);
+        return;
+      }
+
+      const currentUser = await getCurrentAuthUser();
+      if (currentUser) {
+        await applySignedInIdentity(currentUser);
+        return;
+      }
+
+      await applyGuestIdentity(guestId);
+    } finally {
+      setIsLoadingAuth(false);
+    }
+  }, [applyGuestIdentity, applySignedInIdentity, isAuthAvailable, setUserId]);
+
+  useEffect(() => {
+    void hydrateAuth();
+  }, [hydrateAuth]);
+
+  useEffect(() => {
+    if (!isAuthAvailable) return;
+
+    const unsubscribe = subscribeToAuthChanges((nextUser) => {
+      void (async () => {
+        if (nextUser) {
+          await applySignedInIdentity(nextUser);
+          return;
+        }
+
+        const guestId = anonymousUserId ?? (await getOrCreateAnonymousUserId());
+        await applyGuestIdentity(guestId);
+      })();
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [anonymousUserId, applyGuestIdentity, applySignedInIdentity, isAuthAvailable]);
+
+  useEffect(() => {
+    if (!isAuthAvailable) return;
+
+    logAuthRedirectUrlForDev();
+
+    const handleAuthCallbackUrl = (url: string) => {
+      if (!isAuthCallbackUrl(url)) {
+        return;
+      }
+
+      if (__DEV__) {
+        console.log('[EchoSpeak Auth] deep link received', url);
+      }
+
+      void (async () => {
+        const result = await createSessionFromAuthUrl(url);
+        if (!result.ok) {
+          setErrorMessage(result.errorMessage ?? 'Giriş tamamlanamadı.');
+          return;
+        }
+
+        const nextUser = (await refreshSession()) ?? (await getCurrentAuthUser());
+        if (nextUser) {
+          await applySignedInIdentity(nextUser);
+          if (__DEV__) {
+            console.log('[EchoSpeak Auth] signed in via deep link');
+          }
+        }
+      })();
+    };
+
+    void Linking.getInitialURL().then((initialUrl) => {
+      if (initialUrl) {
+        handleAuthCallbackUrl(initialUrl);
+      }
+    });
+
+    const subscription = Linking.addEventListener('url', ({ url }) => {
+      handleAuthCallbackUrl(url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [applySignedInIdentity, isAuthAvailable]);
+
+  const signInWithEmailPasswordHandler = useCallback(
+    async (email: string, password: string): Promise<AuthActionResult> => {
+      setErrorMessage(null);
+      const result = await signInWithEmailPassword(email, password);
+      if (!result.ok) {
+        setErrorMessage(result.errorMessage ?? 'İşlem tamamlanamadı. Lütfen tekrar dene.');
+        return result;
+      }
+
+      const nextUser = await getCurrentAuthUser();
+      if (nextUser) {
+        await applySignedInIdentity(nextUser);
+      }
+
+      return result;
+    },
+    [applySignedInIdentity],
+  );
+
+  const signUpWithEmailPasswordHandler = useCallback(
+    async (email: string, password: string): Promise<AuthActionResult> => {
+      setErrorMessage(null);
+      const result = await signUpWithEmailPassword(email, password);
+      if (!result.ok) {
+        setErrorMessage(result.errorMessage ?? 'İşlem tamamlanamadı. Lütfen tekrar dene.');
+        return result;
+      }
+
+      if (!result.requiresEmailConfirmation) {
+        const nextUser = await getCurrentAuthUser();
+        if (nextUser) {
+          await applySignedInIdentity(nextUser);
+        }
+      }
+
+      return result;
+    },
+    [applySignedInIdentity],
+  );
+
+  const signOutHandler = useCallback(async (): Promise<boolean> => {
+    setErrorMessage(null);
+    const result = await signOutFromSupabase();
+    if (!result.ok) {
+      setErrorMessage(result.errorMessage ?? 'Çıkış yapılamadı.');
+      return false;
+    }
+
+    if (isRevenueCatConfigured()) {
+      await logoutRevenueCatUser();
+    }
+
+    const guestId = anonymousUserId ?? (await getOrCreateAnonymousUserId());
+    await applyGuestIdentity(guestId);
+
+    if (__DEV__) {
+      console.log('[EchoSpeak Auth] signed out');
+    }
+
+    return true;
+  }, [anonymousUserId, applyGuestIdentity]);
+
+  const refreshSessionHandler = useCallback(async () => {
+    setErrorMessage(null);
+    const nextUser = await refreshSession();
+    if (nextUser) {
+      await applySignedInIdentity(nextUser);
+      return;
+    }
+
+    const guestId = anonymousUserId ?? (await getOrCreateAnonymousUserId());
+    await applyGuestIdentity(guestId);
+  }, [anonymousUserId, applyGuestIdentity, applySignedInIdentity]);
+
+  const clearError = useCallback(() => {
+    setErrorMessage(null);
+  }, []);
+
+  const value = useMemo(
+    (): AuthContextType => ({
+      user,
+      isGuest: !user,
+      isLoadingAuth,
+      isAuthAvailable,
+      authFeatures,
+      anonymousUserId,
+      errorMessage,
+      signInWithEmailPassword: signInWithEmailPasswordHandler,
+      signUpWithEmailPassword: signUpWithEmailPasswordHandler,
+      signOut: signOutHandler,
+      refreshSession: refreshSessionHandler,
+      clearError,
+    }),
+    [
+      user,
+      isLoadingAuth,
+      isAuthAvailable,
+      authFeatures,
+      anonymousUserId,
+      errorMessage,
+      signInWithEmailPasswordHandler,
+      signUpWithEmailPasswordHandler,
+      signOutHandler,
+      refreshSessionHandler,
+      clearError,
+    ],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+}
