@@ -1,20 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootScreenProps } from '../navigation/types';
 import { ScreenContainer, LibraryLessonCard, SectionHeader, EmptyState } from '../components';
-import { getContinueLesson, openLessonFromLibrary } from '../data/lessonLibrary';
+import { getContinueLesson, openLessonFromLibrary, type LessonProgressState } from '../data/lessonLibrary';
 import { getCategoryById } from '../data/lessons';
 import { getLessonsByCategory } from '../services/contentRepository';
-import { useUser } from '../context/UserContext';
+import { usePremium } from '../context/PremiumContext';
 import { useLearning } from '../context/LearningContext';
 import { resolveLessonPremium } from '../utils/lessonUtils';
-import { Lesson, LessonCategory } from '../types/lesson';
+import { Lesson, LessonCategory, LessonLevel } from '../types/lesson';
 import { colors, spacing, typography } from '../theme';
 
 type Props = RootScreenProps<'CategoryLessons'>;
-type LessonProgressState = 'not_started' | 'in_progress' | 'completed';
 
 type CategoryLessonStats = {
   total: number;
@@ -47,8 +46,31 @@ const CATEGORY_GOAL_COPY: Partial<Record<string, { title: string; text: string }
   },
 };
 
+function levelSortOrder(level: LessonLevel): number {
+  if (level === 'beginner') return 0;
+  if (level === 'intermediate') return 1;
+  return 2;
+}
+
+function sortCategoryLessons(lessons: Lesson[], completedLessonIds: string[]): Lesson[] {
+  return [...lessons].sort((a, b) => {
+    const aPremium = resolveLessonPremium(a);
+    const bPremium = resolveLessonPremium(b);
+    if (aPremium !== bPremium) return aPremium ? 1 : -1;
+
+    const levelDiff = levelSortOrder(a.level) - levelSortOrder(b.level);
+    if (levelDiff !== 0) return levelDiff;
+
+    const aCompleted = completedLessonIds.includes(a.id);
+    const bCompleted = completedLessonIds.includes(b.id);
+    if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
+
+    return a.title.localeCompare(b.title, 'tr');
+  });
+}
+
 export function CategoryLessonsScreen({ navigation, route }: Props) {
-  const { profile } = useUser();
+  const { isPremium } = usePremium();
   const { learningProfile } = useLearning();
   const { categoryId } = route.params;
   const [stats, setStats] = useState<CategoryLessonStats | null>(null);
@@ -71,9 +93,44 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
 
   const category = stats?.category;
 
+  const continueInCategory =
+    continueLesson.category === categoryId ? continueLesson : null;
+
+  const getLessonProgressState = (lessonId: string): LessonProgressState => {
+    if (learningProfile.completedLessonIds.includes(lessonId)) return 'completed';
+    if (continueInCategory?.id === lessonId) return 'in_progress';
+    return 'not_started';
+  };
+
+  const { continueLessons, allLessons } = useMemo(() => {
+    if (!stats) {
+      return { continueLessons: [] as Lesson[], allLessons: [] as Lesson[] };
+    }
+
+    const sorted = sortCategoryLessons(stats.lessons, learningProfile.completedLessonIds);
+    const continueLessonId = continueInCategory?.id;
+    const inProgress = sorted.filter(
+      (lesson) =>
+        lesson.id === continueLessonId &&
+        !learningProfile.completedLessonIds.includes(lesson.id),
+    );
+    const inProgressIds = new Set(inProgress.map((lesson) => lesson.id));
+    const remaining = sorted.filter((lesson) => !inProgressIds.has(lesson.id));
+
+    return { continueLessons: inProgress, allLessons: remaining };
+  }, [stats, learningProfile.completedLessonIds, continueInCategory?.id]);
+
+  const categoryGoal = CATEGORY_GOAL_COPY[categoryId];
+
+  const handleLessonPress = (lessonId: string) => {
+    const lesson = stats?.lessons.find((l) => l.id === lessonId);
+    if (!lesson) return;
+    openLessonFromLibrary(navigation, lesson, isPremium, categoryId);
+  };
+
   if (!stats || !category) {
     return (
-      <ScreenContainer withTabBar contentStyle={styles.content}>
+      <ScreenContainer withPersistentTabBar activeTab="Categories" contentStyle={styles.content}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
@@ -88,59 +145,8 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
     );
   }
 
-  const continueInCategory =
-    continueLesson.category === categoryId ? continueLesson : null;
-
-  const sortedLessons = [...stats.lessons].sort((a, b) => {
-    const aPremium = resolveLessonPremium(a);
-    const bPremium = resolveLessonPremium(b);
-    if (aPremium !== bPremium) return aPremium ? 1 : -1;
-    const aCompleted = learningProfile.completedLessonIds.includes(a.id);
-    const bCompleted = learningProfile.completedLessonIds.includes(b.id);
-    if (aCompleted !== bCompleted) return aCompleted ? -1 : 1;
-    if (continueInCategory) {
-      if (a.id === continueInCategory.id) return -1;
-      if (b.id === continueInCategory.id) return 1;
-    }
-    return a.title.localeCompare(b.title);
-  });
-
-  const freeLessons = sortedLessons.filter((l) => !resolveLessonPremium(l));
-  const premiumLessons = sortedLessons.filter((l) => resolveLessonPremium(l));
-
-  const firstFreeId = freeLessons[0]?.id;
-  const secondFreeId = freeLessons[1]?.id;
-
-  const getLessonProgressState = (lessonId: string): LessonProgressState => {
-    if (learningProfile.completedLessonIds.includes(lessonId)) return 'completed';
-    if (continueInCategory?.id === lessonId) return 'in_progress';
-    if (lessonId === secondFreeId) return 'in_progress';
-    if (lessonId === firstFreeId) return 'completed';
-    return 'not_started';
-  };
-
-  const inProgressLessons = freeLessons.filter(
-    (lesson) => getLessonProgressState(lesson.id) === 'in_progress',
-  );
-  const completedFreeLessons = freeLessons.filter(
-    (lesson) => getLessonProgressState(lesson.id) === 'completed',
-  );
-  const remainingFreeLessons = freeLessons.filter(
-    (lesson) => getLessonProgressState(lesson.id) === 'not_started',
-  );
-
-  const beginnerLessons = remainingFreeLessons.filter((lesson) => lesson.level === 'beginner');
-  const nonBeginnerFreeLessons = remainingFreeLessons.filter((lesson) => lesson.level !== 'beginner');
-  const categoryGoal = CATEGORY_GOAL_COPY[categoryId];
-
-  const handleLessonPress = (lessonId: string) => {
-    const lesson = stats.lessons.find((l) => l.id === lessonId);
-    if (!lesson) return;
-    openLessonFromLibrary(navigation, lesson, profile.isPremium, categoryId);
-  };
-
   return (
-    <ScreenContainer withTabBar contentStyle={styles.content}>
+    <ScreenContainer withPersistentTabBar activeTab="Categories" contentStyle={styles.content}>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
       </TouchableOpacity>
@@ -179,87 +185,36 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
         </LinearGradient>
       ) : null}
 
-      {inProgressLessons.length > 0 ? (
+      {continueLessons.length > 0 ? (
         <View style={styles.sectionBlock}>
-          <SectionHeader title="Kaldığın dersler" subtitle={`${inProgressLessons.length} ders`} />
-          {inProgressLessons.map((lesson) => (
+          <SectionHeader title="Devam Et" subtitle={`${continueLessons.length} ders`} />
+          {continueLessons.map((lesson) => (
             <LibraryLessonCard
-              key={lesson.id}
+              key={`continue-${lesson.id}`}
               lesson={lesson}
-              isPremiumUser={profile.isPremium}
+              isPremiumUser={isPremium}
               dense
               progressState="in_progress"
-              ctaLabelOverride="Devam et"
               onPress={() => handleLessonPress(lesson.id)}
             />
           ))}
         </View>
       ) : null}
 
-      {beginnerLessons.length > 0 ? (
-        <View style={styles.sectionBlock}>
-          <SectionHeader title="Başlangıç dersleri" subtitle={`${beginnerLessons.length} ders`} />
-          {beginnerLessons.map((lesson) => (
-            <LibraryLessonCard
-              key={lesson.id}
-              lesson={lesson}
-              isPremiumUser={profile.isPremium}
-              dense
-              progressState={getLessonProgressState(lesson.id)}
-              ctaLabelOverride="Başla"
-              onPress={() => handleLessonPress(lesson.id)}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      {completedFreeLessons.length > 0 || nonBeginnerFreeLessons.length > 0 ? (
-        <View style={styles.sectionBlockSoft}>
-          <SectionHeader
-            title="Tüm ücretsiz dersler"
-            subtitle={`${completedFreeLessons.length + nonBeginnerFreeLessons.length} ders`}
+      <View style={styles.sectionBlock}>
+        <SectionHeader title="Tüm Dersler" subtitle={`${stats.total} ders`} />
+        {allLessons.map((lesson) => (
+          <LibraryLessonCard
+            key={lesson.id}
+            lesson={lesson}
+            isPremiumUser={isPremium}
+            dense
+            progressState={getLessonProgressState(lesson.id)}
+            onPress={() => handleLessonPress(lesson.id)}
           />
-          {completedFreeLessons.map((lesson) => (
-            <LibraryLessonCard
-              key={lesson.id}
-              lesson={lesson}
-              isPremiumUser={profile.isPremium}
-              dense
-              progressState="completed"
-              ctaLabelOverride="Tekrar çalış"
-              onPress={() => handleLessonPress(lesson.id)}
-            />
-          ))}
-          {nonBeginnerFreeLessons.map((lesson) => (
-            <LibraryLessonCard
-              key={lesson.id}
-              lesson={lesson}
-              isPremiumUser={profile.isPremium}
-              dense
-              progressState="not_started"
-              ctaLabelOverride="Başla"
-              onPress={() => handleLessonPress(lesson.id)}
-            />
-          ))}
-        </View>
-      ) : null}
+        ))}
+      </View>
 
-      {premiumLessons.length > 0 ? (
-        <View style={styles.sectionBlockPremium}>
-          <SectionHeader title="SpeakPlus dersleri" subtitle="Premium içerik" />
-          {premiumLessons.map((lesson) => (
-            <LibraryLessonCard
-              key={lesson.id}
-              lesson={lesson}
-              isPremiumUser={profile.isPremium}
-              dense
-              progressState="not_started"
-              ctaLabelOverride="Kilidi Aç"
-              onPress={() => handleLessonPress(lesson.id)}
-            />
-          ))}
-        </View>
-      ) : null}
       <View style={styles.bottomSpacer} />
     </ScreenContainer>
   );
@@ -337,19 +292,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   sectionBlock: {
-    marginBottom: spacing.xs,
-  },
-  sectionBlockSoft: {
-    marginBottom: spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(91, 95, 239, 0.12)',
-    paddingTop: spacing.sm,
-  },
-  sectionBlockPremium: {
-    marginTop: spacing.xs,
-    paddingTop: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(196, 181, 253, 0.2)',
+    marginBottom: spacing.sm,
   },
   bottomSpacer: {
     height: spacing.xl,

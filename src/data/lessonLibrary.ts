@@ -15,7 +15,14 @@ import {
 import { resolveLessonPremium } from '../utils/lessonUtils';
 import { LessonCategory, LESSON_TYPE_LABELS } from '../types/lesson';
 
-export type LessonCtaLabel = 'Başla' | 'Devam et' | 'Kilidi Aç';
+export type LessonProgressState = 'not_started' | 'in_progress' | 'completed';
+
+export type LessonCtaLabel =
+  | 'Başla'
+  | 'Devam et'
+  | 'Tekrar çalış'
+  | 'Kilidi Aç'
+  | 'Derse Gir';
 
 function dedupeLessons(lessonList: Lesson[]): Lesson[] {
   const byKey = new Map<string, Lesson>();
@@ -29,9 +36,9 @@ function dedupeLessons(lessonList: Lesson[]): Lesson[] {
   return Array.from(byKey.values());
 }
 
-export function canAccessLesson(lesson: Lesson, isPremiumUser: boolean): boolean {
-  if (isPremiumUser) return true;
-  return !resolveLessonPremium(lesson);
+export function canAccessLesson(lesson: Lesson, isPremium: boolean): boolean {
+  if (!resolveLessonPremium(lesson)) return true;
+  return isPremium;
 }
 
 export {
@@ -39,14 +46,30 @@ export {
   getLockedPremiumLessons,
 } from './learningAlgorithm';
 
+export function getLessonActionLabel(
+  lesson: Lesson,
+  isPremium: boolean,
+  progressState: LessonProgressState = 'not_started',
+): LessonCtaLabel {
+  const isLockedPremium = resolveLessonPremium(lesson) && !isPremium;
+
+  if (progressState === 'completed') return 'Tekrar çalış';
+  if (progressState === 'in_progress') return 'Devam et';
+  if (isLockedPremium) return 'Kilidi Aç';
+  return 'Başla';
+}
+
+/** @deprecated Use getLessonActionLabel */
 export function getLessonCtaLabel(
   lesson: Lesson,
   isPremiumUser: boolean,
   completed?: boolean,
 ): LessonCtaLabel {
-  if (resolveLessonPremium(lesson) && !isPremiumUser) return 'Kilidi Aç';
-  if (completed) return 'Devam et';
-  return 'Başla';
+  return getLessonActionLabel(
+    lesson,
+    isPremiumUser,
+    completed ? 'completed' : 'not_started',
+  );
 }
 
 export function getLessonTypeBadge(lesson: Lesson): string {

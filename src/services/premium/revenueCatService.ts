@@ -44,6 +44,21 @@ function isUserCancelledPurchase(error: unknown): boolean {
   );
 }
 
+export function isAlreadySubscribedPurchaseError(error: unknown): boolean {
+  const { code, message } = getPurchasesErrorDetails(error);
+  const normalized = (message ?? '').toLowerCase();
+
+  return (
+    code === '6' ||
+    code === 'PRODUCT_ALREADY_PURCHASED_ERROR' ||
+    normalized.includes('already subscribed') ||
+    normalized.includes('subscription already exists') ||
+    normalized.includes('already own') ||
+    normalized.includes('item already owned') ||
+    normalized.includes('already purchased')
+  );
+}
+
 export async function configureRevenueCat(appUserId?: string): Promise<boolean> {
   if (!isRevenueCatConfigured() || !isPremiumNativePlatform()) {
     if (__DEV__) {
@@ -232,6 +247,9 @@ export async function purchaseRevenueCatPackage(
   } catch (error) {
     if (isUserCancelledPurchase(error)) {
       throw Object.assign(new Error('purchase_cancelled'), { cancelled: true });
+    }
+    if (isAlreadySubscribedPurchaseError(error)) {
+      throw Object.assign(new Error('already_subscribed'), { alreadySubscribed: true });
     }
     throw error;
   }

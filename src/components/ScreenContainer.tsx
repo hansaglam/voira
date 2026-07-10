@@ -1,6 +1,11 @@
 import React from 'react';
 import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  getPersistentTabBarHeight,
+  PersistentBottomNav,
+} from '../navigation/PersistentBottomNav';
+import type { MainTabParamList } from '../navigation/types';
 import { colors, spacing, layout } from '../theme';
 
 interface ScreenContainerProps {
@@ -10,6 +15,10 @@ interface ScreenContainerProps {
   contentStyle?: ViewStyle;
   /** Extra bottom padding for tab screens so content clears the tab bar */
   withTabBar?: boolean;
+  /** Compact bottom nav for stack screens pushed above MainTabs (Lesson, Analysis, etc.) */
+  withPersistentTabBar?: boolean;
+  /** Highlight active tab in persistent bottom nav */
+  activeTab?: keyof MainTabParamList;
   /** Optional sticky footer (CTA area) pinned above safe area */
   footer?: React.ReactNode;
   /** Override scroll bottom padding when using a fixed footer */
@@ -33,6 +42,8 @@ export function ScreenContainer({
   style,
   contentStyle,
   withTabBar = false,
+  withPersistentTabBar = false,
+  activeTab,
   footer,
   footerClearance,
   footerCompact = false,
@@ -41,18 +52,27 @@ export function ScreenContainer({
 }: ScreenContainerProps) {
   const insets = useSafeAreaInsets();
   const tabBarPadding = getTabBarScrollPadding(insets.bottom);
+  const persistentTabBarHeight = getPersistentTabBarHeight(insets.bottom);
   const bottomPadding = withTabBar
     ? tabBarPadding
-    : insets.bottom + spacing.lg + spacing.md;
+    : withPersistentTabBar
+      ? persistentTabBarHeight + spacing.md
+      : insets.bottom + spacing.lg + spacing.md;
   const footerTopPad = footerBorderless
     ? spacing.sm
     : footerCompact
       ? spacing.xs
       : spacing.sm;
-  const footerBottomPad = insets.bottom + spacing.sm;
+  const footerBottomPad = withPersistentTabBar
+    ? spacing.sm
+    : insets.bottom + spacing.sm;
   const footerBarHeight = footerTopPad + 46 + footerBottomPad;
-  const defaultFooterClearance = footerBarHeight + spacing.md;
-  const scrollFooterPadding = footerClearance ?? defaultFooterClearance;
+  const defaultFooterClearance =
+    footerBarHeight + (withPersistentTabBar ? persistentTabBarHeight : 0) + spacing.md;
+  const scrollFooterPadding =
+    footerClearance != null
+      ? footerClearance + (withPersistentTabBar ? persistentTabBarHeight : 0) + spacing.md
+      : defaultFooterClearance;
 
   if (footer) {
     return (
@@ -82,6 +102,7 @@ export function ScreenContainer({
           >
             {footer}
           </View>
+          {withPersistentTabBar ? <PersistentBottomNav activeTab={activeTab} /> : null}
         </View>
       </SafeAreaView>
     );
@@ -90,26 +111,30 @@ export function ScreenContainer({
   if (scrollable) {
     return (
       <SafeAreaView style={[styles.safe, style]} edges={['top']}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: bottomPadding },
-            contentStyle,
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          {children}
-        </ScrollView>
+        <View style={styles.flex}>
+          <ScrollView
+            style={styles.flex}
+            contentContainerStyle={[
+              styles.scrollContent,
+              { paddingBottom: bottomPadding },
+              contentStyle,
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            {children}
+          </ScrollView>
+          {withPersistentTabBar ? <PersistentBottomNav activeTab={activeTab} /> : null}
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={[styles.safe, styles.flex, { paddingBottom: bottomPadding }, style]}
-      edges={['top', 'bottom']}
-    >
-      <View style={[styles.flex, contentStyle]}>{children}</View>
+    <SafeAreaView style={[styles.safe, style]} edges={['top']}>
+      <View style={[styles.flex, contentStyle]}>
+        <View style={[styles.flex, { paddingBottom: bottomPadding }]}>{children}</View>
+        {withPersistentTabBar ? <PersistentBottomNav activeTab={activeTab} /> : null}
+      </View>
     </SafeAreaView>
   );
 }

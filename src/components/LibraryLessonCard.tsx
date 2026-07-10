@@ -5,15 +5,14 @@ import { Lesson } from '../types';
 import { AppCard } from './AppCard';
 import { LockedBadge } from './ui/LockedBadge';
 import {
-  getLessonCtaLabel,
+  getLessonActionLabel,
   getPremiumValueLabels,
   getLessonTypeBadge,
+  type LessonProgressState,
 } from '../data/lessonLibrary';
 import { isLessonCompleted as checkLessonCompleted } from '../data/lessonProgress';
 import { getLessonDifficulty, resolveLessonPremium } from '../utils/lessonUtils';
 import { colors, spacing, typography, borderRadius } from '../theme';
-
-type LessonProgressState = 'not_started' | 'in_progress' | 'completed';
 
 interface LibraryLessonCardProps {
   lesson: Lesson;
@@ -25,7 +24,7 @@ interface LibraryLessonCardProps {
   /** Slimmer list layout for category screens */
   dense?: boolean;
   progressState?: LessonProgressState;
-  ctaLabelOverride?: 'Başla' | 'Devam et' | 'Tekrar çalış' | 'Kilidi Aç';
+  ctaLabelOverride?: ReturnType<typeof getLessonActionLabel>;
 }
 
 export function LibraryLessonCard({
@@ -48,15 +47,9 @@ export function LibraryLessonCard({
   const effectiveState: LessonProgressState =
     progressState ?? (isCompleted ? 'completed' : 'not_started');
   const cta =
-    ctaLabelOverride ??
-    (locked
-      ? 'Kilidi Aç'
-      : effectiveState === 'completed'
-        ? 'Tekrar çalış'
-        : effectiveState === 'in_progress'
-          ? 'Devam et'
-          : getLessonCtaLabel(lesson, isPremiumUser, false));
+    ctaLabelOverride ?? getLessonActionLabel(lesson, isPremiumUser, effectiveState);
   const premiumLabel = resolveLessonPremium(lesson) ? getPremiumValueLabels(lesson)[0] : undefined;
+  const isPremiumLesson = resolveLessonPremium(lesson);
   const typeBadge = getLessonTypeBadge(lesson);
   const difficulty = getLessonDifficulty(lesson);
   const focusTag = lesson.focusSkill?.trim();
@@ -117,6 +110,15 @@ export function LibraryLessonCard({
             </View>
           ) : null}
           <View style={styles.metaRow}>
+            {isPremiumLesson ? (
+              <>
+                <View style={styles.speakPlusBadge}>
+                  <Ionicons name="diamond-outline" size={9} color={colors.premium} />
+                  <Text style={styles.speakPlusText}>SpeakPlus</Text>
+                </View>
+                <Text style={styles.metaDot}>•</Text>
+              </>
+            ) : null}
             <Text style={styles.typePillText}>{typeBadge}</Text>
             <Text style={styles.metaDot}>•</Text>
             <Text style={styles.metaText}>{lesson.estimatedMinutes} dk</Text>

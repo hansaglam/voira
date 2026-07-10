@@ -1,55 +1,66 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, StyleSheet, Platform, TouchableOpacity, Text } from 'react-native';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_CONFIG } from './tabBarConfig';
+import type { MainTabParamList } from './types';
 import { colors, spacing, layout } from '../theme';
 
-export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+interface PersistentBottomNavProps {
+  activeTab?: keyof MainTabParamList;
+}
+
+export function getPersistentTabBarHeight(insetBottom: number): number {
+  const bottomPad = Math.max(insetBottom, layout.tabBarBottomInset);
+  return layout.tabBarHeight + bottomPad + spacing.sm;
+}
+
+export function PersistentBottomNav({ activeTab }: PersistentBottomNavProps) {
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, layout.tabBarBottomInset);
+
+  const navigateToTab = useCallback(
+    (tabName: keyof MainTabParamList) => {
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'MainTabs',
+              params: { screen: tabName },
+            },
+          ],
+        }),
+      );
+    },
+    [navigation],
+  );
 
   return (
     <View style={[styles.container, { paddingBottom: bottomPad }]}>
       <View style={styles.inner}>
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const config = TAB_CONFIG[route.name];
-          if (!config) return null;
-
-          const isFocused = state.index === index;
-
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
+        {(Object.keys(TAB_CONFIG) as Array<keyof MainTabParamList>).map((tabName) => {
+          const config = TAB_CONFIG[tabName];
+          const isFocused = activeTab === tabName;
 
           return (
             <TouchableOpacity
-              key={route.key}
+              key={tabName}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
-              accessibilityLabel={options.tabBarAccessibilityLabel}
-              onPress={onPress}
+              onPress={() => navigateToTab(tabName)}
               style={styles.tab}
               activeOpacity={0.7}
             >
-              {isFocused && <View style={styles.activeIndicator} />}
+              {isFocused ? <View style={styles.activeIndicator} /> : null}
               <Ionicons
                 name={isFocused ? config.iconFocused : config.icon}
                 size={21}
                 color={isFocused ? colors.primary : colors.textMuted}
               />
-              <Text style={[styles.label, isFocused && styles.labelFocused]}>
-                {config.label}
-              </Text>
+              <Text style={[styles.label, isFocused && styles.labelFocused]}>{config.label}</Text>
             </TouchableOpacity>
           );
         })}

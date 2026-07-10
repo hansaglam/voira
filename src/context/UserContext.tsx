@@ -10,6 +10,7 @@ import React, {
 import { EnglishLevel, UserGoal, UserProfile } from '../types';
 import { GOAL_ID_TO_USER_GOAL } from '../constants/options';
 import { useLearning } from './LearningContext';
+import { usePremium } from './PremiumContext';
 import {
   loadOnboardingState,
   saveOnboardingState,
@@ -71,6 +72,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setWeakAreasFromChallenges,
     setDailyMinutes,
   } = useLearning();
+  const { isPremium } = usePremium();
 
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [isOnboardingHydrated, setIsOnboardingHydrated] = useState(false);
@@ -115,9 +117,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       goals: learningProfile.goals,
       speakingChallenges: learningProfile.weakAreas,
       dailyPracticeMinutes: learningProfile.dailyMinutes,
-      isPremium: learningProfile.premium,
+      isPremium,
     }),
-    [learningProfile],
+    [learningProfile, isPremium],
   );
 
   const setLevel = (level: EnglishLevel) => setLearningLevel(level);

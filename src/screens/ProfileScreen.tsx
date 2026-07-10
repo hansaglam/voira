@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,21 +16,24 @@ import { ScreenContainer, AppCard, SectionHeader, AppButton } from '../component
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
+import { useLearning } from '../context/LearningContext';
 import { LEVEL_LABELS, GOAL_LABELS } from '../constants/options';
+import { getAllPracticeResults } from '../data/learningSessionStore';
+import { buildProgressSummary } from '../services/progress';
+import { lessons } from '../data/lessons';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 
 type Props = TabScreenProps<'Profile'>;
 
-type ProfileInfoRoute = 'Support' | 'PrivacyPolicy' | 'TermsOfUse' | 'DataDeletion' | 'About';
+type ProfileInfoRoute = 'Support' | 'PrivacyPolicy' | 'TermsOfUse' | 'About';
 
 type SettingsItem = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   route?: ProfileInfoRoute;
   comingSoon?: boolean;
-  action?: 'restore';
 };
 
 const SETTINGS_ITEMS: SettingsItem[] = [
@@ -38,9 +42,7 @@ const SETTINGS_ITEMS: SettingsItem[] = [
   { icon: 'mail-outline', label: 'Destek', route: 'Support' },
   { icon: 'document-text-outline', label: 'Gizlilik Politikası', route: 'PrivacyPolicy' },
   { icon: 'newspaper-outline', label: 'Kullanım Şartları', route: 'TermsOfUse' },
-  { icon: 'trash-outline', label: 'Veri silme bilgisi', route: 'DataDeletion' },
   { icon: 'information-circle-outline', label: 'Uygulama hakkında', route: 'About' },
-  { icon: 'refresh-outline', label: 'Satın alımları geri yükle', action: 'restore' },
   { icon: 'settings-outline', label: 'Aboneliği yönet (yakında)', comingSoon: true },
 ];
 
@@ -49,8 +51,108 @@ function shortenUserId(userId: string): string {
   return `${userId.slice(0, 8)}…${userId.slice(-4)}`;
 }
 
+function formatEmailPrefix(email: string): string {
+  const prefix = email.split('@')[0]?.trim() ?? '';
+  if (!prefix) return 'Kullanıcı';
+  return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+}
+
+function resolveProfileDisplayName(
+  displayName?: string,
+  email?: string,
+  fallbackName?: string,
+): string {
+  if (displayName?.trim()) return displayName.trim();
+  if (email?.trim()) return formatEmailPrefix(email.trim());
+  return fallbackName?.trim() || 'EchoSpeak Kullanıcısı';
+}
+
+type StatCardProps = {
+  label: string;
+  value: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
+
+function StatCard({ label, value, icon }: StatCardProps) {
+  return (
+    <View style={styles.statCard}>
+      <View style={styles.statIconWrap}>
+        <Ionicons name={icon} size={16} color={colors.secondary} />
+      </View>
+      <Text style={styles.statValue} numberOfLines={1}>
+        {value}
+      </Text>
+      <Text style={styles.statLabel} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+type AccountRowProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value?: string;
+  onPress?: () => void;
+  destructive?: boolean;
+  showChevron?: boolean;
+  loading?: boolean;
+};
+
+function AccountRow({
+  icon,
+  label,
+  value,
+  onPress,
+  destructive = false,
+  showChevron = false,
+  loading = false,
+}: AccountRowProps) {
+  const content = (
+    <>
+      <View style={[styles.accountIconWrap, destructive && styles.accountIconWrapDestructive]}>
+        <Ionicons
+          name={icon}
+          size={18}
+          color={destructive ? colors.error : colors.textSecondary}
+        />
+      </View>
+      <View style={styles.accountRowText}>
+        <Text style={[styles.accountRowLabel, destructive && styles.accountRowLabelDestructive]}>
+          {label}
+        </Text>
+        {value ? (
+          <Text
+            style={styles.accountRowValue}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {value}
+          </Text>
+        ) : null}
+      </View>
+      {loading ? (
+        <ActivityIndicator size="small" color={destructive ? colors.error : colors.textMuted} />
+      ) : showChevron ? (
+        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+      ) : null}
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity style={styles.accountRow} onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={styles.accountRow}>{content}</View>;
+}
+
 export function ProfileScreen({ navigation }: Props) {
   const { profile } = useUser();
+  const { learningProfile } = useLearning();
   const {
     user,
     isGuest,
@@ -62,7 +164,7 @@ export function ProfileScreen({ navigation }: Props) {
     signOut,
     clearError,
   } = useAuth();
-  const { restorePurchases, isRevenueCatConfigured } = usePremium();
+  const { restorePurchases, isRevenueCatConfigured, isPremium, isRestoring } = usePremium();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -72,6 +174,57 @@ export function ProfileScreen({ navigation }: Props) {
 
   const isAuthFormValid = email.trim().length > 0 && password.length >= 6;
   const isSubmitting = isSigningIn || isSigningUp;
+
+  const progressSummary = useMemo(() => {
+    const results = getAllPracticeResults();
+    return buildProgressSummary(learningProfile, results, lessons);
+  }, [learningProfile]);
+
+  const practiceResultCount = useMemo(() => getAllPracticeResults().length, [learningProfile]);
+
+  const displayName = resolveProfileDisplayName(
+    user?.displayName,
+    user?.email,
+    profile.name,
+  );
+  const avatarLetter = displayName.charAt(0).toUpperCase();
+  const levelGoalLabel = `${LEVEL_LABELS[profile.level]} • ${GOAL_LABELS[profile.goal]}`;
+
+  const stats = useMemo(
+    () => [
+      {
+        label: 'Seri',
+        value: progressSummary.currentStreak > 0 ? `${progressSummary.currentStreak} gün` : '0',
+        icon: 'flame-outline' as const,
+      },
+      {
+        label: 'Ortalama skor',
+        value:
+          progressSummary.averageNativeScore > 0
+            ? `${progressSummary.averageNativeScore}`
+            : learningProfile.averageScore > 0
+              ? `${learningProfile.averageScore}`
+              : 'Başla',
+        icon: 'stats-chart-outline' as const,
+      },
+      {
+        label: 'Tamamlanan ders',
+        value: `${learningProfile.completedLessonIds.length || progressSummary.completedLessons || 0}`,
+        icon: 'checkmark-circle-outline' as const,
+      },
+      {
+        label: 'Toplam pratik',
+        value:
+          progressSummary.totalPracticeMinutes > 0
+            ? `${progressSummary.totalPracticeMinutes} dk`
+            : practiceResultCount > 0
+              ? `${practiceResultCount}`
+              : '0',
+        icon: 'mic-outline' as const,
+      },
+    ],
+    [learningProfile.averageScore, learningProfile.completedLessonIds.length, practiceResultCount, progressSummary],
+  );
 
   const handleRestorePurchases = async () => {
     if (!isRevenueCatConfigured) {
@@ -90,16 +243,10 @@ export function ProfileScreen({ navigation }: Props) {
   };
 
   const handleSettingsPress = (item: SettingsItem) => {
-    if (item.action === 'restore') {
-      void handleRestorePurchases();
-      return;
-    }
-
     if (item.route) {
       navigation.navigate(item.route);
       return;
     }
-
     if (item.comingSoon) {
       Alert.alert('Yakında', 'Bu özellik yakında eklenecek.');
     }
@@ -154,186 +301,212 @@ export function ProfileScreen({ navigation }: Props) {
     ]);
   };
 
-  const displayName = user?.displayName || user?.email || profile.name;
-  const avatarLetter = displayName.charAt(0).toUpperCase();
-
   return (
     <ScreenContainer withTabBar>
-      <View style={styles.header}>
-        <View style={styles.avatarRing}>
+      <View style={styles.hero}>
+        <View style={styles.avatarOuter}>
+          <View style={styles.avatarGlow} />
           <LinearGradient
             colors={[colors.gradientStart, colors.gradientEnd]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.avatar}
           >
             <Text style={styles.avatarText}>{avatarLetter}</Text>
           </LinearGradient>
         </View>
-        <Text style={typography.h1}>{displayName}</Text>
-        <Text style={styles.subtitle}>
-          {LEVEL_LABELS[profile.level]} • {GOAL_LABELS[profile.goal]}
+
+        <Text style={styles.displayName} numberOfLines={1} ellipsizeMode="tail">
+          {displayName}
         </Text>
-        {!isGuest && user ? (
-          <Text style={styles.accountMeta}>
-            {user.email ?? 'Hesap'} • {shortenUserId(user.id)}
+
+        <View style={styles.subtitleRow}>
+          <View style={styles.subtitlePill}>
+            <Ionicons name="school-outline" size={12} color={colors.secondary} />
+            <Text style={styles.subtitleText} numberOfLines={1} ellipsizeMode="tail">
+              {levelGoalLabel}
+            </Text>
+          </View>
+        </View>
+
+        {!isGuest && user?.email ? (
+          <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="tail">
+            {user.email}
+          </Text>
+        ) : isGuest ? (
+          <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="tail">
+            Misafir kullanıcı
           </Text>
         ) : null}
       </View>
 
-      {isGuest ? (
-        <AppCard style={styles.authCard}>
-          <Text style={styles.authTitle}>Hesabını oluştur</Text>
-          <Text style={styles.authSubtitle}>
-            Gelişimini, SpeakPlus erişimini ve ayarlarını güvenle sakla.
-          </Text>
-
-          {isLoadingAuth ? (
-            <ActivityIndicator color={colors.primary} style={styles.authLoading} />
-          ) : !isAuthAvailable ? (
-            <Text style={styles.authUnavailable}>
-              Hesap girişi şu an yapılandırılmamış. Uygulamayı misafir olarak kullanmaya devam
-              edebilirsin.
-            </Text>
-          ) : (
-            <>
-              {/* Google and Apple sign-in will be added after email/password auth is stable. */}
-              {/* TODO: Google sign-in will be added later with Supabase Google provider. */}
-              {/* TODO: Apple sign-in will be added later for iOS/App Store compliance if Google login is enabled. */}
-
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="E-posta adresin"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="emailAddress"
-                style={styles.textInput}
-              />
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Şifren"
-                placeholderTextColor={colors.textMuted}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-                textContentType="password"
-                style={styles.textInput}
-              />
-              <AppButton
-                title="Giriş yap"
-                onPress={() => void handleSignIn()}
-                loading={isSigningIn}
-                disabled={!isAuthFormValid || isSubmitting}
-                style={styles.authButton}
-              />
-              <AppButton
-                title="Hesap oluştur"
-                variant="outline"
-                onPress={() => void handleSignUp()}
-                loading={isSigningUp}
-                disabled={!isAuthFormValid || isSubmitting}
-                style={styles.authButton}
-              />
-
-              {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
-
-              <Text style={styles.guestHint}>
-                İstersen uygulamayı misafir olarak kullanmaya devam edebilirsin.
-              </Text>
-            </>
-          )}
-        </AppCard>
-      ) : (
-        <AppCard style={styles.authCard}>
-          <Text style={styles.authTitle}>Hesabın bağlı</Text>
-          <Text style={styles.authSubtitle}>
-            {user?.email ?? 'Giriş yapılmış hesap'} • {user ? shortenUserId(user.id) : ''}
-          </Text>
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleSignOut}
-            disabled={isSigningOut}
-            activeOpacity={0.7}
-          >
-            {isSigningOut ? (
-              <ActivityIndicator color={colors.error} />
-            ) : (
-              <>
-                <Ionicons name="log-out-outline" size={18} color={colors.error} />
-                <Text style={styles.signOutText}>Çıkış yap</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.dataDeletionLink}
-            onPress={() => navigation.navigate('DataDeletion')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.dataDeletionLinkText}>Veri silme bilgisi</Text>
-          </TouchableOpacity>
-        </AppCard>
-      )}
-
       <TouchableOpacity
         activeOpacity={0.9}
         onPress={() => navigation.navigate('Premium')}
+        style={styles.premiumTouchable}
       >
         <LinearGradient
-          colors={['#4F46E5', '#7C3AED']}
+          colors={isPremium ? ['#4F46E5', '#7C3AED', '#6D28D9'] : ['#312E81', '#4338CA', '#5B21B6']}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.premiumBanner}
+          end={{ x: 1, y: 1 }}
+          style={styles.premiumCard}
         >
-          <View style={styles.premiumIconWrap}>
-            <Ionicons name="diamond" size={22} color={colors.textPrimary} />
+          <View style={styles.premiumTopRow}>
+            <View style={styles.premiumIconWrap}>
+              <Ionicons name="diamond" size={20} color={colors.textPrimary} />
+            </View>
+            {isPremium ? (
+              <View style={styles.premiumActiveBadge}>
+                <View style={styles.premiumActiveDot} />
+                <Text style={styles.premiumActiveText}>Aktif</Text>
+              </View>
+            ) : null}
           </View>
-          <View style={styles.premiumInfo}>
-            <Text style={styles.premiumTitle}>SpeakPlus</Text>
-            <Text style={styles.premiumSubtitle}>
-              {profile.isPremium
-                ? 'SpeakPlus aboneliğin aktif'
-                : 'Sınırsız pratik ve tüm ders paketleri'}
+
+          <Text style={styles.premiumTitle}>
+            {isPremium ? 'SpeakPlus aktif' : "SpeakPlus'a geç"}
+          </Text>
+          <Text style={styles.premiumSubtitle} numberOfLines={2}>
+            {isPremium
+              ? 'Premium derslere ve gelişmiş geri bildirimlere erişimin var.'
+              : 'Premium dersler ve gelişmiş geri bildirimleri aç.'}
+          </Text>
+
+          <View style={styles.premiumCtaRow}>
+            <Text style={styles.premiumCtaText}>
+              {isPremium ? 'Planı görüntüle' : 'Yükselt'}
             </Text>
+            <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.9)" />
           </View>
-          <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
         </LinearGradient>
       </TouchableOpacity>
 
-      <SectionHeader title="Profil bilgileri" />
-      <AppCard style={styles.infoCard}>
-        {[
-          { label: 'Seviye', value: LEVEL_LABELS[profile.level] },
-          { label: 'Hedef', value: GOAL_LABELS[profile.goal] },
-          { label: 'Günlük hedef', value: `${profile.dailyPracticeMinutes} dakika` },
-          { label: 'Premium', value: profile.isPremium ? 'SpeakPlus' : 'Ücretsiz' },
-          { label: 'Hesap', value: isGuest ? 'Misafir' : 'Bağlı hesap' },
-        ].map((item, index, arr) => (
-          <View
-            key={item.label}
-            style={[styles.infoRow, index < arr.length - 1 && styles.infoBorder]}
-          >
-            <Text style={typography.meta}>{item.label}</Text>
-            <Text style={styles.infoValue}>{item.value}</Text>
-          </View>
+      <SectionHeader title="İstatistikler" />
+      <View style={styles.statsGrid}>
+        {stats.map((stat) => (
+          <StatCard key={stat.label} label={stat.label} value={stat.value} icon={stat.icon} />
         ))}
-      </AppCard>
+      </View>
+
+      {isGuest ? (
+        <>
+          <SectionHeader title="Hesap" />
+          <AppCard style={styles.authCard}>
+            <Text style={styles.authTitle}>Hesabını oluştur</Text>
+            <Text style={styles.authSubtitle}>
+              Gelişimini, SpeakPlus erişimini ve ayarlarını güvenle sakla.
+            </Text>
+
+            {isLoadingAuth ? (
+              <ActivityIndicator color={colors.primary} style={styles.authLoading} />
+            ) : !isAuthAvailable ? (
+              <Text style={styles.authUnavailable}>
+                Hesap girişi şu an yapılandırılmamış. Uygulamayı misafir olarak kullanmaya devam
+                edebilirsin.
+              </Text>
+            ) : (
+              <>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="E-posta adresin"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="emailAddress"
+                  style={styles.textInput}
+                />
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Şifren"
+                  placeholderTextColor={colors.textMuted}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  textContentType="password"
+                  style={styles.textInput}
+                />
+                <AppButton
+                  title="Giriş yap"
+                  onPress={() => void handleSignIn()}
+                  loading={isSigningIn}
+                  disabled={!isAuthFormValid || isSubmitting}
+                  style={styles.authButton}
+                />
+                <AppButton
+                  title="Hesap oluştur"
+                  variant="outline"
+                  onPress={() => void handleSignUp()}
+                  loading={isSigningUp}
+                  disabled={!isAuthFormValid || isSubmitting}
+                  style={styles.authButton}
+                />
+
+                {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
+
+                <Text style={styles.guestHint}>
+                  İstersen uygulamayı misafir olarak kullanmaya devam edebilirsin.
+                </Text>
+              </>
+            )}
+          </AppCard>
+        </>
+      ) : (
+        <>
+          <SectionHeader title="Hesap" />
+          <AppCard style={styles.accountCard}>
+            <AccountRow
+              icon="mail-outline"
+              label="E-posta"
+              value={user?.email ?? 'Bağlı hesap'}
+            />
+            {user?.id ? (
+              <AccountRow
+                icon="finger-print-outline"
+                label="Kullanıcı ID"
+                value={shortenUserId(user.id)}
+              />
+            ) : null}
+            <AccountRow
+              icon="refresh-outline"
+              label="Satın alımları geri yükle"
+              onPress={() => void handleRestorePurchases()}
+              showChevron
+              loading={isRestoring}
+            />
+            <AccountRow
+              icon="trash-outline"
+              label="Veri silme bilgisi"
+              onPress={() => navigation.navigate('DataDeletion')}
+              showChevron
+            />
+            <AccountRow
+              icon="log-out-outline"
+              label="Çıkış yap"
+              onPress={handleSignOut}
+              destructive
+              loading={isSigningOut}
+            />
+          </AppCard>
+        </>
+      )}
 
       <SectionHeader title="Ayarlar" />
       <AppCard style={styles.settingsCard}>
         {SETTINGS_ITEMS.map((item, index) => (
           <TouchableOpacity
             key={item.label}
-            style={[styles.settingRow, index < SETTINGS_ITEMS.length - 1 && styles.infoBorder]}
+            style={[styles.settingRow, index < SETTINGS_ITEMS.length - 1 && styles.rowBorder]}
             onPress={() => handleSettingsPress(item)}
             activeOpacity={0.7}
           >
             <View style={styles.settingIconWrap}>
-              <Ionicons name={item.icon} size={20} color={colors.textSecondary} />
+              <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
             </View>
             <Text style={styles.settingLabel}>{item.label}</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
         ))}
       </AppCard>
@@ -344,38 +517,203 @@ export function ProfileScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  header: {
+  hero: {
     alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  avatarRing: {
-    padding: 3,
-    borderRadius: 44,
-    borderWidth: 2,
-    borderColor: 'rgba(91, 95, 239, 0.4)',
     marginBottom: spacing.md,
+    paddingTop: spacing.xs,
   },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  avatarOuter: {
+    width: 76,
+    height: 76,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  avatarGlow: {
+    position: 'absolute',
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: colors.glow,
+    opacity: 0.45,
+  },
+  avatar: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.18)',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+      },
+      android: { elevation: 6 },
+    }),
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  subtitle: {
-    ...typography.body,
-    marginTop: spacing.xs,
+  displayName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: -0.3,
+    maxWidth: '100%',
+    paddingHorizontal: spacing.sm,
     textAlign: 'center',
   },
-  accountMeta: {
-    ...typography.caption,
-    marginTop: spacing.xs,
+  subtitleRow: {
+    marginTop: spacing.sm,
+    maxWidth: '100%',
+    paddingHorizontal: spacing.xs,
+  },
+  subtitlePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(91, 95, 239, 0.1)',
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(91, 95, 239, 0.18)',
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+    maxWidth: '100%',
+  },
+  subtitleText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  emailText: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+    maxWidth: '100%',
+    paddingHorizontal: spacing.md,
     textAlign: 'center',
+  },
+  premiumTouchable: {
+    marginBottom: spacing.md,
+  },
+  premiumCard: {
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.28,
+        shadowRadius: 14,
+      },
+      android: { elevation: 8 },
+    }),
+  },
+  premiumTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  premiumIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  premiumActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+  },
+  premiumActiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.success,
+  },
+  premiumActiveText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  premiumTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  premiumSubtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.82)',
+    marginBottom: spacing.sm,
+  },
+  premiumCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 7,
+  },
+  premiumCtaText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  statCard: {
+    width: '48%',
+    flexGrow: 1,
+    flexBasis: '46%',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.sm + 2,
+    minHeight: 88,
+  },
+  statIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '600',
     color: colors.textMuted,
   },
   authCard: {
@@ -384,9 +722,12 @@ const styles = StyleSheet.create({
   },
   authTitle: {
     ...typography.h3,
+    fontSize: 17,
   },
   authSubtitle: {
     ...typography.body,
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.textSecondary,
   },
   authLoading: {
@@ -405,6 +746,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
     color: colors.textPrimary,
     backgroundColor: colors.cardElevated,
+    fontSize: 15,
   },
   authButton: {
     marginTop: spacing.xs,
@@ -417,81 +759,22 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
     marginTop: spacing.xs,
+    lineHeight: 18,
   },
-  signOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  signOutText: {
-    ...typography.button,
-    color: colors.error,
-  },
-  dataDeletionLink: {
-    alignItems: 'center',
-    paddingVertical: spacing.xs,
-  },
-  dataDeletionLinkText: {
-    ...typography.captionBright,
-    color: colors.primary,
-  },
-  premiumBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    borderRadius: borderRadius.xl,
+  accountCard: {
     marginBottom: spacing.md,
+    overflow: 'hidden',
+    padding: 0,
+  },
+  accountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
-  },
-  premiumIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  premiumInfo: {
-    flex: 1,
-  },
-  premiumTitle: {
-    ...typography.h3,
-  },
-  premiumSubtitle: {
-    ...typography.captionBright,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  infoCard: {
-    marginBottom: spacing.md,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm + 4,
+    minHeight: 52,
   },
-  infoBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  infoValue: {
-    ...typography.bodyEmphasis,
-    fontWeight: '500',
-  },
-  settingsCard: {
-    marginBottom: spacing.md,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm + 4,
-    gap: spacing.sm,
-  },
-  settingIconWrap: {
+  accountIconWrap: {
     width: 32,
     height: 32,
     borderRadius: borderRadius.sm,
@@ -499,14 +782,61 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  settingLabel: {
-    ...typography.bodyEmphasis,
+  accountIconWrapDestructive: {
+    backgroundColor: 'rgba(248, 113, 113, 0.1)',
+  },
+  accountRowText: {
     flex: 1,
-    fontWeight: '400',
+    minWidth: 0,
+  },
+  accountRowLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  accountRowLabelDestructive: {
+    color: colors.error,
+  },
+  accountRowValue: {
+    fontSize: 12,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  settingsCard: {
+    marginBottom: spacing.md,
+    overflow: 'hidden',
+    padding: 0,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 4,
+    gap: spacing.sm,
+    minHeight: 48,
+  },
+  settingIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.cardElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textPrimary,
+  },
+  rowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
   },
   versionText: {
     ...typography.caption,
     textAlign: 'center',
     marginBottom: spacing.lg,
+    color: colors.textMuted,
   },
 });

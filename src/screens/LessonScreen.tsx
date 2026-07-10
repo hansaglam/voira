@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootScreenProps } from '../navigation/types';
 import { goBackOrFallback } from '../navigation/safeGoBack';
+import { resolveLessonActiveTab } from '../navigation/lessonTabContext';
 import {
   ScreenContainer,
   LessonHeader,
@@ -31,6 +32,7 @@ import {
 import type { LessonAudioSpeedMode } from '../services/audio';
 import { validateRecordedAudio } from '../services/audio/recordingValidation';
 import { useLearning } from '../context/LearningContext';
+import { usePremium } from '../context/PremiumContext';
 import { formatRecordingTime } from '../utils/recordingTime';
 import {
   getActiveSegment,
@@ -189,10 +191,12 @@ export function LessonScreen({ navigation, route }: Props) {
     };
   }, [route.params.lessonId]);
 
+  const lessonActiveTab = resolveLessonActiveTab(route.params);
+
   if (!lesson) {
     if (loadFailed) {
       return (
-        <ScreenContainer>
+        <ScreenContainer withPersistentTabBar activeTab={lessonActiveTab}>
           <View style={styles.loadingContainer}>
             <Text style={styles.loadErrorTitle}>Ders bulunamadı</Text>
             <Text style={styles.loadErrorText}>
@@ -209,7 +213,7 @@ export function LessonScreen({ navigation, route }: Props) {
     }
 
     return (
-      <ScreenContainer>
+      <ScreenContainer withPersistentTabBar activeTab={lessonActiveTab}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -421,6 +425,8 @@ function QuickLessonScreenContent({
       contentStyle={styles.content}
       footerCompact
       footerBorderless
+      withPersistentTabBar
+      activeTab={resolveLessonActiveTab(route.params)}
       footer={
         <LessonActionBar
           onRetry={handleRetry}
@@ -530,7 +536,7 @@ function GuidedLessonScreenContent({
   lesson,
 }: Props & { lesson: Lesson }) {
   const { learningProfile } = useLearning();
-  const isPremiumUser = learningProfile.premium;
+  const { isPremium: isPremiumUser } = usePremium();
   const isDailySession =
     route.params.source === 'dailySession' || !!route.params.sessionId;
   const practiceIndex = route.params.practiceIndex;
@@ -868,6 +874,8 @@ function GuidedLessonScreenContent({
       contentStyle={styles.content}
       footerCompact
       footerBorderless
+      withPersistentTabBar
+      activeTab={resolveLessonActiveTab(route.params)}
       footerClearance={footerClearance}
       footer={renderStepFooter()}
     >

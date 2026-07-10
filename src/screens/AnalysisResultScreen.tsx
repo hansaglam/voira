@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootScreenProps } from '../navigation/types';
 import { goBackOrFallback } from '../navigation/safeGoBack';
+import { resolveAnalysisActiveTab } from '../navigation/lessonTabContext';
 import {
   ScreenContainer,
   AnalysisActionBar,
@@ -171,6 +172,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
   const inDailySession = source === 'dailySession' || !!sessionId;
   const inLibrary = source === 'library';
   const mode = inDailySession ? 'daily' : 'library';
+  const analysisActiveTab = resolveAnalysisActiveTab(route.params);
 
   const hasValidRecording = isValidRecordingForAnalysis(
     audioUri,
@@ -200,7 +202,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
   if (!lesson) {
     return (
-      <ScreenContainer>
+      <ScreenContainer withPersistentTabBar activeTab={analysisActiveTab}>
         <AppCard style={styles.errorCard}>
           <Text style={styles.errorText}>
             Ders içeriği şu anda yüklenemedi. Lütfen kategori listesinden tekrar seç.
@@ -559,6 +561,8 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     return (
       <ScreenContainer
         footerCompact
+        withPersistentTabBar
+        activeTab={analysisActiveTab}
         footer={
           <AnalysisActionBar
             onRetry={handleRetry}
@@ -586,6 +590,8 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     return (
       <ScreenContainer
         footerCompact
+        withPersistentTabBar
+        activeTab={analysisActiveTab}
         footer={
           <AnalysisActionBar
             onRetry={handleRetry}
@@ -620,6 +626,8 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
   return (
     <ScreenContainer
       footerCompact
+      withPersistentTabBar
+      activeTab={analysisActiveTab}
       footer={
         <AnalysisActionBar
           onRetry={handleRetry}

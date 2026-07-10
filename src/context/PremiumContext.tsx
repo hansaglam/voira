@@ -7,6 +7,7 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
+import { AppState } from 'react-native';
 import type {
   CustomerInfo,
   PurchasesOfferings,
@@ -46,8 +47,11 @@ interface PremiumContextType {
   errorMessage: string | null;
   offeringsError: string | null;
   refreshPremiumStatus: () => Promise<void>;
+  refreshCustomerInfo: () => Promise<void>;
   refreshOfferings: () => Promise<void>;
-  purchasePackage: (selectedPackage: PurchasesPackage) => Promise<boolean>;
+  purchasePackage: (
+    selectedPackage: PurchasesPackage,
+  ) => Promise<'unlocked' | 'cancelled' | 'already_subscribed' | 'failed'>;
   restorePurchases: () => Promise<'restored' | 'not_found' | 'error'>;
 }
 
@@ -119,6 +123,17 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       setOfferingsError(null);
     } finally {
       setIsOfferingsLoading(false);
+    }
+  }, [isRevenueCatReady, revenueCatConfigured]);
+
+  const refreshCustomerInfo = useCallback(async () => {
+    if (!revenueCatConfigured || !isRevenueCatReady) {
+      return;
+    }
+
+    const info = await fetchCustomerInfo();
+    if (info) {
+      setCustomerInfo(info);
     }
   }, [isRevenueCatReady, revenueCatConfigured]);
 
@@ -201,9 +216,27 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     };
   }, [isRevenueCatReady, learningProfile.userId, refreshPremiumStatus, revenueCatConfigured]);
 
+  useEffect(() => {
+    if (!revenueCatConfigured || !isRevenueCatReady) {
+      return;
+    }
+
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void refreshCustomerInfo();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [isRevenueCatReady, refreshCustomerInfo, revenueCatConfigured]);
+
   const purchasePackage = useCallback(
-    async (selectedPackage: PurchasesPackage): Promise<boolean> => {
-      if (!isRevenueCatReady) return false;
+    async (
+      selectedPackage: PurchasesPackage,
+    ): Promise<'unlocked' | 'cancelled' | 'already_subscribed' | 'failed'> => {
+      if (!isRevenueCatReady) return 'failed';
 
       setIsPurchasing(true);
       setErrorMessage(null);
@@ -211,7 +244,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       try {
         const result = await purchaseRevenueCatPackage(selectedPackage);
         setCustomerInfo(result.customerInfo);
-        return hasActivePremiumEntitlement(result.customerInfo);
+        return hasActivePremiumEntitlement(result.customerInfo) ? 'unlocked' : 'failed';
       } catch (error) {
         if (
           typeof error === 'object' &&
@@ -219,11 +252,20 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
           'cancelled' in error &&
           (error as { cancelled?: boolean }).cancelled
         ) {
-          return false;
+          return 'cancelled';
+        }
+
+        if (
+          typeof error === 'object' &&
+          error !== null &&
+          'alreadySubscribed' in error &&
+          (error as { alreadySubscribed?: boolean }).alreadySubscribed
+        ) {
+          return 'already_subscribed';
         }
 
         setErrorMessage('Satın alma tamamlanamadı. Lütfen tekrar dene.');
-        return false;
+        return 'failed';
       } finally {
         setIsPurchasing(false);
       }
@@ -242,6 +284,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     try {
       const result = await restoreRevenueCatPurchases();
       setCustomerInfo(result.customerInfo);
+      await refreshCustomerInfo();
       return result.hasEntitlement ? 'restored' : 'not_found';
     } catch {
       setErrorMessage('Satın alımlar geri yüklenemedi. Lütfen tekrar dene.');
@@ -249,7 +292,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsRestoring(false);
     }
-  }, [isRevenueCatReady]);
+  }, [isRevenueCatReady, refreshCustomerInfo]);
 
   const value = useMemo(
     (): PremiumContextType => ({
@@ -267,6 +310,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       errorMessage,
       offeringsError,
       refreshPremiumStatus,
+      refreshCustomerInfo,
       refreshOfferings,
       purchasePackage,
       restorePurchases,
@@ -286,6 +330,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       errorMessage,
       offeringsError,
       refreshPremiumStatus,
+      refreshCustomerInfo,
       refreshOfferings,
       purchasePackage,
       restorePurchases,

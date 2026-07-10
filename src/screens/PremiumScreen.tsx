@@ -232,11 +232,22 @@ export function PremiumScreen({ navigation }: Props) {
   const handlePurchase = async () => {
     if (!selectedPackage) return;
 
-    const unlocked = await purchasePackage(selectedPackage);
-    if (unlocked) {
+    const result = await purchasePackage(selectedPackage);
+    if (result === 'unlocked') {
       Alert.alert('SpeakPlus aktif', 'Premium içeriklere erişimin açıldı.', [
         { text: 'Tamam', onPress: handleClose },
       ]);
+      return;
+    }
+    if (result === 'already_subscribed') {
+      Alert.alert(
+        'Aktif abonelik var',
+        'Bu Google Play hesabında aktif abonelik görünüyor. Satın alımları geri yüklemeyi dene.',
+        [
+          { text: 'İptal', style: 'cancel' },
+          { text: 'Satın alımları geri yükle', onPress: () => void handleRestore() },
+        ],
+      );
     }
   };
 
@@ -244,7 +255,7 @@ export function PremiumScreen({ navigation }: Props) {
     const result = await restorePurchases();
     if (result === 'restored') {
       Alert.alert('Satın alımın geri yüklendi.', 'SpeakPlus aboneliğin aktif.', [
-        { text: 'Tamam', onPress: handleClose },
+        { text: 'Devam et', onPress: handleClose },
       ]);
       return;
     }
