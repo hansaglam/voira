@@ -22,11 +22,19 @@ import {
   isSupabaseAdminConfigured,
   logSupabaseAdminStartupStatus,
 } from './services/supabase/supabaseAdminClient.js';
+import {
+  AZURE_SPEECH_KEY,
+  AZURE_SPEECH_LANGUAGE,
+  AZURE_SPEECH_REGION,
+  logAzureSpeechStartupStatus,
+} from './services/pronunciationAssessment/pronunciationAssessmentConfig.js';
+import { isPronunciationAssessmentAvailable } from './services/pronunciationAssessment/pronunciationAssessmentProvider.js';
 import { failed, sendFailed } from './utils/response.js';
 
 validateProductionConfig();
 warnIfAdminSecretMissingInDev();
 logSupabaseAdminStartupStatus();
+logAzureSpeechStartupStatus();
 
 const app = express();
 
@@ -50,6 +58,8 @@ app.get('/health', (_req, res) => {
     service: 'EchoSpeak backend',
     hasOpenAIKey: Boolean(OPENAI_API_KEY),
     hasSupabase: isSupabaseAdminConfigured(),
+    pronunciationAssessmentAvailable: isPronunciationAssessmentAvailable(),
+    pronunciationProvider: isPronunciationAssessmentAvailable() ? 'azure' : null,
   });
 });
 
@@ -110,6 +120,10 @@ app.listen(PORT, '0.0.0.0', () => {
     hasOpenAIKey: Boolean(OPENAI_API_KEY),
     hasAdminSecret: Boolean(ADMIN_SECRET),
     hasSupabase: isSupabaseAdminConfigured(),
+    hasAzureSpeechKey: Boolean(AZURE_SPEECH_KEY),
+    azureSpeechRegion: AZURE_SPEECH_REGION || null,
+    azureSpeechLanguage: AZURE_SPEECH_LANGUAGE,
+    pronunciationAssessmentAvailable: isPronunciationAssessmentAvailable(),
     allowedOriginsCount: ALLOWED_ORIGINS.length,
     analyzeRateLimitPerMinute: ANALYZE_RATE_LIMIT_PER_MINUTE,
     port: PORT,

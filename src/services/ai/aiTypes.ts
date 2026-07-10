@@ -2,6 +2,10 @@ import { ContentLessonType, Lesson } from '../../types/lesson';
 import { LessonSegment } from '../../types/segment';
 import { UserLearningProfile } from '../../types/learning';
 import { PracticeResult, PracticeMode } from '../../types/learning';
+import type {
+  PhonemeFeedback,
+  WordPronunciationFeedback,
+} from '../audioAnalysis/audioAnalysisTypes';
 
 /** Analysis context — extends practice mode with custom AI lessons. */
 export type AiAnalysisMode = PracticeMode | 'custom';
@@ -36,8 +40,13 @@ export interface AiSpeechAnalysisOutput {
   matchScore?: number;
   analysisMode?: 'text_match_only' | 'pronunciation_assessment';
   pronunciationAssessmentAvailable?: boolean;
+  pronunciationProvider?: 'azure' | null;
+  scoreSource?: 'azure_pronunciation' | 'text_match_only';
   pronunciationScore: number;
+  accuracyScore?: number;
   fluencyScore: number;
+  completenessScore?: number;
+  prosodyScore?: number;
   rhythmScore: number;
   confidenceScore: number;
   nativeScore: number;
@@ -45,6 +54,8 @@ export interface AiSpeechAnalysisOutput {
   missingWords: string[];
   wordsToImprove: string[];
   weakAreasDetected: string[];
+  wordPronunciationFeedback?: WordPronunciationFeedback[];
+  phonemeFeedback?: PhonemeFeedback[];
   pronunciationIssues: PronunciationIssue[];
   rhythmIssues: RhythmIssue[];
   aiCoachCommentTr: string;

@@ -12,6 +12,7 @@ import {
   lessons,
 } from './lessons';
 import { resolveLessonPremium } from '../utils/lessonUtils';
+import { normalizeLearningProfile } from '../utils/recommendationSafety';
 import {
   canAccessLesson,
   getLessonActionLabel,
@@ -65,7 +66,7 @@ export function getContinueLesson(profile: UserLearningProfile): Lesson {
 }
 
 export function getRecommendedLessons(profile: UserLearningProfile, limit = 3): Lesson[] {
-  return selectRecommendedLessons(profile, lessons, limit);
+  return selectRecommendedLessons(normalizeLearningProfile(profile), lessons, limit);
 }
 
 export { getCategoryLessonStats } from './lessons';

@@ -187,7 +187,7 @@ export function linkLessonChain(lessonList: Lesson[]): Lesson[] {
   return lessonList.map((lesson, index) => ({
     ...lesson,
     recommendedNextLessonIds:
-      lesson.recommendedNextLessonIds.length > 0
+      (lesson.recommendedNextLessonIds?.length ?? 0) > 0
         ? lesson.recommendedNextLessonIds
         : index < lessonList.length - 1
           ? [lessonList[index + 1].id]

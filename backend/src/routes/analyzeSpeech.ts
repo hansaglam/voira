@@ -6,6 +6,10 @@ import {
 } from '../config.js';
 import { analyzeRateLimit } from '../middleware/analyzeRateLimit.js';
 import { buildCoachFeedbackTr } from '../services/coachFeedbackService.js';
+import {
+  buildPhonemeFeedback,
+  buildWordPronunciationFeedback,
+} from '../services/pronunciationFeedbackService.js';
 import { assessPronunciation } from '../services/pronunciationAssessment/index.js';
 import { buildAnalysisScores } from '../services/speechScoreService.js';
 import { transcribeAudio } from '../services/speechToTextService.js';
@@ -141,7 +145,20 @@ analyzeSpeechRouter.post(
         analysisMode: scores.analysisMode,
         matchScore: scores.matchScore,
         durationMillis,
+        pronunciationAssessment,
       });
+
+      const wordPronunciationFeedback = buildWordPronunciationFeedback(pronunciationAssessment);
+      const phonemeFeedback = buildPhonemeFeedback(pronunciationAssessment);
+      const azurePronunciation = pronunciationAssessment?.ok
+        ? {
+            pronunciationScore: pronunciationAssessment.pronunciationScore ?? null,
+            accuracyScore: pronunciationAssessment.accuracyScore ?? null,
+            fluencyScore: pronunciationAssessment.fluencyScore ?? null,
+            completenessScore: pronunciationAssessment.completenessScore ?? null,
+            prosodyScore: pronunciationAssessment.prosodyScore ?? null,
+          }
+        : undefined;
 
       if (process.env.NODE_ENV !== 'production') {
         console.log('[EchoSpeak Comparison]', {
@@ -179,10 +196,15 @@ analyzeSpeechRouter.post(
         transcript,
         analysisMode: scores.analysisMode,
         pronunciationAssessmentAvailable: scores.pronunciationAssessmentAvailable,
+        pronunciationProvider: scores.pronunciationProvider,
+        scoreSource: scores.scoreSource,
         matchScore: scores.matchScore,
         nativeScore: scores.nativeScore,
         pronunciationScore: scores.pronunciationScore,
+        accuracyScore: scores.accuracyScore,
         fluencyScore: scores.fluencyScore,
+        completenessScore: scores.completenessScore,
+        prosodyScore: scores.prosodyScore,
         rhythmScore: scores.rhythmScore,
         confidenceScore: scores.confidenceScore,
         correctWords: comparison.correctWords,
@@ -191,6 +213,11 @@ analyzeSpeechRouter.post(
         weakAreasDetected,
         aiCoachCommentTr: coach.aiCoachCommentTr,
         nextFocusTr: coach.nextFocusTr,
+        azurePronunciation,
+        wordPronunciationFeedback: wordPronunciationFeedback.length > 0
+          ? wordPronunciationFeedback
+          : undefined,
+        phonemeFeedback: phonemeFeedback.length > 0 ? phonemeFeedback : undefined,
       };
 
       return sendSuccess(res, success);

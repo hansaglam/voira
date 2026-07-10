@@ -3,6 +3,11 @@ import { contentCatalog } from '../../data/content/contentCatalog';
 import { getAllKeywords } from '../../utils/lessonUtils';
 import { dedupeStrings } from '../../utils/stringUtils';
 import {
+  getSafeLessonField,
+  normalizeLearningProfile,
+  validateLessonForRecommendation,
+} from '../../utils/recommendationSafety';
+import {
   AiSpeechAnalysisInput,
   AiSpeechAnalysisOutput,
   PronunciationIssue,
@@ -117,7 +122,37 @@ function buildNextFocus(
   segmentFocus: string,
 ): string {
   if (rules.length > 0) return rules[0].nextFocusTr;
-  return `${segmentFocus} odağında kal. Cümleyi tek nefeste, bağlı bir ritimle tekrar et.`;
+  const focus = getSafeLessonField(segmentFocus, 'Shadowing');
+  return `${focus} odağında kal. Cümleyi tek nefeste, bağlı bir ritimle tekrar et.`;
+}
+
+function createFallbackMockAnalysis(input: AiSpeechAnalysisInput): AiSpeechAnalysisOutput {
+  const safeProfile = normalizeLearningProfile(input.userProfile);
+  const targetText = getSafeLessonField(input.targetText || input.segment?.text);
+  const transcript =
+    getSafeLessonField(input.userTranscript) || generateMockUserTranscript(targetText, input.lesson?.id ?? 'fallback');
+
+  return {
+    transcript,
+    wordMatchScore: 0,
+    analysisMode: 'text_match_only',
+    pronunciationAssessmentAvailable: false,
+    pronunciationScore: 60,
+    fluencyScore: 58,
+    rhythmScore: 58,
+    confidenceScore: 56,
+    nativeScore: 58,
+    correctWords: [],
+    missingWords: [],
+    wordsToImprove: [],
+    weakAreasDetected: [],
+    pronunciationIssues: [],
+    rhythmIssues: [],
+    aiCoachCommentTr:
+      'Analiz hazırlanırken eksik ders verisi bulundu. Lütfen cümleyi yavaşça tekrar et.',
+    nextFocusTr: 'Cümleyi tek nefeste, bağlı bir ritimle tekrar et.',
+    recommendedLessonIds: [],
+  };
 }
 
 /**
@@ -125,111 +160,144 @@ function buildNextFocus(
  * Future: swap implementation with real API client implementing SpeechAnalysisService.
  */
 export function analyzeSpeechMock(input: AiSpeechAnalysisInput): AiSpeechAnalysisOutput {
-  const { targetText, lesson, segment, userProfile } = input;
-  const transcript =
-    input.userTranscript.trim() ||
-    generateMockUserTranscript(targetText, lesson.id);
+  try {
+    const safeProfile = normalizeLearningProfile(input.userProfile);
+    const lessonValidation = validateLessonForRecommendation(input.lesson);
+    if (!lessonValidation.valid) {
+      if (__DEV__) {
+        console.warn('[EchoSpeak Mock Analysis] malformed lesson, using fallback', {
+          lessonId: input.lesson?.id,
+          reason: lessonValidation.reason,
+        });
+      }
+      return createFallbackMockAnalysis({ ...input, userProfile: safeProfile });
+    }
 
-  const { correct, missing, improve, matchRatio } = compareWords(targetText, transcript);
-  const keywords = getAllKeywords(lesson);
-  const rules = getMatchingFeedbackRules(targetText, transcript, userProfile.weakAreas);
+    const { targetText, lesson, segment } = input;
+    const transcript =
+      input.userTranscript.trim() ||
+      generateMockUserTranscript(targetText, lesson.id);
 
-  const seed = `${lesson.id}:${segment.id}:${input.mode}`;
-  const penaltyTotal = Math.min(25, rules.reduce((sum, r) => sum + r.penalty, 0));
+    const { correct, missing, improve, matchRatio } = compareWords(targetText, transcript);
+    const keywords = getAllKeywords(lesson);
+    const rules = getMatchingFeedbackRules(targetText, transcript, safeProfile.weakAreas);
 
-  const wordMatchScore = Math.round(matchRatio * 100);
-  const pronunciationScore = Math.max(
-    45,
-    seededScore(`${seed}:p`, 74, 16) - Math.round(penaltyTotal * 0.6),
-  );
-  const fluencyScore = Math.max(
-    45,
-    seededScore(`${seed}:f`, 68, 18) -
-      Math.round(penaltyTotal * 0.4) -
-      (missing.length > 2 ? 8 : 0),
-  );
-  const rhythmScore = Math.max(
-    45,
-    seededScore(`${seed}:r`, 71, 16) - (rules.some((r) => r.id === 'rhythm_stress') ? 6 : 0),
-  );
-  const confidenceScore = seededScore(`${seed}:c`, 70, 14);
+    const seed = `${lesson.id}:${segment.id}:${input.mode}`;
+    const penaltyTotal = Math.min(25, rules.reduce((sum, r) => sum + r.penalty, 0));
 
-  const nativeScore = calculateNativeScore({
-    pronunciationScore,
-    fluencyScore,
-    rhythmScore,
-    confidenceScore,
-  });
+    const wordMatchScore = Math.round(matchRatio * 100);
+    const pronunciationScore = Math.max(
+      45,
+      seededScore(`${seed}:p`, 74, 16) - Math.round(penaltyTotal * 0.6),
+    );
+    const fluencyScore = Math.max(
+      45,
+      seededScore(`${seed}:f`, 68, 18) -
+        Math.round(penaltyTotal * 0.4) -
+        (missing.length > 2 ? 8 : 0),
+    );
+    const rhythmScore = Math.max(
+      45,
+      seededScore(`${seed}:r`, 71, 16) - (rules.some((r) => r.id === 'rhythm_stress') ? 6 : 0),
+    );
+    const confidenceScore = seededScore(`${seed}:c`, 70, 14);
 
-  const correctWords = dedupeStrings(
-    correct.length > 0
-      ? correct.slice(0, 4).map((w) => keywords.find((k) => k.toLowerCase().includes(w)) ?? w)
-      : keywords.slice(0, 2),
-  );
+    const nativeScore = calculateNativeScore({
+      pronunciationScore,
+      fluencyScore,
+      rhythmScore,
+      confidenceScore,
+    });
 
-  const wordsToImprove = dedupeStrings(
-    improve.length > 0
-      ? improve.slice(0, 3)
-      : missing.length > 0
-        ? missing.slice(0, 2)
-        : keywords.slice(-1),
-  );
+    const correctWords = dedupeStrings(
+      correct.length > 0
+        ? correct.slice(0, 4).map((w) => keywords.find((k) => k.toLowerCase().includes(w)) ?? w)
+        : keywords.slice(0, 2),
+    );
 
-  const weakAreasDetected = dedupeStrings([
-    ...rules.map((r) => r.weakAreaLabel),
-    ...(pronunciationScore < 72 ? ['Telaffuz'] : []),
-    ...(fluencyScore < 72 ? ['Akıcılık'] : []),
-    ...(rhythmScore < 72 ? ['Ritim'] : []),
-  ]).slice(0, 4);
+    const wordsToImprove = dedupeStrings(
+      improve.length > 0
+        ? improve.slice(0, 3)
+        : missing.length > 0
+          ? missing.slice(0, 2)
+          : keywords.slice(-1),
+    );
 
-  const pronunciationIssues: PronunciationIssue[] = rules
-    .filter((r) => ['th_sound', 'w_v_distinction', 'final_consonants'].includes(r.id))
-    .map((r) => {
-      let severity: PronunciationIssue['severity'] = 'low';
-      if (r.penalty >= 8) severity = 'high';
-      else if (r.penalty >= 6) severity = 'medium';
-      return {
+    const weakAreasDetected = dedupeStrings([
+      ...rules.map((r) => r.weakAreaLabel),
+      ...(pronunciationScore < 72 ? ['Telaffuz'] : []),
+      ...(fluencyScore < 72 ? ['Akıcılık'] : []),
+      ...(rhythmScore < 72 ? ['Ritim'] : []),
+    ]).slice(0, 4);
+
+    const pronunciationIssues: PronunciationIssue[] = rules
+      .filter((r) => ['th_sound', 'w_v_distinction', 'final_consonants'].includes(r.id))
+      .map((r) => {
+        let severity: PronunciationIssue['severity'] = 'low';
+        if (r.penalty >= 8) severity = 'high';
+        else if (r.penalty >= 6) severity = 'medium';
+        return {
+          id: r.id,
+          labelTr: r.labelTr,
+          detailTr: r.coachTipTr,
+          severity,
+        };
+      });
+
+    const rhythmIssues = rules
+      .filter((r) => ['rhythm_stress', 'word_linking', 'word_by_word', 'fast_reductions'].includes(r.id))
+      .map((r) => ({
         id: r.id,
         labelTr: r.labelTr,
         detailTr: r.coachTipTr,
-        severity,
-      };
-    });
+      }));
 
-  const rhythmIssues = rules
-    .filter((r) => ['rhythm_stress', 'word_linking', 'word_by_word', 'fast_reductions'].includes(r.id))
-    .map((r) => ({
-      id: r.id,
-      labelTr: r.labelTr,
-      detailTr: r.coachTipTr,
-    }));
+    let recommended: string[] = [];
+    try {
+      const catalogLessons = Array.isArray(contentCatalog) ? contentCatalog : [];
+      recommended = getRecommendedLessons(safeProfile, catalogLessons, 2)
+        .filter((l) => l.id !== lesson.id)
+        .map((l) => l.id);
+    } catch (error) {
+      if (__DEV__) {
+        console.warn('[EchoSpeak Mock Analysis] recommendation lookup failed', {
+          lessonId: lesson.id,
+          reason: error instanceof Error ? error.message : 'unknown',
+        });
+      }
+    }
 
-  const recommended = getRecommendedLessons(userProfile, contentCatalog, 2)
-    .filter((l) => l.id !== lesson.id)
-    .map((l) => l.id);
-
-  return {
-    transcript,
-    wordMatchScore,
-    pronunciationScore,
-    fluencyScore,
-    rhythmScore,
-    confidenceScore,
-    nativeScore,
-    correctWords,
-    missingWords: dedupeStrings(missing.slice(0, 4)),
-    wordsToImprove,
-    weakAreasDetected,
-    pronunciationIssues,
-    rhythmIssues,
-    aiCoachCommentTr: buildCoachComment(
-      matchRatio,
-      rules,
-      lesson.aiFeedbackRules.exampleFeedbackTr,
-    ),
-    nextFocusTr: buildNextFocus(rules, segment.focusSkill),
-    recommendedLessonIds: recommended,
-  };
+    return {
+      transcript,
+      wordMatchScore,
+      pronunciationScore,
+      fluencyScore,
+      rhythmScore,
+      confidenceScore,
+      nativeScore,
+      correctWords,
+      missingWords: dedupeStrings(missing.slice(0, 4)),
+      wordsToImprove,
+      weakAreasDetected,
+      pronunciationIssues,
+      rhythmIssues,
+      aiCoachCommentTr: buildCoachComment(
+        matchRatio,
+        rules,
+        lesson.aiFeedbackRules?.exampleFeedbackTr ?? '',
+      ),
+      nextFocusTr: buildNextFocus(rules, segment.focusSkill ?? lesson.focusSkill ?? 'Shadowing'),
+      recommendedLessonIds: recommended,
+    };
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[EchoSpeak Mock Analysis] fallback due to error', {
+        lessonId: input.lesson?.id,
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+    }
+    return createFallbackMockAnalysis(input);
+  }
 }
 
 /** Async wrapper — future real API will be truly async. */

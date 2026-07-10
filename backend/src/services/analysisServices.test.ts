@@ -4,6 +4,11 @@ import { compareTranscriptToTarget } from './textComparisonService.js';
 import { buildCoachFeedbackTr } from './coachFeedbackService.js';
 import { buildAnalysisScores, buildScoresFromComparison } from './speechScoreService.js';
 import { detectWeakAreas } from './weakAreaDetectionService.js';
+import {
+  buildPhonemeFeedback,
+  buildWordPronunciationFeedback,
+} from './pronunciationFeedbackService.js';
+import { isAzurePronunciationConfigured } from './pronunciationAssessment/pronunciationAssessmentConfig.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 
 test('compareTranscriptToTarget detects correct and missing words', () => {
@@ -92,6 +97,7 @@ test('buildAnalysisScores allows high native score when pronunciation provider s
   const comparison = compareTranscriptToTarget('can i get a medium latte', target);
   const pronunciationAssessment: PronunciationAssessmentResult = {
     ok: true,
+    provider: 'azure',
     pronunciationScore: 92,
     fluencyScore: 90,
     completenessScore: 98,
@@ -306,5 +312,144 @@ test('buildCoachFeedbackTr avoids native pronunciation claims in text_match_only
   assert.equal(scores.analysisMode, 'text_match_only');
   assert.doesNotMatch(coach.aiCoachCommentTr, /native/i);
   assert.doesNotMatch(coach.aiCoachCommentTr, /çok doğal telaffuz/i);
-  assert.match(coach.aiCoachCommentTr, /kelime eşleş/i);
+  assert.match(coach.aiCoachCommentTr, /kelime eşleş|Azure telaffuz/i);
+});
+
+test('azure scoring allows 85+ when pronunciation assessment succeeds on full match', () => {
+  const target = 'Can I get a medium latte?';
+  const comparison = compareTranscriptToTarget('can i get a medium latte', target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 92,
+    accuracyScore: 91,
+    fluencyScore: 90,
+    completenessScore: 98,
+    prosodyScore: 88,
+    wordScores: [
+      { word: 'can', accuracyScore: 95 },
+      { word: 'medium', accuracyScore: 93 },
+      { word: 'latte', accuracyScore: 90 },
+    ],
+  };
+
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 3200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+
+  assert.equal(scores.analysisMode, 'pronunciation_assessment');
+  assert.equal(scores.scoreSource, 'azure_pronunciation');
+  assert.equal(scores.pronunciationProvider, 'azure');
+  assert.ok(scores.nativeScore >= 85);
+});
+
+test('azure scoring caps final score when transcript coverage is very low', () => {
+  const target = 'I think that is enough for today';
+  const comparison = compareTranscriptToTarget('i think', target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 92,
+    accuracyScore: 90,
+    fluencyScore: 88,
+    completenessScore: 40,
+    prosodyScore: 85,
+  };
+
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 3200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+
+  assert.ok(scores.nativeScore <= 65);
+});
+
+test('azure scoring caps final score when transcript is too short', () => {
+  const target = 'Where is the check-in counter for this flight?';
+  const comparison = compareTranscriptToTarget('where is', target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 90,
+    accuracyScore: 88,
+    fluencyScore: 86,
+    completenessScore: 88,
+    prosodyScore: 84,
+  };
+
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 3200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+
+  assert.ok(scores.nativeScore <= 55);
+});
+
+test('buildCoachFeedbackTr mentions weak azure words in pronunciation mode', () => {
+  const target = 'I think that is enough';
+  const transcript = 'i think that is enough';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 78,
+    accuracyScore: 72,
+    fluencyScore: 80,
+    completenessScore: 98,
+    prosodyScore: 75,
+    wordScores: [
+      { word: 'think', accuracyScore: 58, errorType: 'Mispronunciation' },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 3200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const coach = buildCoachFeedbackTr({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+
+  assert.match(coach.aiCoachCommentTr, /think/i);
+  assert.match(coach.aiCoachCommentTr, /TH sesi|telaffuz/i);
+});
+
+test('pronunciation feedback helpers surface weak words and phonemes', () => {
+  const assessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 80,
+    wordScores: [
+      {
+        word: 'think',
+        accuracyScore: 55,
+        phonemes: [{ phoneme: 'th', accuracyScore: 40 }],
+      },
+    ],
+  };
+
+  const wordFeedback = buildWordPronunciationFeedback(assessment);
+  const phonemeFeedback = buildPhonemeFeedback(assessment);
+
+  assert.ok(wordFeedback.some((entry) => entry.word === 'think'));
+  assert.ok(phonemeFeedback.some((entry) => entry.phoneme === 'th'));
+});
+
+test('azure pronunciation remains safely disabled without env configuration', () => {
+  assert.equal(isAzurePronunciationConfigured(), false);
 });

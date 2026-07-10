@@ -10,6 +10,7 @@ import {
 import { analysisOutputToPracticeResult } from '../services/ai/aiTypes';
 import { normalizeLessonForRuntime } from '../services/contentRepository/contentVersioning';
 import { analyzeSpeechMock } from '../services/ai/mockSpeechAnalysisService';
+import { validateLessonForRecommendation } from '../utils/recommendationSafety';
 
 export const lessons: Lesson[] = contentCatalog;
 
@@ -127,8 +128,9 @@ export function getTodaysLesson(): Lesson {
 
 export function getNextLesson(currentId: string): Lesson | undefined {
   const current = getLessonById(currentId);
-  if (current?.recommendedNextLessonIds.length) {
-    const next = getLessonById(current.recommendedNextLessonIds[0]);
+  if ((current?.recommendedNextLessonIds?.length ?? 0) > 0) {
+    const nextId = current!.recommendedNextLessonIds![0];
+    const next = getLessonById(nextId);
     if (next) return next;
   }
   const index = lessons.findIndex((l) => l.id === currentId);
@@ -136,33 +138,76 @@ export function getNextLesson(currentId: string): Lesson | undefined {
   return lessons[(index + 1) % lessons.length];
 }
 
-export function getMockAnalysisForLesson(lesson: Lesson): LessonAnalysisResult {
-  const segment = getActiveSegment(lesson, 0);
-  const analysis = analyzeSpeechMock({
-    targetText: segment.text,
-    userTranscript: '',
-    lesson,
-    segment,
-    userProfile: createDefaultLearningProfile(),
-    mode: 'library',
-  });
-  const result = analysisOutputToPracticeResult(analysis, lesson.id, segment.id, 'library');
-
+function createEmptyMockAnalysisResult(lesson?: Lesson): LessonAnalysisResult {
   return {
-    pronunciationScore: result.pronunciationScore,
-    fluencyScore: result.fluencyScore,
-    rhythmScore: result.rhythmScore,
-    overallScore: result.nativeScore,
-    feedback: result.aiCoachCommentTr,
-    correctWords: result.correctWords,
-    wordsToImprove: result.wordsToImprove,
-    coachTip: result.nextFocusTr,
-    focusSkill: lesson.focusSkill,
+    pronunciationScore: 60,
+    fluencyScore: 58,
+    rhythmScore: 58,
+    overallScore: 58,
+    feedback: 'Analiz hazırlanırken eksik ders verisi bulundu.',
+    correctWords: [],
+    wordsToImprove: [],
+    coachTip: 'Cümleyi yavaşça tekrar et.',
+    focusSkill: lesson?.focusSkill ?? 'Shadowing',
   };
+}
+
+export function getMockAnalysisForLesson(lesson: Lesson): LessonAnalysisResult {
+  try {
+    const validation = validateLessonForRecommendation(lesson);
+    if (!validation.valid) {
+      if (__DEV__) {
+        console.warn('[EchoSpeak Mock Analysis] getMockAnalysisForLesson skipped', {
+          lessonId: lesson?.id,
+          reason: validation.reason,
+        });
+      }
+      return createEmptyMockAnalysisResult(lesson);
+    }
+
+    const segment = getActiveSegment(lesson, 0);
+    const analysis = analyzeSpeechMock({
+      targetText: segment.text,
+      userTranscript: '',
+      lesson,
+      segment,
+      userProfile: createDefaultLearningProfile(),
+      mode: 'library',
+    });
+    const result = analysisOutputToPracticeResult(analysis, lesson.id, segment.id, 'library');
+
+    return {
+      pronunciationScore: result.pronunciationScore,
+      fluencyScore: result.fluencyScore,
+      rhythmScore: result.rhythmScore,
+      overallScore: result.nativeScore,
+      feedback: result.aiCoachCommentTr,
+      correctWords: result.correctWords ?? [],
+      wordsToImprove: result.wordsToImprove ?? [],
+      coachTip: result.nextFocusTr,
+      focusSkill: lesson.focusSkill ?? 'Shadowing',
+    };
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[EchoSpeak Mock Analysis] getMockAnalysisForLesson failed', {
+        lessonId: lesson?.id,
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+    }
+    return createEmptyMockAnalysisResult(lesson);
+  }
 }
 
 /** @deprecated use getTodaysLesson */
 export const featuredLesson = lessons[0];
 
 /** @deprecated use getMockAnalysisForLesson */
-export const mockAnalysisResult = getMockAnalysisForLesson(lessons[0]);
+export const mockAnalysisResult = (() => {
+  try {
+    const firstLesson = lessons[0];
+    if (!firstLesson) return createEmptyMockAnalysisResult();
+    return getMockAnalysisForLesson(firstLesson);
+  } catch {
+    return createEmptyMockAnalysisResult(lessons[0]);
+  }
+})();

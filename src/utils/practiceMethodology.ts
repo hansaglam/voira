@@ -181,7 +181,7 @@ export function enrichLessonMethodology(lesson: Lesson): Lesson {
 
   return {
     ...withPremium,
-    segments: withPremium.segments.map((seg) =>
+    segments: (Array.isArray(withPremium.segments) ? withPremium.segments : []).map((seg) =>
       enrichSegmentMethodology(seg, withPremium),
     ),
   };

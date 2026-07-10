@@ -2,6 +2,8 @@ export type AnalysisMode = 'daily' | 'library' | 'onboarding' | 'custom';
 
 export type SpeechAnalysisMode = 'text_match_only' | 'pronunciation_assessment';
 
+export type ScoreSource = 'azure_pronunciation' | 'text_match_only';
+
 export interface AnalyzeSpeechFields {
   userId?: string;
   lessonId?: string;
@@ -11,15 +13,41 @@ export interface AnalyzeSpeechFields {
   mode?: string;
 }
 
+export interface AzurePronunciationResponse {
+  pronunciationScore: number | null;
+  accuracyScore: number | null;
+  fluencyScore: number | null;
+  completenessScore: number | null;
+  prosodyScore: number | null;
+}
+
+export interface WordPronunciationFeedback {
+  word: string;
+  accuracyScore?: number;
+  errorType?: string;
+  feedbackTr?: string;
+}
+
+export interface PhonemeFeedback {
+  phoneme: string;
+  accuracyScore?: number;
+  feedbackTr?: string;
+}
+
 export interface AnalysisSuccessResponse {
   ok: true;
   transcript: string;
   analysisMode: SpeechAnalysisMode;
   pronunciationAssessmentAvailable: boolean;
+  pronunciationProvider: 'azure' | null;
+  scoreSource: ScoreSource;
   matchScore: number;
   nativeScore: number;
   pronunciationScore: number;
+  accuracyScore?: number;
   fluencyScore: number;
+  completenessScore?: number;
+  prosodyScore?: number;
   rhythmScore: number;
   confidenceScore: number;
   correctWords: string[];
@@ -28,6 +56,9 @@ export interface AnalysisSuccessResponse {
   weakAreasDetected: string[];
   aiCoachCommentTr: string;
   nextFocusTr: string;
+  azurePronunciation?: AzurePronunciationResponse;
+  wordPronunciationFeedback?: WordPronunciationFeedback[];
+  phonemeFeedback?: PhonemeFeedback[];
 }
 
 export interface AnalysisFailedResponse {
@@ -60,11 +91,15 @@ export interface SpeechScores {
   completenessScore: number;
   nativeScore: number;
   pronunciationScore: number;
+  accuracyScore?: number;
   fluencyScore: number;
+  prosodyScore?: number;
   rhythmScore: number;
   confidenceScore: number;
   analysisMode: SpeechAnalysisMode;
   pronunciationAssessmentAvailable: boolean;
+  pronunciationProvider: 'azure' | null;
+  scoreSource: ScoreSource;
 }
 
 export interface CoachFeedback {

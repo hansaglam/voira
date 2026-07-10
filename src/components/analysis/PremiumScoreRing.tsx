@@ -35,9 +35,8 @@ function resolveScoreLabel(
   pronunciationAssessmentAvailable?: boolean,
 ): string {
   if (label) return label;
-  if (pronunciationAssessmentAvailable) return 'Native Score';
-  if (analysisMode === 'text_match_only') return 'Konuşma Skoru';
-  return 'Telaffuz Skoru';
+  if (pronunciationAssessmentAvailable) return 'Gerçek Telaffuz Skoru';
+  return 'Konuşma Skoru';
 }
 
 export function PremiumScoreRing({

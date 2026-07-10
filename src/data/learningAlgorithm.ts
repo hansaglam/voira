@@ -9,6 +9,13 @@ import {
 import { getExampleFeedback, getAllKeywords, resolveLessonPremium, isLastLessonSegment } from '../utils/lessonUtils';
 import { LessonSegment } from '../types/segment';
 import { lessons } from './lessons';
+import {
+  ensureLessonArray,
+  getSafeLessonField,
+  logSkippedMalformedLesson,
+  normalizeLearningProfile,
+  validateLessonForRecommendation,
+} from '../utils/recommendationSafety';
 
 const DAILY_LESSON_COUNT = 3;
 
@@ -80,8 +87,9 @@ export function getAccessibleLessons(
   userProfile: UserLearningProfile,
   allLessons: Lesson[],
 ): Lesson[] {
-  return allLessons.filter(
-    (lesson) => userProfile.premium || !resolveLessonPremium(lesson),
+  const safeProfile = normalizeLearningProfile(userProfile);
+  return ensureLessonArray(allLessons).filter(
+    (lesson) => safeProfile.premium || !resolveLessonPremium(lesson),
   );
 }
 
@@ -89,13 +97,15 @@ export function getLockedPremiumLessons(
   userProfile: UserLearningProfile,
   allLessons: Lesson[],
 ): Lesson[] {
-  if (userProfile.premium) return [];
-  return allLessons.filter((lesson) => resolveLessonPremium(lesson));
+  const safeProfile = normalizeLearningProfile(userProfile);
+  if (safeProfile.premium) return [];
+  return ensureLessonArray(allLessons).filter((lesson) => resolveLessonPremium(lesson));
 }
 
 function getPreferredCategories(profile: UserLearningProfile): Set<LessonCategory> {
+  const safeProfile = normalizeLearningProfile(profile);
   const categories = new Set<LessonCategory>();
-  for (const goal of profile.goals) {
+  for (const goal of safeProfile.goals) {
     for (const cat of GOAL_TO_CATEGORIES[goal] ?? ['daily']) {
       categories.add(cat);
     }
@@ -105,37 +115,61 @@ function getPreferredCategories(profile: UserLearningProfile): Set<LessonCategor
 }
 
 function scoreLessonForProfile(lesson: Lesson, profile: UserLearningProfile): number {
-  let score = 0;
-  const allowedLevels = LEVEL_TO_LESSON_LEVELS[profile.level];
-  const preferredCategories = getPreferredCategories(profile);
-
-  if (allowedLevels.includes(lesson.level)) score += 30;
-  else score += 8;
-
-  if (preferredCategories.has(lesson.category)) score += 28;
-
-  if (!profile.completedLessonIds.includes(lesson.id)) score += 22;
-  else score += 4;
-
-  for (const weak of profile.weakAreas) {
-    const weakLower = weak.toLowerCase();
-    if (
-      lesson.focusSkill.toLowerCase().includes(weakLower) ||
-      lesson.learningObjectiveTr.toLowerCase().includes(weakLower) ||
-      lesson.title.toLowerCase().includes(weakLower)
-    ) {
-      score += 12;
+  try {
+    const validation = validateLessonForRecommendation(lesson);
+    if (!validation.valid) {
+      logSkippedMalformedLesson(lesson?.id, validation.reason);
+      return 0;
     }
+
+    const safeProfile = normalizeLearningProfile(profile);
+    let score = 0;
+    const allowedLevels =
+      LEVEL_TO_LESSON_LEVELS[safeProfile.level] ?? LEVEL_TO_LESSON_LEVELS.intermediate;
+    const preferredCategories = getPreferredCategories(safeProfile);
+    const focusSkill = getSafeLessonField(lesson.focusSkill).toLowerCase();
+    const learningObjective = getSafeLessonField(lesson.learningObjectiveTr).toLowerCase();
+    const title = getSafeLessonField(lesson.title).toLowerCase();
+
+    if (allowedLevels.includes(lesson.level)) score += 30;
+    else score += 8;
+
+    if (lesson.category && preferredCategories.has(lesson.category)) score += 28;
+
+    if (!safeProfile.completedLessonIds.includes(lesson.id)) score += 22;
+    else score += 4;
+
+    for (const weak of safeProfile.weakAreas) {
+      const weakLower = getSafeLessonField(weak).toLowerCase();
+      if (
+        focusSkill.includes(weakLower) ||
+        learningObjective.includes(weakLower) ||
+        title.includes(weakLower)
+      ) {
+        score += 12;
+      }
+    }
+
+    if (
+      lesson.type === 'pronunciation_drill' &&
+      safeProfile.weakAreas.some((w) => w.includes('telaffuz') || w.includes('th'))
+    ) {
+      score += 10;
+    }
+
+    if (lesson.type === 'sentence_practice') score += 4;
+
+    score -= hashSeed(lesson.id + safeProfile.userId) % 5;
+    return score;
+  } catch (error) {
+    if (__DEV__) {
+      console.warn('[EchoSpeak Recommendations] scoreLessonForProfile failed', {
+        lessonId: lesson?.id,
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+    }
+    return 0;
   }
-
-  if (lesson.type === 'pronunciation_drill' && profile.weakAreas.some((w) => w.includes('telaffuz') || w.includes('th'))) {
-    score += 10;
-  }
-
-  if (lesson.type === 'sentence_practice') score += 4;
-
-  score -= hashSeed(lesson.id + profile.userId) % 5;
-  return score;
 }
 
 function buildSessionSubtitle(_profile: UserLearningProfile, focusSkill: string): string {
@@ -155,9 +189,10 @@ function estimateSessionMinutes(lessonIds: string[], allLessons: Lesson[], daily
 }
 
 function pickDailyLessonIds(profile: UserLearningProfile, allLessons: Lesson[]): string[] {
-  const accessible = getAccessibleLessons(profile, allLessons);
+  const safeProfile = normalizeLearningProfile(profile);
+  const accessible = getAccessibleLessons(safeProfile, allLessons);
   const ranked = [...accessible].sort(
-    (a, b) => scoreLessonForProfile(b, profile) - scoreLessonForProfile(a, profile),
+    (a, b) => scoreLessonForProfile(b, safeProfile) - scoreLessonForProfile(a, safeProfile),
   );
 
   const picked: Lesson[] = [];
@@ -191,32 +226,33 @@ export function selectDailyPracticeSession(
   allLessons: Lesson[],
   dateKey?: string,
 ): DailyPracticeSession {
+  const safeProfile = normalizeLearningProfile(userProfile);
   const now = new Date();
   const date =
     dateKey ??
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const sessionId = `daily-${date.replace(/-/g, '')}`;
 
-  const lessonIds = pickDailyLessonIds(userProfile, allLessons);
+  const lessonIds = pickDailyLessonIds(safeProfile, allLessons);
   const firstLesson = allLessons.find((l) => l.id === lessonIds[0]);
   const focusSkill =
     firstLesson?.focusSkill ??
-    userProfile.weakAreas[0] ??
+    safeProfile.weakAreas[0] ??
     'Doğal konuşma akıcılığı';
 
   return {
     sessionId,
     date,
     title: buildSessionTitle(),
-    subtitle: buildSessionSubtitle(userProfile, focusSkill),
-    estimatedMinutes: estimateSessionMinutes(lessonIds, allLessons, userProfile.dailyMinutes),
+    subtitle: buildSessionSubtitle(safeProfile, focusSkill),
+    estimatedMinutes: estimateSessionMinutes(lessonIds, allLessons, safeProfile.dailyMinutes),
     focusSkill,
     lessonIds,
     currentIndex: 0,
     totalLessons: DAILY_LESSON_COUNT,
     completedLessonIds: [],
     isCompleted: false,
-    averageScore: userProfile.averageScore > 0 ? userProfile.averageScore : 0,
+    averageScore: safeProfile.averageScore > 0 ? safeProfile.averageScore : 0,
   };
 }
 
@@ -225,9 +261,19 @@ export function getRecommendedLessons(
   allLessons: Lesson[],
   limit = 3,
 ): Lesson[] {
-  const accessible = getAccessibleLessons(userProfile, allLessons);
+  const safeProfile = normalizeLearningProfile(userProfile);
+  const validLessons = ensureLessonArray(allLessons).filter((lesson) => {
+    const validation = validateLessonForRecommendation(lesson);
+    if (!validation.valid) {
+      logSkippedMalformedLesson(lesson?.id, validation.reason);
+      return false;
+    }
+    return true;
+  });
+
+  const accessible = getAccessibleLessons(safeProfile, validLessons);
   return [...accessible]
-    .sort((a, b) => scoreLessonForProfile(b, userProfile) - scoreLessonForProfile(a, userProfile))
+    .sort((a, b) => scoreLessonForProfile(b, safeProfile) - scoreLessonForProfile(a, safeProfile))
     .slice(0, limit);
 }
 
@@ -235,23 +281,31 @@ export function getContinueLesson(
   userProfile: UserLearningProfile,
   allLessons: Lesson[],
 ): Lesson {
-  const accessible = getAccessibleLessons(userProfile, allLessons);
-  const incomplete = accessible.filter((l) => !userProfile.completedLessonIds.includes(l.id));
+  const safeProfile = normalizeLearningProfile(userProfile);
+  const accessible = getAccessibleLessons(safeProfile, allLessons);
+  const incomplete = accessible.filter((l) => !safeProfile.completedLessonIds.includes(l.id));
   if (incomplete.length > 0) {
     return [...incomplete].sort(
-      (a, b) => scoreLessonForProfile(b, userProfile) - scoreLessonForProfile(a, userProfile),
+      (a, b) => scoreLessonForProfile(b, safeProfile) - scoreLessonForProfile(a, safeProfile),
     )[0];
   }
-  return getRecommendedLessons(userProfile, allLessons, 1)[0] ?? allLessons[0];
+  const recommended = getRecommendedLessons(safeProfile, allLessons, 1)[0];
+  if (recommended) return recommended;
+
+  const fallback = ensureLessonArray(allLessons).find(
+    (lesson) => validateLessonForRecommendation(lesson).valid,
+  );
+  return fallback ?? allLessons[0];
 }
 
 function buildNextFocusTr(lesson: Lesson, segment: LessonSegment): string {
-  const feedback = lesson.aiFeedbackRules.exampleFeedbackTr || getExampleFeedback(lesson);
+  const feedback = lesson.aiFeedbackRules?.exampleFeedbackTr || getExampleFeedback(lesson);
   const quoted = feedback.match(/"([^"]+)"/);
   if (quoted) {
     return `"${quoted[1]}" kısmını tek nefeste söyle. Kelime kelime değil, bağlı bir ritimle tekrar et.`;
   }
-  return `${lesson.focusSkill} odağında kal. ${segment.shadowingInstructionTr.slice(0, 120)}`;
+  const instruction = getSafeLessonField(segment.shadowingInstructionTr);
+  return `${getSafeLessonField(lesson.focusSkill, 'Shadowing')} odağında kal. ${instruction.slice(0, 120)}`;
 }
 
 export function generateMockPracticeResult(
@@ -278,7 +332,7 @@ export function generateMockPracticeResult(
   const wordsToImprove =
     keywords.length > 1
       ? [keywords[keywords.length - 1]]
-      : segment.pronunciationTipTr.split(' ').slice(0, 1);
+      : getSafeLessonField(segment.pronunciationTipTr).split(' ').slice(0, 1);
 
   const weakAreasDetected: string[] = [];
   if (pronunciationScore < 72) weakAreasDetected.push('Telaffuz');
@@ -300,7 +354,7 @@ export function generateMockPracticeResult(
     correctWords,
     wordsToImprove,
     weakAreasDetected,
-    aiCoachCommentTr: lesson.aiFeedbackRules.exampleFeedbackTr || getExampleFeedback(lesson),
+    aiCoachCommentTr: lesson.aiFeedbackRules?.exampleFeedbackTr || getExampleFeedback(lesson),
     nextFocusTr: buildNextFocusTr(lesson, segment),
     createdAt: new Date().toISOString(),
   };
@@ -323,51 +377,52 @@ export function updateProgressFromResult(
   userProfile: UserLearningProfile,
   practiceResult: PracticeResult,
 ): UserLearningProfile {
+  const safeProfile = normalizeLearningProfile(userProfile);
   const today = practiceResult.createdAt.slice(0, 10);
-  const alreadyCompleted = userProfile.completedLessonIds.includes(practiceResult.lessonId);
+  const alreadyCompleted = safeProfile.completedLessonIds.includes(practiceResult.lessonId);
   const lesson = lessons.find((item) => item.id === practiceResult.lessonId);
   const shouldMarkLessonComplete =
     !lesson || isLastLessonSegment(lesson, practiceResult.segmentId);
   const newlyCompletingLesson = shouldMarkLessonComplete && !alreadyCompleted;
-  const completedCount = userProfile.completedLessonIds.length;
+  const completedCount = safeProfile.completedLessonIds.length;
 
   const newAverage = newlyCompletingLesson
     ? completedCount === 0
       ? practiceResult.nativeScore
       : Math.round(
-          (userProfile.averageScore * completedCount + practiceResult.nativeScore) /
+          (safeProfile.averageScore * completedCount + practiceResult.nativeScore) /
             (completedCount + 1),
         )
-    : userProfile.averageScore;
+    : safeProfile.averageScore;
 
-  let currentStreak = userProfile.currentStreak;
-  if (!userProfile.lastPracticeDate) {
+  let currentStreak = safeProfile.currentStreak;
+  if (!safeProfile.lastPracticeDate) {
     currentStreak = 1;
-  } else if (isSameDay(today, userProfile.lastPracticeDate)) {
-    currentStreak = userProfile.currentStreak;
-  } else if (isYesterday(today, userProfile.lastPracticeDate)) {
-    currentStreak = userProfile.currentStreak + 1;
+  } else if (isSameDay(today, safeProfile.lastPracticeDate)) {
+    currentStreak = safeProfile.currentStreak;
+  } else if (isYesterday(today, safeProfile.lastPracticeDate)) {
+    currentStreak = safeProfile.currentStreak + 1;
   } else {
     currentStreak = 1;
   }
 
   const completedLessonIds = alreadyCompleted
-    ? userProfile.completedLessonIds
+    ? safeProfile.completedLessonIds
     : shouldMarkLessonComplete
-      ? [...userProfile.completedLessonIds, practiceResult.lessonId]
-      : userProfile.completedLessonIds;
+      ? [...safeProfile.completedLessonIds, practiceResult.lessonId]
+      : safeProfile.completedLessonIds;
 
   const weakAreas = [
-    ...new Set([...userProfile.weakAreas, ...practiceResult.weakAreasDetected]),
+    ...new Set([...safeProfile.weakAreas, ...(practiceResult.weakAreasDetected ?? [])]),
   ].slice(0, 8);
 
   return {
-    ...userProfile,
+    ...safeProfile,
     currentStreak,
     lastPracticeDate: today,
     completedLessonIds,
     averageScore: newAverage,
-    bestScore: Math.max(userProfile.bestScore, practiceResult.nativeScore),
+    bestScore: Math.max(safeProfile.bestScore, practiceResult.nativeScore),
     weakAreas,
   };
 }

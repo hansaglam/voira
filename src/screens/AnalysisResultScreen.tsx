@@ -99,6 +99,8 @@ const NON_WORD_CHIP_TOKENS = new Set([
   'özgüven',
 ]);
 
+const PRONUNCIATION_WEAK_WORD_THRESHOLD = 70;
+
 const PRONUNCIATION_WEAK_AREA_HINTS = [
   'th sesi',
   'w / v farkı',
@@ -285,9 +287,19 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
       analysis.wordsToImprove ?? [],
     );
   }, [analysis]);
-  const isTextMatchOnly =
-    analysis?.analysisMode === 'text_match_only' ||
-    analysis?.pronunciationAssessmentAvailable === false;
+  const hasRealPronunciation = analysis?.pronunciationAssessmentAvailable === true;
+  const isTextMatchOnly = !hasRealPronunciation;
+  const weakPronunciationWords = useMemo(() => {
+    if (!hasRealPronunciation || !analysis?.wordPronunciationFeedback?.length) {
+      return [];
+    }
+
+    return analysis.wordPronunciationFeedback.filter(
+      (item) =>
+        typeof item.accuracyScore === 'number' &&
+        item.accuracyScore < PRONUNCIATION_WEAK_WORD_THRESHOLD,
+    );
+  }, [analysis?.wordPronunciationFeedback, hasRealPronunciation]);
   const filteredWeakAreas = useMemo(() => {
     if (!analysis?.weakAreasDetected?.length) return [];
     return filterWeakAreasForDisplay(analysis.weakAreasDetected, {
@@ -681,20 +693,44 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
       <AnimatedScoreCard
         nativeScore={result.nativeScore}
         pronunciationScore={result.pronunciationScore}
+        accuracyScore={analysis.accuracyScore}
         fluencyScore={result.fluencyScore}
+        completenessScore={analysis.completenessScore}
+        prosodyScore={analysis.prosodyScore}
         rhythmScore={result.rhythmScore}
         confidenceScore={result.confidenceScore}
         analysisMode={analysis.analysisMode}
         pronunciationAssessmentAvailable={analysis.pronunciationAssessmentAvailable}
       />
 
-      {isTextMatchOnly ? (
-        <View style={styles.analysisNoteCard}>
-          <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
-          <Text style={styles.analysisNote}>
-            Bu analiz kelime eşleşmesi ve akıcılık tahminine göre hazırlanmıştır. Detaylı telaffuz skoru yakında.
-          </Text>
-        </View>
+      <View style={styles.analysisNoteCard}>
+        <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
+        <Text style={styles.analysisNote}>
+          {hasRealPronunciation
+            ? 'Bu analiz telaffuz, akıcılık ve cümle tamamlama ölçümlerine göre hazırlanmıştır.'
+            : 'Bu analiz kelime eşleşmesi ve akıcılık tahminine göre hazırlanmıştır. Detaylı telaffuz skoru için geliştirme devam ediyor.'}
+        </Text>
+      </View>
+
+      {weakPronunciationWords.length > 0 ? (
+        <AppCard style={styles.weakWordsCard}>
+          <Text style={styles.sectionTitle}>Dikkat etmen gereken kelimeler</Text>
+          <View style={styles.weakWordList}>
+            {weakPronunciationWords.map((item, index) => (
+              <View key={`${item.word}-${index}`} style={styles.weakWordItem}>
+                <View style={styles.weakWordHeader}>
+                  <Text style={styles.weakWordLabel}>{item.word}</Text>
+                  {typeof item.accuracyScore === 'number' ? (
+                    <Text style={styles.weakWordScore}>%{Math.round(item.accuracyScore)}</Text>
+                  ) : null}
+                </View>
+                {item.feedbackTr ? (
+                  <Text style={styles.weakWordFeedback}>{item.feedbackTr}</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        </AppCard>
       ) : null}
 
       <AppCard style={styles.coachCard}>
@@ -708,9 +744,9 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
           <View style={styles.coachTitles}>
             <Text style={styles.coachTitle}>AI Koç Yorumu</Text>
             <Text style={styles.coachSubtitle}>
-              {isTextMatchOnly
-                ? `Kelime eşleşmesi %${wordMatchScore} • telaffuz skoru yakında`
-                : `Kelime eşleşmesi %${wordMatchScore}`}
+              {hasRealPronunciation
+                ? `Kelime eşleşmesi %${wordMatchScore} • telaffuz analizi`
+                : `Kelime eşleşmesi %${wordMatchScore} • konuşma skoru`}
             </Text>
           </View>
         </View>
@@ -941,6 +977,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: colors.textMuted,
+  },
+  weakWordsCard: {
+    marginBottom: spacing.sm,
+    padding: CARD_PADDING,
+    borderColor: 'rgba(245, 158, 11, 0.22)',
+    backgroundColor: 'rgba(245, 158, 11, 0.04)',
+  },
+  weakWordList: {
+    gap: spacing.sm,
+  },
+  weakWordItem: {
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(26, 27, 46, 0.55)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  weakWordHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  weakWordLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  weakWordScore: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.warning,
+  },
+  weakWordFeedback: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSecondary,
   },
   coachBody: {
     fontSize: 14,

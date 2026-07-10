@@ -162,13 +162,20 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
         setLearningProfile((prev) => ({
           ...prev,
-          completedLessonIds: saved.completedLessonIds,
-          completedDailySessionIds: saved.completedDailySessionIds,
+          completedLessonIds: Array.isArray(saved.completedLessonIds)
+            ? saved.completedLessonIds
+            : prev.completedLessonIds,
+          completedDailySessionIds: Array.isArray(saved.completedDailySessionIds)
+            ? saved.completedDailySessionIds
+            : prev.completedDailySessionIds,
           currentStreak: saved.currentStreak,
           lastPracticeDate: saved.lastPracticeDate,
           averageScore: saved.averageScore,
           bestScore: saved.bestScore,
-          weakAreas: saved.weakAreas.length > 0 ? saved.weakAreas : prev.weakAreas,
+          weakAreas:
+            Array.isArray(saved.weakAreas) && saved.weakAreas.length > 0
+              ? saved.weakAreas
+              : prev.weakAreas,
         }));
         setLastLessonState(saved.lastLessonState);
 
@@ -252,7 +259,7 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     ): Promise<AiSpeechAnalysisOutput> => {
       const segmentIndex = options?.segmentIndex ?? 0;
       const segment: LessonSegment = options?.segmentId
-        ? lesson.segments.find((s) => s.id === options.segmentId) ??
+        ? (Array.isArray(lesson.segments) ? lesson.segments : []).find((s) => s.id === options.segmentId) ??
           getActiveSegment(lesson, segmentIndex)
         : getActiveSegment(lesson, segmentIndex);
 

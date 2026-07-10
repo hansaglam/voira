@@ -32,11 +32,17 @@ function computeDurationSanityScore(
   return 55;
 }
 
-function applyCoverageCap(score: number, coveragePercent: number): number {
+function applyTextMatchCoverageCap(score: number, coveragePercent: number): number {
   if (coveragePercent < 50) return Math.min(score, 45);
   if (coveragePercent < 65) return Math.min(score, 60);
   if (coveragePercent < 80) return Math.min(score, 72);
   if (coveragePercent < 90) return Math.min(score, 82);
+  return score;
+}
+
+function applyAzureCoverageCap(score: number, coveragePercent: number): number {
+  if (coveragePercent < 35) return Math.min(score, 45);
+  if (coveragePercent < 60) return Math.min(score, 65);
   return score;
 }
 
@@ -46,6 +52,10 @@ function applyTranscriptLengthCap(
   targetWordCount: number,
 ): number {
   if (targetWordCount <= 0) return score;
+
+  if (transcriptWordCount <= 2 && targetWordCount >= 5) {
+    return Math.min(score, 55);
+  }
 
   const ratio = transcriptWordCount / targetWordCount;
   if (ratio < 0.55) return Math.min(score, 58);
@@ -75,6 +85,30 @@ function applyMissingWordPenalty(score: number, missingWordCount: number): numbe
   return score;
 }
 
+function applyMissingWordCap(
+  score: number,
+  missingWordCount: number,
+  targetWordCount: number,
+): number {
+  if (missingWordCount >= 3 && targetWordCount <= 12) {
+    return Math.min(score, 70);
+  }
+
+  return score;
+}
+
+function applyLowMatchCap(score: number, matchScore: number): number {
+  if (matchScore < 25) {
+    return Math.min(score, matchScore * 0.65);
+  }
+
+  if (matchScore < 40) {
+    return Math.min(score, 60);
+  }
+
+  return score;
+}
+
 function buildConfidenceScore(
   matchScore: number,
   completenessScore: number,
@@ -83,6 +117,35 @@ function buildConfidenceScore(
   return clampScore(
     Math.round(30 + matchScore * 0.3 + completenessScore * 0.25 + Math.min(12, durationMillis / 400)),
   );
+}
+
+function applyStrictComparisonCaps(
+  score: number,
+  comparison: TextComparisonResult,
+  durationMillis: number,
+  mode: 'text_match_only' | 'pronunciation_assessment',
+): number {
+  let capped = clampScore(applyMissingWordPenalty(score, comparison.missingWordCount));
+  capped = applyTranscriptLengthCap(
+    capped,
+    comparison.transcriptWordCount,
+    comparison.targetWordCount,
+  );
+  capped = applyDurationCap(capped, durationMillis, comparison.targetWordCount);
+  capped = applyMissingWordCap(
+    capped,
+    comparison.missingWordCount,
+    comparison.targetWordCount,
+  );
+  capped = applyLowMatchCap(capped, comparison.matchPercent);
+
+  if (mode === 'pronunciation_assessment') {
+    capped = applyAzureCoverageCap(capped, comparison.coveragePercent);
+    return clampScore(capped);
+  }
+
+  capped = applyTextMatchCoverageCap(capped, comparison.coveragePercent);
+  return clampScore(Math.min(TEXT_MATCH_NATIVE_CAP, capped));
 }
 
 function buildTextMatchOnlyScores(
@@ -99,16 +162,25 @@ function buildTextMatchOnlyScores(
   );
 
   if (matchScore < 15) {
+    const nativeScore = applyStrictComparisonCaps(
+      Math.min(matchScore, completenessScore),
+      comparison,
+      durationMillis,
+      'text_match_only',
+    );
+
     return {
       matchScore,
       completenessScore,
-      nativeScore: clampScore(Math.min(matchScore, completenessScore)),
+      nativeScore,
       pronunciationScore: matchScore,
       fluencyScore: clampScore(Math.max(10, durationScore)),
       rhythmScore: clampScore(Math.max(10, matchScore)),
       confidenceScore: clampScore(Math.max(12, matchScore + 5)),
       analysisMode: 'text_match_only',
       pronunciationAssessmentAvailable: false,
+      pronunciationProvider: null,
+      scoreSource: 'text_match_only',
     };
   }
 
@@ -128,28 +200,17 @@ function buildTextMatchOnlyScores(
     ),
   );
 
-  let nativeScore = clampScore(
+  const nativeScore = applyStrictComparisonCaps(
     Math.round(
       completenessScore * 0.45 +
         matchScore * 0.25 +
         orderScore * 0.15 +
         durationScore * 0.15,
     ),
+    comparison,
+    durationMillis,
+    'text_match_only',
   );
-
-  nativeScore = clampScore(applyMissingWordPenalty(nativeScore, comparison.missingWordCount));
-  nativeScore = applyCoverageCap(nativeScore, comparison.coveragePercent);
-  nativeScore = applyTranscriptLengthCap(
-    nativeScore,
-    comparison.transcriptWordCount,
-    comparison.targetWordCount,
-  );
-  nativeScore = applyDurationCap(nativeScore, durationMillis, comparison.targetWordCount);
-  nativeScore = Math.min(TEXT_MATCH_NATIVE_CAP, nativeScore);
-
-  if (matchScore < 25) {
-    nativeScore = clampScore(Math.min(nativeScore, matchScore * 0.65));
-  }
 
   return {
     matchScore,
@@ -161,13 +222,14 @@ function buildTextMatchOnlyScores(
     confidenceScore: buildConfidenceScore(matchScore, completenessScore, durationMillis),
     analysisMode: 'text_match_only',
     pronunciationAssessmentAvailable: false,
+    pronunciationProvider: null,
+    scoreSource: 'text_match_only',
   };
 }
 
 function buildPronunciationAssessmentScores(
   comparison: TextComparisonResult,
   durationMillis: number,
-  targetText: string,
   assessment: PronunciationAssessmentResult,
 ): SpeechScores {
   const completenessScore = clampScore(
@@ -180,22 +242,40 @@ function buildPronunciationAssessmentScores(
       assessment.accuracyScore ??
       matchScore,
   );
+  const accuracyScore = clampScore(
+    assessment.accuracyScore ?? pronunciationScore,
+  );
   const fluencyScore = clampScore(
     assessment.fluencyScore ??
-      computeDurationSanityScore(durationMillis, tokenize(targetText).length),
+      computeDurationSanityScore(durationMillis, comparison.targetWordCount),
   );
-  const rhythmScore = clampScore(
-    assessment.prosodyScore ??
-      Math.round(fluencyScore * 0.55 + pronunciationScore * 0.45),
-  );
+  const prosodyScore = assessment.prosodyScore === undefined
+    ? undefined
+    : clampScore(assessment.prosodyScore);
 
-  const nativeScore = clampScore(
+  const fluencyWeight = prosodyScore === undefined ? 0.2 : 0.15;
+  const prosodyWeight = prosodyScore === undefined ? 0 : 0.05;
+
+  let nativeScore = clampScore(
     Math.round(
       pronunciationScore * 0.4 +
-        fluencyScore * 0.25 +
-        completenessScore * 0.2 +
-        rhythmScore * 0.15,
+        accuracyScore * 0.25 +
+        fluencyScore * fluencyWeight +
+        completenessScore * 0.15 +
+        (prosodyScore ?? 0) * prosodyWeight,
     ),
+  );
+
+  nativeScore = applyStrictComparisonCaps(
+    nativeScore,
+    comparison,
+    durationMillis,
+    'pronunciation_assessment',
+  );
+
+  const rhythmScore = clampScore(
+    prosodyScore ??
+      Math.round(fluencyScore * 0.55 + pronunciationScore * 0.45),
   );
 
   return {
@@ -203,11 +283,15 @@ function buildPronunciationAssessmentScores(
     completenessScore,
     nativeScore,
     pronunciationScore,
+    accuracyScore,
     fluencyScore,
+    prosodyScore,
     rhythmScore,
     confidenceScore: buildConfidenceScore(matchScore, completenessScore, durationMillis),
     analysisMode: 'pronunciation_assessment',
     pronunciationAssessmentAvailable: true,
+    pronunciationProvider: assessment.provider ?? 'azure',
+    scoreSource: 'azure_pronunciation',
   };
 }
 
@@ -218,7 +302,6 @@ export function buildAnalysisScores(input: BuildAnalysisScoresInput): SpeechScor
     return buildPronunciationAssessmentScores(
       input.comparison,
       input.durationMillis,
-      input.targetText,
       assessment,
     );
   }

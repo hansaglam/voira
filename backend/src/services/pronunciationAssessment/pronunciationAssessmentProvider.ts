@@ -1,9 +1,6 @@
 import { azurePronunciationProvider } from './azurePronunciationProvider.js';
-import {
-  ENABLE_PRONUNCIATION_ASSESSMENT,
-  isAzurePronunciationConfigured,
-} from './pronunciationAssessmentConfig.js';
 import { disabledPronunciationProvider } from './disabledPronunciationProvider.js';
+import { isAzurePronunciationEnabled } from './pronunciationAssessmentConfig.js';
 import type {
   PronunciationAssessmentProvider,
   PronunciationAssessmentRequest,
@@ -11,11 +8,7 @@ import type {
 } from './pronunciationAssessmentTypes.js';
 
 function resolveProvider(): PronunciationAssessmentProvider {
-  if (!ENABLE_PRONUNCIATION_ASSESSMENT) {
-    return disabledPronunciationProvider;
-  }
-
-  if (!isAzurePronunciationConfigured()) {
+  if (!isAzurePronunciationEnabled()) {
     return disabledPronunciationProvider;
   }
 
@@ -26,9 +19,19 @@ export async function assessPronunciation(
   request: PronunciationAssessmentRequest,
 ): Promise<PronunciationAssessmentResult> {
   const provider = resolveProvider();
-  return provider.assess(request);
+
+  try {
+    return await provider.assess(request);
+  } catch (error) {
+    return {
+      ok: false,
+      errorCode: 'pronunciation_provider_error',
+      messageTr: 'Telaffuz değerlendirmesi sırasında bir sorun oluştu.',
+      raw: error instanceof Error ? error.message : error,
+    };
+  }
 }
 
 export function isPronunciationAssessmentAvailable(): boolean {
-  return ENABLE_PRONUNCIATION_ASSESSMENT && isAzurePronunciationConfigured();
+  return isAzurePronunciationEnabled();
 }

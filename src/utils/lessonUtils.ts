@@ -24,7 +24,8 @@ export function getLessonDifficulty(lesson: Lesson): LessonDifficultyLabel {
 }
 
 export function getSegmentAt(lesson: Lesson, index: number): LessonSegment {
-  const sorted = [...lesson.segments].sort((a, b) => a.order - b.order);
+  const segments = Array.isArray(lesson.segments) ? lesson.segments : [];
+  const sorted = [...segments].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
   if (sorted.length === 0) {
     return createFallbackSegment(lesson);
   }
@@ -36,23 +37,28 @@ export function getActiveSegment(lesson: Lesson, segmentIndex = 0): LessonSegmen
 }
 
 export function getSegmentCount(lesson: Lesson): number {
-  return lesson.segments.length;
+  return Array.isArray(lesson.segments) ? lesson.segments.length : 0;
 }
 
 export function isLastLessonSegment(lesson: Lesson, segmentId?: string): boolean {
-  const sorted = [...lesson.segments].sort((a, b) => a.order - b.order);
+  const segments = Array.isArray(lesson.segments) ? lesson.segments : [];
+  const sorted = [...segments].sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
   if (sorted.length <= 1) return true;
   if (!segmentId) return false;
   return sorted[sorted.length - 1]?.id === segmentId;
 }
 
 export function getAllKeywords(lesson: Lesson): string[] {
-  const fromSegments = lesson.segments.flatMap((s) => s.keywords);
-  return [...new Set([...lesson.keywords, ...fromSegments])];
+  const lessonKeywords = Array.isArray(lesson.keywords) ? lesson.keywords : [];
+  const segments = Array.isArray(lesson.segments) ? lesson.segments : [];
+  const fromSegments = segments.flatMap((segment) =>
+    Array.isArray(segment?.keywords) ? segment.keywords : [],
+  );
+  return [...new Set([...lessonKeywords, ...fromSegments])];
 }
 
 export function getExampleFeedback(lesson: Lesson): string {
-  return lesson.aiFeedbackRules.exampleFeedbackTr;
+  return lesson.aiFeedbackRules?.exampleFeedbackTr ?? '';
 }
 
 export function isPremiumContentType(type: Lesson['type']): boolean {

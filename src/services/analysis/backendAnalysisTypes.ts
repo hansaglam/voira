@@ -28,10 +28,15 @@ export type BackendAnalysisSuccessResponse = {
   transcript: string;
   analysisMode?: 'text_match_only' | 'pronunciation_assessment';
   pronunciationAssessmentAvailable?: boolean;
+  pronunciationProvider?: 'azure' | null;
+  scoreSource?: 'azure_pronunciation' | 'text_match_only';
   matchScore?: number;
   nativeScore: number;
   pronunciationScore: number;
+  accuracyScore?: number;
   fluencyScore: number;
+  completenessScore?: number;
+  prosodyScore?: number;
   rhythmScore: number;
   confidenceScore: number;
   correctWords: string[];
@@ -40,6 +45,17 @@ export type BackendAnalysisSuccessResponse = {
   weakAreasDetected: string[];
   aiCoachCommentTr: string;
   nextFocusTr: string;
+  wordPronunciationFeedback?: Array<{
+    word: string;
+    accuracyScore?: number;
+    errorType?: string;
+    feedbackTr?: string;
+  }>;
+  phonemeFeedback?: Array<{
+    phoneme: string;
+    accuracyScore?: number;
+    feedbackTr?: string;
+  }>;
 };
 
 export type BackendAnalysisFailedResponse = {

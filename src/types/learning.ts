@@ -50,7 +50,7 @@ export interface NativeScoreParts {
 export function createDefaultLearningProfile(
   partial?: Partial<UserLearningProfile>,
 ): UserLearningProfile {
-  return {
+  const defaults: UserLearningProfile = {
     userId: 'local-user',
     name: 'Ethem',
     level: 'intermediate',
@@ -64,7 +64,21 @@ export function createDefaultLearningProfile(
     completedDailySessionIds: [],
     averageScore: 0,
     bestScore: 0,
+  };
+
+  if (!partial) return defaults;
+
+  return {
+    ...defaults,
     ...partial,
+    goals: Array.isArray(partial.goals) ? partial.goals : defaults.goals,
+    weakAreas: Array.isArray(partial.weakAreas) ? partial.weakAreas : defaults.weakAreas,
+    completedLessonIds: Array.isArray(partial.completedLessonIds)
+      ? partial.completedLessonIds
+      : defaults.completedLessonIds,
+    completedDailySessionIds: Array.isArray(partial.completedDailySessionIds)
+      ? partial.completedDailySessionIds
+      : defaults.completedDailySessionIds,
   };
 }
 

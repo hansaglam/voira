@@ -19,11 +19,64 @@ const CARD_TRANSLATE_Y = 10;
 export interface AnimatedScoreCardProps {
   nativeScore: number;
   pronunciationScore: number;
+  accuracyScore?: number;
   fluencyScore: number;
+  completenessScore?: number;
+  prosodyScore?: number;
   rhythmScore: number;
   confidenceScore: number;
   analysisMode?: 'text_match_only' | 'pronunciation_assessment';
   pronunciationAssessmentAvailable?: boolean;
+}
+
+type MetricKey =
+  | 'pronunciationScore'
+  | 'accuracyScore'
+  | 'fluencyScore'
+  | 'completenessScore'
+  | 'prosodyScore'
+  | 'rhythmScore'
+  | 'confidenceScore';
+
+type MetricRow = {
+  label: string;
+  key: MetricKey;
+  tone: 'primary' | 'purple' | 'amber';
+  delay: number;
+};
+
+const TEXT_MATCH_METRIC_ROWS: MetricRow[] = [
+  { label: 'Telaffuz', key: 'pronunciationScore', tone: 'primary', delay: 200 },
+  { label: 'Akıcılık', key: 'fluencyScore', tone: 'purple', delay: 300 },
+  { label: 'Ritim', key: 'rhythmScore', tone: 'amber', delay: 400 },
+  { label: 'Özgüven', key: 'confidenceScore', tone: 'primary', delay: 500 },
+];
+
+function buildMetricRows(
+  pronunciationAssessmentAvailable?: boolean,
+  prosodyScore?: number,
+): MetricRow[] {
+  if (!pronunciationAssessmentAvailable) {
+    return TEXT_MATCH_METRIC_ROWS;
+  }
+
+  const rows: MetricRow[] = [
+    { label: 'Telaffuz', key: 'pronunciationScore', tone: 'primary', delay: 200 },
+    { label: 'Doğruluk', key: 'accuracyScore', tone: 'purple', delay: 300 },
+    { label: 'Akıcılık', key: 'fluencyScore', tone: 'amber', delay: 400 },
+    { label: 'Tamamlama', key: 'completenessScore', tone: 'primary', delay: 500 },
+  ];
+
+  if (typeof prosodyScore === 'number') {
+    rows.push({
+      label: 'Vurgu / Tonlama',
+      key: 'prosodyScore',
+      tone: 'purple',
+      delay: 600,
+    });
+  }
+
+  return rows;
 }
 
 export function getScoreFeedback(
@@ -33,9 +86,8 @@ export function getScoreFeedback(
     pronunciationAssessmentAvailable?: boolean;
   },
 ): { title: string; subtitle: string } {
-  const { analysisMode, pronunciationAssessmentAvailable } = options ?? {};
-  const isTextMatchOnly =
-    analysisMode === 'text_match_only' || pronunciationAssessmentAvailable === false;
+  const { pronunciationAssessmentAvailable } = options ?? {};
+  const isTextMatchOnly = pronunciationAssessmentAvailable !== true;
 
   if (score <= 39) {
     return {
@@ -75,17 +127,13 @@ export function getScoreFeedback(
   };
 }
 
-const METRIC_ROWS = [
-  { label: 'Telaffuz', key: 'pronunciationScore' as const, tone: 'primary' as const, delay: 200 },
-  { label: 'Akıcılık', key: 'fluencyScore' as const, tone: 'purple' as const, delay: 300 },
-  { label: 'Ritim', key: 'rhythmScore' as const, tone: 'amber' as const, delay: 400 },
-  { label: 'Özgüven', key: 'confidenceScore' as const, tone: 'primary' as const, delay: 500 },
-];
-
 export function AnimatedScoreCard({
   nativeScore,
   pronunciationScore,
+  accuracyScore,
   fluencyScore,
+  completenessScore,
+  prosodyScore,
   rhythmScore,
   confidenceScore,
   analysisMode,
@@ -103,9 +151,13 @@ export function AnimatedScoreCard({
     pronunciationAssessmentAvailable,
   });
 
-  const metricValues = {
+  const metricRows = buildMetricRows(pronunciationAssessmentAvailable, prosodyScore);
+  const metricValues: Record<MetricKey, number> = {
     pronunciationScore,
+    accuracyScore: accuracyScore ?? pronunciationScore,
     fluencyScore,
+    completenessScore: completenessScore ?? fluencyScore,
+    prosodyScore: prosodyScore ?? 0,
     rhythmScore,
     confidenceScore,
   };
@@ -203,7 +255,7 @@ export function AnimatedScoreCard({
         <View style={styles.divider} />
 
         <View style={styles.metrics}>
-          {METRIC_ROWS.map((metric) => (
+          {metricRows.map((metric) => (
             <PremiumMetricBar
               key={metric.label}
               label={metric.label}

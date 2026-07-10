@@ -56,8 +56,8 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-function resolvePrimaryGoal(goals: string[]): UserGoal {
-  for (const id of goals) {
+function resolvePrimaryGoal(goals: string[] | undefined): UserGoal {
+  for (const id of goals ?? []) {
     const mapped = GOAL_ID_TO_USER_GOAL[id];
     if (mapped) return mapped;
   }
@@ -147,7 +147,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         primaryGoal?: string;
       },
     ) => {
-      const resolvedGoal = options?.primaryGoal ?? primaryGoal ?? learningProfile.goals[0] ?? 'daily_conversation';
+      const resolvedGoal =
+        options?.primaryGoal ?? primaryGoal ?? learningProfile.goals?.[0] ?? 'daily_conversation';
 
       setPrimaryGoalState(resolvedGoal);
       setLearningGoals([resolvedGoal]);

@@ -33,6 +33,19 @@ export interface MockTranscriptionResult {
   detectedWords: string[];
 }
 
+export interface WordPronunciationFeedback {
+  word: string;
+  accuracyScore?: number;
+  errorType?: string;
+  feedbackTr?: string;
+}
+
+export interface PhonemeFeedback {
+  phoneme: string;
+  accuracyScore?: number;
+  feedbackTr?: string;
+}
+
 export interface PronunciationScoringResult {
   pronunciationScore: number;
   fluencyScore: number;
@@ -42,10 +55,17 @@ export interface PronunciationScoringResult {
   matchScore?: number;
   analysisMode?: 'text_match_only' | 'pronunciation_assessment';
   pronunciationAssessmentAvailable?: boolean;
+  pronunciationProvider?: 'azure' | null;
+  scoreSource?: 'azure_pronunciation' | 'text_match_only';
+  accuracyScore?: number;
+  completenessScore?: number;
+  prosodyScore?: number;
   correctWords: string[];
   missingWords: string[];
   wordsToImprove: string[];
   weakAreasDetected: string[];
+  wordPronunciationFeedback?: WordPronunciationFeedback[];
+  phonemeFeedback?: PhonemeFeedback[];
 }
 
 export interface AudioAnalysisPipelineResult {

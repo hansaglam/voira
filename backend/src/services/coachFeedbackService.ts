@@ -4,6 +4,8 @@ import type {
   SpeechScores,
   TextComparisonResult,
 } from '../types/analysis.js';
+import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
+import { getWeakestAzureWords } from './pronunciationFeedbackService.js';
 
 export interface CoachFeedbackInput {
   targetText: string;
@@ -14,10 +16,11 @@ export interface CoachFeedbackInput {
   analysisMode?: SpeechAnalysisMode;
   matchScore?: number;
   durationMillis?: number;
+  pronunciationAssessment?: PronunciationAssessmentResult | null;
 }
 
 const TEXT_MATCH_NOTE_TR =
-  'Bu analiz kelime eşleşmesine göre hazırlanmıştır. Detaylı telaffuz değerlendirmesi yakında eklenecek.';
+  'Bu analiz kelime eşleşmesine göre hazırlanmıştır; gerçek telaffuz puanı için Azure telaffuz değerlendirmesi gerekir.';
 
 const WORDS_PER_SECOND_ESTIMATE = 2.4;
 const LOW_ORDER_SCORE_THRESHOLD = 75;
@@ -120,6 +123,45 @@ function buildStrictnessComments(input: CoachFeedbackInput): string[] {
   return parts;
 }
 
+function buildAzurePronunciationComment(input: CoachFeedbackInput): string | null {
+  const { scores, comparison, pronunciationAssessment } = input;
+  const weakWords = getWeakestAzureWords(pronunciationAssessment, 2);
+  const fluencyScore = scores.fluencyScore;
+  const pronunciationScore = scores.pronunciationScore;
+  const completenessScore = scores.completenessScore ?? comparison.coveragePercent;
+  const prosodyScore = scores.prosodyScore;
+
+  if (comparison.missingWordCount >= 2) {
+    return 'Kelimeleri doğru sırayla söyledin ama cümle eksik kaldı; önce tüm kelimeleri tamamlamaya odaklan.';
+  }
+
+  if (weakWords.length > 0 && weakWords.some((word) => /think|thank|three|through/i.test(word))) {
+    return `Kelimeleri doğru sırayla söyledin ama '${weakWords[0]}' kelimesindeki TH sesi zayıf kalmış.`;
+  }
+
+  if (weakWords.length > 0) {
+    return `Kelimeleri doğru sırayla söyledin ama '${weakWords[0]}' kelimesinin telaffuzu zayıf kalmış.`;
+  }
+
+  if (fluencyScore < 70) {
+    return 'Cümleyi tamamlamışsın fakat akıcılık düşük; kelimeler arasında fazla duraklama var.';
+  }
+
+  if ((prosodyScore ?? pronunciationScore) >= 80 && completenessScore >= 85) {
+    return 'Telaffuz iyi, şimdi daha doğal ritim için cümleyi tek parça halinde söylemeyi dene.';
+  }
+
+  if (pronunciationScore >= 85 && fluencyScore >= 80) {
+    return 'Telaffuzun güçlü görünüyor. Bir sonraki denemede ritmi biraz daha doğal hale getirmeye odaklan.';
+  }
+
+  if (pronunciationScore < 65) {
+    return 'Cümle anlaşılıyor ama telaffuz netliği düşük; hedef cümleyi daha yavaş ve net söylemeyi dene.';
+  }
+
+  return null;
+}
+
 export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
   const { comparison, scores, weakAreas } = input;
   const matchScore = input.matchScore ?? scores.matchScore ?? comparison.matchPercent;
@@ -131,11 +173,22 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
   const nextFocusTr = buildNextFocus(weakAreas, comparison);
   const strictnessComments = buildStrictnessComments(input);
 
+  if (analysisMode === 'pronunciation_assessment') {
+    const azureComment = buildAzurePronunciationComment(input);
+    if (azureComment) {
+      const parts = [azureComment, ...strictnessComments];
+      return {
+        aiCoachCommentTr: combineCoachComments(...parts),
+        nextFocusTr,
+      };
+    }
+  }
+
   if (analysisMode === 'text_match_only') {
     if (matchScore >= 85 && !hasMissing && !hasImprove && comparison.coveragePercent >= 95) {
       return {
         aiCoachCommentTr: appendTextMatchNote(
-          'Kelime eşleşmen iyi görünüyor. Bir sonraki adımda ritim ve telaffuzu daha net ölçmek için detaylı analiz eklenecek.',
+          'Kelime eşleşmen iyi görünüyor. Azure telaffuz değerlendirmesi açıldığında gerçek telaffuz puanını da görebilirsin.',
           analysisMode,
         ),
         nextFocusTr,
@@ -186,7 +239,7 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
     return {
       aiCoachCommentTr: appendTextMatchNote(
-        `Cümleyi doğru kelimelerle tamamladın (%${matchScore} eşleşme). Bir sonraki adımda ritim ve telaffuzu daha net ölçmek için detaylı analiz eklenecek.`,
+        `Cümleyi doğru kelimelerle tamamladın (%${matchScore} eşleşme). Azure telaffuz değerlendirmesi açıldığında gerçek telaffuz puanını da görebilirsin.`,
         analysisMode,
       ),
       nextFocusTr,
