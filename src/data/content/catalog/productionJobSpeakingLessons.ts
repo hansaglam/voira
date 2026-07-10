@@ -245,7 +245,7 @@ export const productionJobSpeakingLessons = linkLessonChain([
     focusSkill: 'Maaş görüşmesi',
     learningObjectiveTr: '"Could you share the salary range…?" kalıbıyla maaş ve şartları sor.',
     isPremium: true,
-    premiumReasonTr: 'Hassas mülakat konuları',
+    premiumReasonTr: 'Maaş ve şart görüşmesi',
     segments: segmentsForLesson('job-prod-salary-terms', [
       {
         en: 'Could you share the salary range for this role?',
@@ -302,7 +302,7 @@ export const productionJobSpeakingLessons = linkLessonChain([
     focusSkill: 'Toplantıda fikir',
     learningObjectiveTr: '"From my perspective…" + "Would it make sense to…?" ile toplantıda fikir paylaş.',
     isPremium: true,
-    premiumReasonTr: 'İş yeri iletişimi',
+    premiumReasonTr: 'Toplantıda fikir paylaşma',
     segments: segmentsForLesson('job-prod-meeting-opinion', [
       {
         en: 'From my perspective, we should focus on the user experience first.',
@@ -359,7 +359,7 @@ export const productionJobSpeakingLessons = linkLessonChain([
     focusSkill: 'Kibar muhalefet',
     learningObjectiveTr: '"I see your point, but…" kalıbıyla kibarca katılma.',
     isPremium: true,
-    premiumReasonTr: 'Profesyonel iletişim',
+    premiumReasonTr: 'Kibarca farklı fikir söyleme',
     segments: segmentsForLesson('job-prod-polite-disagreement', [
       {
         en: 'I see your point, but I have a slightly different view.',
@@ -416,7 +416,7 @@ export const productionJobSpeakingLessons = linkLessonChain([
     focusSkill: 'Takip iletişimi',
     learningObjectiveTr: '"Thank you again for…" + "Please let me know if…" ile profesyonel takip yap.',
     isPremium: true,
-    premiumReasonTr: 'İş yazışması konuşması',
+    premiumReasonTr: 'E-posta takibi konuşması',
     segments: segmentsForLesson('job-prod-email-followup', [
       {
         en: 'Thank you again for taking the time to meet with me.',

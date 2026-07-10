@@ -314,7 +314,7 @@ export const productionPronunciationSpeakingLessons = linkLessonChain([
     focusSkill: 'Zayıf formlar',
     learningObjectiveTr: '"to", "of", "and", "for" zayıf formlarını doğal kullan.',
     isPremium: true,
-    premiumReasonTr: 'İleri akıcılık',
+    premiumReasonTr: 'İleri akıcılık ve weak forms',
     segments: segmentsForLesson('pron-prod-weak-forms', [
       {
         en: 'I want to go to the store.',

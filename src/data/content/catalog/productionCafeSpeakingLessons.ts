@@ -188,7 +188,7 @@ export const productionCafeSpeakingLessons = linkLessonChain([
     focusSkill: 'Mağazada ürün sorma',
     learningObjectiveTr: '"Do you carry…?" + "Is this on sale?" kalıplarıyla mağazada ürün sor.',
     isPremium: true,
-    premiumReasonTr: 'Kafe, restoran ve alışveriş kalıpları',
+    premiumReasonTr: 'Alışverişte ürün ve seçenek sorma',
     segments: segmentsForLesson('cafe-prod-asking-about-product', [
       {
         en: 'Excuse me, do you carry this in other colors?',
@@ -245,7 +245,7 @@ export const productionCafeSpeakingLessons = linkLessonChain([
     focusSkill: 'Beden ve renk sorma',
     learningObjectiveTr: '"Do you have this in…?" kalıbıyla beden ve renk seçeneği sor.',
     isPremium: true,
-    premiumReasonTr: 'Kafe, restoran ve alışveriş kalıpları',
+    premiumReasonTr: 'Beden ve renk sorma pratiği',
     segments: segmentsForLesson('cafe-prod-size-and-color', [
       {
         en: 'Do you have this in a medium?',
@@ -302,7 +302,7 @@ export const productionCafeSpeakingLessons = linkLessonChain([
     focusSkill: 'İade ve değişim',
     learningObjectiveTr: '"I\'d like to return…" + "Could I exchange…?" ile iade ve değişim iste.',
     isPremium: true,
-    premiumReasonTr: 'Kafe, restoran ve alışveriş kalıpları',
+    premiumReasonTr: 'İade ve değişim pratiği',
     segments: segmentsForLesson('cafe-prod-return-exchange', [
       {
         en: "I'd like to return this, please.",
@@ -359,7 +359,7 @@ export const productionCafeSpeakingLessons = linkLessonChain([
     focusSkill: 'Kibar şikayet',
     learningObjectiveTr: '"There might be a mistake…" kalıbıyla kibarca şikayet et.',
     isPremium: true,
-    premiumReasonTr: 'İleri müşteri iletişimi',
+    premiumReasonTr: 'Kibar şikayet ifadesi',
     segments: segmentsForLesson('cafe-prod-polite-complaint', [
       {
         en: 'Excuse me, I think there might be a mistake with my order.',

@@ -188,7 +188,7 @@ export const productionTravelSpeakingLessons = linkLessonChain([
     focusSkill: 'Yol tarifi',
     learningObjectiveTr: '"Excuse me, how do I get to…?" kalıbıyla yol tarifi sor.',
     isPremium: true,
-    premiumReasonTr: 'Seyahat diyalog kalıpları',
+    premiumReasonTr: 'Doğal yol sorma ifadeleri',
     segments: segmentsForLesson('travel-prod-asking-directions', [
       {
         en: 'Excuse me, how do I get to the train station?',
