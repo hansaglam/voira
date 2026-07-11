@@ -96,9 +96,11 @@ function mapBackendResponseToPipeline(
       weakAreasDetected: response.weakAreasDetected,
       wordPronunciationFeedback: response.wordPronunciationFeedback,
       phonemeFeedback: response.phonemeFeedback,
+      feedbackType: response.feedbackType,
     },
     aiCoachCommentTr: response.aiCoachCommentTr,
     nextFocusTr: response.nextFocusTr,
+    feedbackType: response.feedbackType,
     analysisMode: response.analysisMode,
     pronunciationAssessmentAvailable: response.pronunciationAssessmentAvailable,
     createdAt: new Date().toISOString(),
@@ -334,5 +336,6 @@ export function pipelineResultToAiSpeechAnalysisOutput(
     phonemeFeedback: pipeline.scoring.phonemeFeedback,
     aiCoachCommentTr: pipeline.aiCoachCommentTr,
     nextFocusTr: pipeline.nextFocusTr,
+    feedbackType: pipeline.feedbackType ?? pipeline.scoring.feedbackType,
   };
 }

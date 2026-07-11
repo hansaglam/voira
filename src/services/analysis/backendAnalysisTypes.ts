@@ -45,6 +45,14 @@ export type BackendAnalysisSuccessResponse = {
   weakAreasDetected: string[];
   aiCoachCommentTr: string;
   nextFocusTr: string;
+  feedbackType?:
+    | 'wrong_sentence'
+    | 'missing_words'
+    | 'weak_pronunciation'
+    | 'fluency_issue'
+    | 'prosody_issue'
+    | 'good_result'
+    | 'general';
   wordPronunciationFeedback?: Array<{
     word: string;
     accuracyScore?: number;

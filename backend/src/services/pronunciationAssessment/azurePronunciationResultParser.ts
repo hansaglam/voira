@@ -252,12 +252,15 @@ export function logAzureRestResponseSummary(
   },
 ): AzureRestResponseSummary {
   const summary = summarizeAzureRestResponse(payload, options);
-  console.log('[EchoSpeak Pronunciation REST] responseSummary', summary);
 
-  if (isAnalysisDebugEnabled() && options.responseText.trim()) {
-    console.log('[EchoSpeak Pronunciation REST] responsePreview', {
-      preview: sanitizeAzureRestBodyPreview(options.responseText),
-    });
+  if (isAnalysisDebugEnabled()) {
+    console.log('[EchoSpeak Pronunciation REST] responseSummary', summary);
+
+    if (options.responseText.trim()) {
+      console.log('[EchoSpeak Pronunciation REST] responsePreview', {
+        preview: sanitizeAzureRestBodyPreview(options.responseText),
+      });
+    }
   }
 
   return summary;

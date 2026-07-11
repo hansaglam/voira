@@ -3,6 +3,7 @@ import {
   AZURE_SPEECH_KEY,
   AZURE_SPEECH_LANGUAGE,
   AZURE_SPEECH_REGION,
+  isAnalysisDebugEnabled,
   isAzurePronunciationConfigured,
 } from './pronunciationAssessment/pronunciationAssessmentConfig.js';
 import {
@@ -191,9 +192,9 @@ export async function assessAzurePronunciation(
   const language = input.language ?? AZURE_SPEECH_LANGUAGE;
 
   console.log('[EchoSpeak Pronunciation] reference', {
-    referenceText,
     referenceTextLength: referenceText.length,
     language,
+    ...(isAnalysisDebugEnabled() ? { referenceText } : {}),
   });
 
   if (!referenceText) {

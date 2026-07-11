@@ -66,6 +66,14 @@ export interface PronunciationScoringResult {
   weakAreasDetected: string[];
   wordPronunciationFeedback?: WordPronunciationFeedback[];
   phonemeFeedback?: PhonemeFeedback[];
+  feedbackType?:
+    | 'wrong_sentence'
+    | 'missing_words'
+    | 'weak_pronunciation'
+    | 'fluency_issue'
+    | 'prosody_issue'
+    | 'good_result'
+    | 'general';
 }
 
 export interface AudioAnalysisPipelineResult {
@@ -77,6 +85,14 @@ export interface AudioAnalysisPipelineResult {
   analysisMode?: 'text_match_only' | 'pronunciation_assessment';
   pronunciationAssessmentAvailable?: boolean;
   createdAt: string;
+  feedbackType?:
+    | 'wrong_sentence'
+    | 'missing_words'
+    | 'weak_pronunciation'
+    | 'fluency_issue'
+    | 'prosody_issue'
+    | 'good_result'
+    | 'general';
 }
 
 export const MIN_AUDIO_ANALYSIS_DURATION_MS = MIN_RECORDING_DURATION_MS;

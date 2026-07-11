@@ -2,6 +2,7 @@ import {
   AZURE_SPEECH_KEY,
   AZURE_SPEECH_LANGUAGE,
   AZURE_SPEECH_REGION,
+  isAnalysisDebugEnabled,
   isAzurePronunciationConfigured,
 } from './pronunciationAssessmentConfig.js';
 import {
@@ -271,10 +272,12 @@ export async function assessAzurePronunciationRest(
       }
 
       if (index === 0 && attempt.enableProsodyAssessment) {
-        console.log('[EchoSpeak Pronunciation REST] retry_without_prosody', {
-          reason: 'no_pronunciation_scores_with_prosody',
-          firstNBestKeys: summary.firstNBestKeys,
-        });
+        if (isAnalysisDebugEnabled()) {
+          console.log('[EchoSpeak Pronunciation REST] retry_without_prosody', {
+            reason: 'no_pronunciation_scores_with_prosody',
+            firstNBestKeys: summary.firstNBestKeys,
+          });
+        }
         continue;
       }
     }
@@ -289,8 +292,15 @@ export async function assessAzurePronunciationRest(
       errorMessage: lastRecognitionStatus === 'Success'
         ? 'Azure REST returned Success but no pronunciation assessment scores were found.'
         : 'Azure REST pronunciation response had no scores.',
-      responseSummary: lastSummary,
-      firstNBestKeys: lastSummary?.firstNBestKeys ?? [],
+      ...(isAnalysisDebugEnabled()
+        ? {
+            responseSummary: lastSummary,
+            firstNBestKeys: lastSummary?.firstNBestKeys ?? [],
+          }
+        : {
+            recognitionStatus: lastSummary?.recognitionStatus ?? null,
+            hasPronunciationAssessment: lastSummary?.hasPronunciationAssessment ?? false,
+          }),
     });
 
     return unavailableResult(

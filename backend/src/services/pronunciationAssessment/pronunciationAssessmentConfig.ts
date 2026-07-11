@@ -9,6 +9,11 @@ export type AzurePronunciationTransport = 'rest' | 'sdk';
 const explicitDisable = process.env.ENABLE_PRONUNCIATION_ASSESSMENT === 'false';
 
 export function isAnalysisDebugEnabled(): boolean {
+  const nodeEnv = process.env.NODE_ENV ?? 'development';
+  if (nodeEnv === 'production') {
+    return false;
+  }
+
   return process.env.ENABLE_ANALYSIS_DEBUG === 'true';
 }
 

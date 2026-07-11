@@ -2,6 +2,20 @@ function normalizeWord(word: string): string {
   return word.trim().toLocaleLowerCase('en-US');
 }
 
+function compactWord(word: string): string {
+  return normalizeWord(word).replace(/[^\w]/g, '');
+}
+
+export function wordsEquivalentForDisplay(a: string, b: string): boolean {
+  const left = compactWord(a);
+  const right = compactWord(b);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (left.endsWith('s') && left.slice(0, -1) === right) return true;
+  if (right.endsWith('s') && right.slice(0, -1) === left) return true;
+  return false;
+}
+
 function tokenizeTarget(text: string): string[] {
   return text
     .toLocaleLowerCase('en-US')

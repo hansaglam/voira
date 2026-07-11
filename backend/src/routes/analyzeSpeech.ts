@@ -5,11 +5,18 @@ import {
   MIN_RECORDING_DURATION_MS,
 } from '../config.js';
 import { analyzeRateLimit } from '../middleware/analyzeRateLimit.js';
-import { buildCoachFeedbackTr } from '../services/coachFeedbackService.js';
+import { buildCoachFeedbackTr, logCoachDecision, resolveCoachFeedbackDecision } from '../services/coachFeedbackService.js';
+import {
+  applyAnalysisFeedbackPresentation,
+  shouldSuppressPhonemeFeedback,
+} from '../services/analysisFeedbackPresentationService.js';
 import {
   buildPhonemeFeedback,
-  buildWordPronunciationFeedback,
 } from '../services/pronunciationFeedbackService.js';
+import {
+  reconcileWordFeedback,
+  withReconciledComparison,
+} from '../services/wordFeedbackReconciliationService.js';
 import {
   assessPronunciation,
   buildPronunciationAssessmentDebug,
@@ -155,11 +162,26 @@ analyzeSpeechRouter.post(
         pronunciationAssessment,
       });
 
-      const weakAreasDetected = detectWeakAreas(target, transcript, comparison, durationMillis);
+      const reconciledWordFeedback = reconcileWordFeedback(
+        target,
+        comparison,
+        pronunciationAssessment,
+      );
+      const comparisonForFeedback = withReconciledComparison(
+        comparison,
+        reconciledWordFeedback,
+      );
+
+      const weakAreasDetected = detectWeakAreas(
+        target,
+        transcript,
+        comparisonForFeedback,
+        durationMillis,
+      );
       const coach = buildCoachFeedbackTr({
         targetText: target,
         transcript,
-        comparison,
+        comparison: comparisonForFeedback,
         scores,
         weakAreas: weakAreasDetected,
         analysisMode: scores.analysisMode,
@@ -168,8 +190,39 @@ analyzeSpeechRouter.post(
         pronunciationAssessment,
       });
 
-      const wordPronunciationFeedback = buildWordPronunciationFeedback(pronunciationAssessment);
-      const phonemeFeedback = buildPhonemeFeedback(pronunciationAssessment);
+      const feedbackType = coach.feedbackType ?? 'general';
+      const weakWordCountBeforeFilter = reconciledWordFeedback.wordPronunciationFeedback.length;
+      const presentation = applyAnalysisFeedbackPresentation({
+        feedbackType,
+        targetText: target,
+        comparison: comparisonForFeedback,
+        reconciled: reconciledWordFeedback,
+        weakAreasDetected,
+      });
+
+      if (scores.analysisMode === 'pronunciation_assessment') {
+        const decision = resolveCoachFeedbackDecision({
+          targetText: target,
+          transcript,
+          comparison: comparisonForFeedback,
+          scores,
+          weakAreas: weakAreasDetected,
+          analysisMode: scores.analysisMode,
+          matchScore: scores.matchScore,
+          durationMillis,
+          pronunciationAssessment,
+        });
+        logCoachDecision(
+          decision,
+          weakWordCountBeforeFilter,
+          presentation.weakWordCountAfterFilter,
+        );
+      }
+
+      const wordPronunciationFeedback = presentation.wordPronunciationFeedback;
+      const phonemeFeedback = shouldSuppressPhonemeFeedback(feedbackType)
+        ? []
+        : buildPhonemeFeedback(pronunciationAssessment);
       const azurePronunciation = pronunciationAssessment?.ok
         ? {
             pronunciationScore: pronunciationAssessment.pronunciationScore ?? null,
@@ -228,11 +281,12 @@ analyzeSpeechRouter.post(
         rhythmScore: scores.rhythmScore,
         confidenceScore: scores.confidenceScore,
         correctWords: comparison.correctWords,
-        missingWords: comparison.missingWords,
-        wordsToImprove: comparison.wordsToImprove,
-        weakAreasDetected,
+        missingWords: presentation.missingWords,
+        wordsToImprove: presentation.wordsToImprove,
+        weakAreasDetected: presentation.weakAreasDetected,
         aiCoachCommentTr: coach.aiCoachCommentTr,
         nextFocusTr: coach.nextFocusTr,
+        feedbackType,
         azurePronunciation,
         wordPronunciationFeedback: wordPronunciationFeedback.length > 0
           ? wordPronunciationFeedback

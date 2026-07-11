@@ -44,6 +44,7 @@ import {
   buildImproveDisplayWords,
   buildMissingDisplayWords,
   computeWordMatchScore,
+  wordsEquivalentForDisplay,
 } from '../utils/analysisWordDisplay';
 import {
   filterActionableRecommendations,
@@ -289,17 +290,31 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
   }, [analysis]);
   const hasRealPronunciation = analysis?.pronunciationAssessmentAvailable === true;
   const isTextMatchOnly = !hasRealPronunciation;
+  const isWrongSentenceFeedback = analysis?.feedbackType === 'wrong_sentence';
   const weakPronunciationWords = useMemo(() => {
-    if (!hasRealPronunciation || !analysis?.wordPronunciationFeedback?.length) {
+    if (
+      !hasRealPronunciation
+      || isWrongSentenceFeedback
+      || !analysis?.wordPronunciationFeedback?.length
+    ) {
       return [];
     }
 
     return analysis.wordPronunciationFeedback.filter(
       (item) =>
         typeof item.accuracyScore === 'number' &&
-        item.accuracyScore < PRONUNCIATION_WEAK_WORD_THRESHOLD,
+        item.accuracyScore < PRONUNCIATION_WEAK_WORD_THRESHOLD &&
+        !displayMissingWords.some((missingWord) =>
+          wordsEquivalentForDisplay(missingWord, item.word),
+        ),
     );
-  }, [analysis?.wordPronunciationFeedback, hasRealPronunciation]);
+  }, [
+    analysis?.wordPronunciationFeedback,
+    analysis?.feedbackType,
+    displayMissingWords,
+    hasRealPronunciation,
+    isWrongSentenceFeedback,
+  ]);
   const filteredWeakAreas = useMemo(() => {
     if (!analysis?.weakAreasDetected?.length) return [];
     return filterWeakAreasForDisplay(analysis.weakAreasDetected, {
@@ -712,6 +727,15 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
         </Text>
       </View>
 
+      {isWrongSentenceFeedback ? (
+        <AppCard style={styles.wrongSentenceCard}>
+          <Text style={styles.sectionTitle}>Önce hedef cümleyi tamamla</Text>
+          <Text style={styles.wrongSentenceBody}>
+            Telaffuz detaylarına geçmeden önce bu cümleyi doğru kelimelerle baştan sona söylemeyi dene.
+          </Text>
+        </AppCard>
+      ) : null}
+
       {weakPronunciationWords.length > 0 ? (
         <AppCard style={styles.weakWordsCard}>
           <Text style={styles.sectionTitle}>Dikkat etmen gereken kelimeler</Text>
@@ -977,6 +1001,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     color: colors.textMuted,
+  },
+  wrongSentenceCard: {
+    marginBottom: spacing.sm,
+    padding: CARD_PADDING,
+    borderColor: 'rgba(91, 95, 239, 0.22)',
+    backgroundColor: 'rgba(91, 95, 239, 0.06)',
+  },
+  wrongSentenceBody: {
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.textSecondary,
   },
   weakWordsCard: {
     marginBottom: spacing.sm,

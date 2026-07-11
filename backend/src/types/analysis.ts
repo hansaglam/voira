@@ -4,6 +4,15 @@ export type SpeechAnalysisMode = 'text_match_only' | 'pronunciation_assessment';
 
 export type ScoreSource = 'azure_pronunciation' | 'text_match_only';
 
+export type AnalysisFeedbackType =
+  | 'wrong_sentence'
+  | 'missing_words'
+  | 'weak_pronunciation'
+  | 'fluency_issue'
+  | 'prosody_issue'
+  | 'good_result'
+  | 'general';
+
 export interface AnalyzeSpeechFields {
   userId?: string;
   lessonId?: string;
@@ -66,6 +75,7 @@ export interface AnalysisSuccessResponse {
   weakAreasDetected: string[];
   aiCoachCommentTr: string;
   nextFocusTr: string;
+  feedbackType?: AnalysisFeedbackType;
   azurePronunciation?: AzurePronunciationResponse;
   wordPronunciationFeedback?: WordPronunciationFeedback[];
   phonemeFeedback?: PhonemeFeedback[];
@@ -116,4 +126,5 @@ export interface SpeechScores {
 export interface CoachFeedback {
   aiCoachCommentTr: string;
   nextFocusTr: string;
+  feedbackType?: AnalysisFeedbackType;
 }

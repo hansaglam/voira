@@ -4,7 +4,7 @@ import type {
 } from '../types/analysis.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 
-const WEAK_WORD_ACCURACY_THRESHOLD = 70;
+export const WEAK_WORD_ACCURACY_THRESHOLD = 70;
 const WEAK_PHONEME_ACCURACY_THRESHOLD = 65;
 
 function buildWordFeedbackTr(word: string, accuracyScore?: number, errorType?: string): string | undefined {

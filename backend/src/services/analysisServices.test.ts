@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compareTranscriptToTarget } from './textComparisonService.js';
-import { buildCoachFeedbackTr } from './coachFeedbackService.js';
+import { buildCoachFeedbackTr, resolveCoachFeedbackDecision } from './coachFeedbackService.js';
+import { applyAnalysisFeedbackPresentation } from './analysisFeedbackPresentationService.js';
+import { reconcileWordFeedback } from './wordFeedbackReconciliationService.js';
 import { buildAnalysisScores, buildScoresFromComparison } from './speechScoreService.js';
 import { detectWeakAreas } from './weakAreaDetectionService.js';
 import {
@@ -182,9 +184,10 @@ test('buildCoachFeedbackTr uses low-score copy for poor matches', () => {
   });
 
   assert.ok(scores.nativeScore < 55);
+  assert.equal(coach.feedbackType, 'wrong_sentence');
   assert.match(
     coach.aiCoachCommentTr,
-    /hedef cümleyle eşleşme düşük görünüyor/i,
+    /Hedef cümleden farklı bir şey söyledin/i,
   );
 });
 
@@ -430,7 +433,370 @@ test('buildCoachFeedbackTr mentions weak azure words in pronunciation mode', () 
   });
 
   assert.match(coach.aiCoachCommentTr, /think/i);
-  assert.match(coach.aiCoachCommentTr, /TH sesi|telaffuz/i);
+  assert.match(coach.aiCoachCommentTr, /telaffuz/i);
+  assert.doesNotMatch(coach.aiCoachCommentTr, /Kelimeleri doğru sırayla söyledin/i);
+});
+
+test('azure coach feedback prioritizes wrong sentence over pronunciation tips', () => {
+  const target = 'Where is the check-in counter for this flight?';
+  const transcript = 'good morning';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 88,
+    accuracyScore: 90,
+    fluencyScore: 85,
+    completenessScore: 35,
+    prosodyScore: 82,
+    wordScores: [
+      { word: 'good', accuracyScore: 92 },
+      { word: 'morning', accuracyScore: 88 },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 2800,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const coach = buildCoachFeedbackTr({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: detectWeakAreas(target, transcript, comparison, 2800),
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+
+  assert.equal(scores.analysisMode, 'pronunciation_assessment');
+  assert.match(coach.aiCoachCommentTr, /Hedef cümleden farklı bir şey söyledin/i);
+  assert.doesNotMatch(coach.aiCoachCommentTr, /Kelimeleri doğru sırayla söyledin/i);
+});
+
+test('azure coach feedback focuses on completion when words are missing', () => {
+  const target = 'I have experience in customer service and sales.';
+  const transcript = 'I have customer service.';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 82,
+    accuracyScore: 80,
+    fluencyScore: 78,
+    completenessScore: 55,
+    prosodyScore: 76,
+    wordScores: [
+      { word: 'have', accuracyScore: 88 },
+      { word: 'customer', accuracyScore: 85 },
+      { word: 'service', accuracyScore: 84 },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 3200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const coach = buildCoachFeedbackTr({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+
+  assert.match(coach.aiCoachCommentTr, /eksik kaldı/i);
+  assert.match(coach.aiCoachCommentTr, /Eksik kalan kelimeler/i);
+  assert.doesNotMatch(coach.aiCoachCommentTr, /Kelimeleri doğru sırayla söyledin/i);
+});
+
+test('azure coach feedback mentions low fluency when rhythm is weak', () => {
+  const target = 'Can I get a medium latte?';
+  const transcript = 'can i get a medium latte';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 82,
+    accuracyScore: 80,
+    fluencyScore: 62,
+    completenessScore: 98,
+    prosodyScore: 78,
+    wordScores: [
+      { word: 'can', accuracyScore: 90 },
+      { word: 'medium', accuracyScore: 88 },
+      { word: 'latte', accuracyScore: 86 },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 3200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const coach = buildCoachFeedbackTr({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+
+  assert.match(coach.aiCoachCommentTr, /akıcılık düşük/i);
+  assert.match(coach.aiCoachCommentTr, /tek parça/i);
+});
+
+test('azure coach feedback gives positive message on strong results', () => {
+  const target = 'Can I get a medium latte?';
+  const transcript = 'can i get a medium latte';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 92,
+    accuracyScore: 91,
+    fluencyScore: 90,
+    completenessScore: 98,
+    prosodyScore: 88,
+    wordScores: [
+      { word: 'can', accuracyScore: 95 },
+      { word: 'medium', accuracyScore: 93 },
+      { word: 'latte', accuracyScore: 90 },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 3200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const coach = buildCoachFeedbackTr({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+
+  assert.match(coach.aiCoachCommentTr, /Güzel iş/i);
+  assert.match(coach.aiCoachCommentTr, /akıcı söyledin/i);
+});
+
+test('resolveCoachFeedbackDecision selects wrong_sentence for unrelated transcript', () => {
+  const target = 'Where is the check-in counter for this flight?';
+  const transcript = 'good morning';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 88,
+    accuracyScore: 90,
+    fluencyScore: 85,
+    completenessScore: 35,
+    prosodyScore: 82,
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 2800,
+    targetText: target,
+    pronunciationAssessment,
+  });
+
+  const decision = resolveCoachFeedbackDecision({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+
+  assert.equal(decision.feedbackType, 'wrong_sentence');
+});
+
+test('wrong sentence suppresses misleading coach and weak pronunciation words', () => {
+  const target = 'In my previous role, I managed social media campaigns.';
+  const transcript = 'Good morning.';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 17,
+    accuracyScore: 30,
+    fluencyScore: 9,
+    completenessScore: 33,
+    prosodyScore: 7,
+    wordScores: [
+      { word: 'previous', accuracyScore: 12, errorType: 'Omission' },
+      { word: 'role', accuracyScore: 18, errorType: 'Omission' },
+      { word: 'managed', accuracyScore: 15, errorType: 'Omission' },
+      { word: 'social', accuracyScore: 20, errorType: 'Omission' },
+      { word: 'media', accuracyScore: 14, errorType: 'Omission' },
+      { word: 'campaigns', accuracyScore: 10, errorType: 'Omission' },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 2800,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const reconciled = reconcileWordFeedback(target, comparison, pronunciationAssessment);
+  const coach = buildCoachFeedbackTr({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+  const presentation = applyAnalysisFeedbackPresentation({
+    feedbackType: coach.feedbackType ?? 'general',
+    targetText: target,
+    comparison,
+    reconciled,
+    weakAreasDetected: [],
+  });
+
+  assert.equal(coach.feedbackType, 'wrong_sentence');
+  assert.ok(scores.nativeScore <= 20);
+  assert.match(coach.aiCoachCommentTr, /Hedef cümleden farklı bir şey söyledin/i);
+  assert.doesNotMatch(coach.aiCoachCommentTr, /Kelimeleri doğru sırayla söyledin/i);
+  assert.doesNotMatch(coach.aiCoachCommentTr, /telaffuz/i);
+  assert.equal(presentation.wordPronunciationFeedback.length, 0);
+  assert.ok(presentation.missingWords.length >= 6);
+});
+
+test('missing final word keeps weak pronunciation only for spoken words', () => {
+  const target = 'In my previous role, I managed social media campaigns.';
+  const transcript = 'In my previous role, I managed social media.';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 78,
+    accuracyScore: 76,
+    fluencyScore: 80,
+    completenessScore: 88,
+    prosodyScore: 74,
+    wordScores: [
+      { word: 'previous', accuracyScore: 58, errorType: 'Mispronunciation' },
+      { word: 'managed', accuracyScore: 62, errorType: 'Mispronunciation' },
+      { word: 'social', accuracyScore: 84 },
+      { word: 'media', accuracyScore: 86 },
+      { word: 'campaigns', accuracyScore: 0, errorType: 'Omission' },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 4200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const reconciled = reconcileWordFeedback(target, comparison, pronunciationAssessment);
+  const coach = buildCoachFeedbackTr({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+  const presentation = applyAnalysisFeedbackPresentation({
+    feedbackType: coach.feedbackType ?? 'general',
+    targetText: target,
+    comparison,
+    reconciled,
+    weakAreasDetected: [],
+  });
+
+  assert.equal(coach.feedbackType, 'missing_words');
+  assert.ok(
+    presentation.missingWords.some((word) => word.toLocaleLowerCase('en-US').includes('campaign')),
+  );
+  assert.ok(
+    presentation.wordPronunciationFeedback.every((entry) => {
+      const spokenWords = [...comparison.correctWords, ...comparison.wordsToImprove];
+      return spokenWords.some(
+        (spoken) => spoken.toLocaleLowerCase('en-US') === entry.word.toLocaleLowerCase('en-US'),
+      );
+    }),
+  );
+  assert.ok(
+    !presentation.wordPronunciationFeedback.some((entry) =>
+      entry.word.toLocaleLowerCase('en-US').includes('campaign'),
+    ),
+  );
+});
+
+test('strong coverage with weak azure words selects weak_pronunciation feedback', () => {
+  const target = 'In my previous role, I managed social media campaigns.';
+  const transcript = 'in my previous role i managed social media campaigns';
+  const comparison = compareTranscriptToTarget(transcript, target);
+  const pronunciationAssessment: PronunciationAssessmentResult = {
+    ok: true,
+    provider: 'azure',
+    pronunciationScore: 72,
+    accuracyScore: 68,
+    fluencyScore: 82,
+    completenessScore: 96,
+    prosodyScore: 78,
+    wordScores: [
+      { word: 'previous', accuracyScore: 55, errorType: 'Mispronunciation' },
+      { word: 'managed', accuracyScore: 58, errorType: 'Mispronunciation' },
+      { word: 'campaigns', accuracyScore: 52, errorType: 'Mispronunciation' },
+    ],
+  };
+  const scores = buildAnalysisScores({
+    comparison,
+    durationMillis: 5200,
+    targetText: target,
+    pronunciationAssessment,
+  });
+  const reconciled = reconcileWordFeedback(target, comparison, pronunciationAssessment);
+  const decision = resolveCoachFeedbackDecision({
+    targetText: target,
+    transcript,
+    comparison,
+    scores,
+    weakAreas: [],
+    analysisMode: scores.analysisMode,
+    matchScore: scores.matchScore,
+    pronunciationAssessment,
+  });
+  const presentation = applyAnalysisFeedbackPresentation({
+    feedbackType: decision.feedbackType,
+    targetText: target,
+    comparison,
+    reconciled,
+    weakAreasDetected: [],
+  });
+
+  assert.equal(decision.feedbackType, 'weak_pronunciation');
+  assert.ok(presentation.wordPronunciationFeedback.length > 0);
+  assert.ok(
+    presentation.wordPronunciationFeedback.some((entry) =>
+      entry.word.toLocaleLowerCase('en-US').includes('previous'),
+    ),
+  );
 });
 
 test('pronunciation feedback helpers surface weak words and phonemes', () => {

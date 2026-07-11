@@ -61,6 +61,14 @@ export interface AiSpeechAnalysisOutput {
   aiCoachCommentTr: string;
   nextFocusTr: string;
   recommendedLessonIds: string[];
+  feedbackType?:
+    | 'wrong_sentence'
+    | 'missing_words'
+    | 'weak_pronunciation'
+    | 'fluency_issue'
+    | 'prosody_issue'
+    | 'good_result'
+    | 'general';
 }
 
 export interface AiLessonGenerationInput {

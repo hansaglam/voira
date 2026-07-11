@@ -10,6 +10,7 @@ import {
   getAzurePronunciationRestEndpoint,
 } from './azurePronunciationRestService.js';
 import {
+  isAnalysisDebugEnabled,
   isAzureSdkFallbackAllowed,
   resolveAzurePronunciationTransport,
 } from './pronunciationAssessmentConfig.js';
@@ -17,6 +18,7 @@ import {
 const originalTransport = process.env.AZURE_PRONUNCIATION_TRANSPORT;
 const originalNodeEnv = process.env.NODE_ENV;
 const originalSdkFallback = process.env.AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK;
+const originalAnalysisDebug = process.env.ENABLE_ANALYSIS_DEBUG;
 
 afterEach(() => {
   if (originalTransport === undefined) {
@@ -35,6 +37,12 @@ afterEach(() => {
     delete process.env.AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK;
   } else {
     process.env.AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK = originalSdkFallback;
+  }
+
+  if (originalAnalysisDebug === undefined) {
+    delete process.env.ENABLE_ANALYSIS_DEBUG;
+  } else {
+    process.env.ENABLE_ANALYSIS_DEBUG = originalAnalysisDebug;
   }
 });
 
@@ -123,6 +131,23 @@ describe('pronunciationAssessment transport', () => {
 
     process.env.AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK = 'true';
     assert.equal(isAzureSdkFallbackAllowed(), true);
+  });
+
+  test('isAnalysisDebugEnabled is always false in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.ENABLE_ANALYSIS_DEBUG = 'true';
+
+    assert.equal(isAnalysisDebugEnabled(), false);
+  });
+
+  test('isAnalysisDebugEnabled honors env in non-production', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.ENABLE_ANALYSIS_DEBUG = 'true';
+
+    assert.equal(isAnalysisDebugEnabled(), true);
+
+    process.env.ENABLE_ANALYSIS_DEBUG = 'false';
+    assert.equal(isAnalysisDebugEnabled(), false);
   });
 
   test('getAzurePronunciationRestEndpoint uses regional speech host', () => {
