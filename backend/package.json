@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "test:transcription": "tsx scripts/testTranscription.ts",
+    "test:azure-pronunciation": "tsx scripts/testAzurePronunciation.ts",
     "generate:catalog": "tsx scripts/generateLessonCatalogSnapshot.ts",
     "audio:migrate-supabase": "tsx src/scripts/migrateLocalAudioToSupabase.ts"
   },

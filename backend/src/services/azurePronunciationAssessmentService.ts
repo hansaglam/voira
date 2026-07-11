@@ -5,7 +5,10 @@ import {
   AZURE_SPEECH_REGION,
   isAzurePronunciationConfigured,
 } from './pronunciationAssessment/pronunciationAssessmentConfig.js';
-import { prepareAzurePcmAudio } from './azureAudioPcm.js';
+import {
+  cleanupAzureWavFile,
+  prepareAzureWavAudio,
+} from './azureAudioPcm.js';
 
 export interface AzurePhonemeFeedback {
   phoneme: string;
@@ -38,10 +41,6 @@ export interface AzurePronunciationAssessmentInput {
   mimeType: string;
   referenceText: string;
   language?: string;
-}
-
-function toArrayBuffer(buffer: Buffer): ArrayBuffer {
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
 }
 
 function clampAzureScore(value: unknown): number | null {
@@ -163,6 +162,108 @@ function unavailableResult(
   };
 }
 
+function mapCancellationErrorCode(errorCode: sdk.CancellationErrorCode): string {
+  switch (errorCode) {
+    case sdk.CancellationErrorCode.AuthenticationFailure:
+      return 'azure_canceled_authentication_failure';
+    case sdk.CancellationErrorCode.ConnectionFailure:
+      return 'azure_canceled_connection_failure';
+    case sdk.CancellationErrorCode.BadRequestParameters:
+      return 'azure_canceled_bad_request';
+    case sdk.CancellationErrorCode.ServiceTimeout:
+      return 'azure_canceled_service_timeout';
+    case sdk.CancellationErrorCode.ServiceError:
+      return 'azure_canceled_service_error';
+    case sdk.CancellationErrorCode.RuntimeError:
+      return 'azure_canceled_runtime_error';
+    case sdk.CancellationErrorCode.Forbidden:
+      return 'azure_canceled_forbidden';
+    case sdk.CancellationErrorCode.TooManyRequests:
+      return 'azure_canceled_rate_limited';
+    default:
+      return 'azure_canceled_unknown';
+  }
+}
+
+function logAzureResultDetails(result: sdk.SpeechRecognitionResult): void {
+  const reasonName = sdk.ResultReason[result.reason] ?? String(result.reason);
+
+  if (result.reason === sdk.ResultReason.Canceled) {
+    const cancellation = sdk.CancellationDetails.fromResult(result);
+    console.log('[EchoSpeak Pronunciation] azure_canceled', {
+      reason: reasonName,
+      cancellationReason: sdk.CancellationReason[cancellation.reason] ?? cancellation.reason,
+      cancellationErrorCode:
+        sdk.CancellationErrorCode[cancellation.ErrorCode] ?? cancellation.ErrorCode,
+      cancellationErrorDetails: cancellation.errorDetails?.slice(0, 500) ?? null,
+    });
+    return;
+  }
+
+  if (result.reason === sdk.ResultReason.NoMatch) {
+    console.log('[EchoSpeak Pronunciation] azure_no_match', {
+      reason: reasonName,
+      errorDetails: result.errorDetails?.slice(0, 500) ?? null,
+      durationMs: result.duration,
+    });
+    return;
+  }
+
+  if (result.reason === sdk.ResultReason.RecognizedSpeech) {
+    console.log('[EchoSpeak Pronunciation] azure_recognized', {
+      reason: reasonName,
+      durationMs: result.duration,
+      textLength: result.text?.length ?? 0,
+    });
+    return;
+  }
+
+  console.log('[EchoSpeak Pronunciation] azure_result_reason', {
+    reason: reasonName,
+    errorDetails: result.errorDetails?.slice(0, 500) ?? null,
+    durationMs: result.duration,
+  });
+}
+
+function resolveFailureFromResult(result: sdk.SpeechRecognitionResult): AzurePronunciationAssessmentOutput {
+  logAzureResultDetails(result);
+
+  if (result.reason === sdk.ResultReason.NoMatch) {
+    return unavailableResult(
+      'azure_no_match',
+      'Konuşma net algılanamadı; telaffuz değerlendirmesi yapılamadı.',
+      {
+        reason: sdk.ResultReason[result.reason],
+        errorDetails: result.errorDetails,
+      },
+    );
+  }
+
+  if (result.reason === sdk.ResultReason.Canceled) {
+    const cancellation = sdk.CancellationDetails.fromResult(result);
+    const errorCode = mapCancellationErrorCode(cancellation.ErrorCode);
+    return unavailableResult(
+      errorCode,
+      'Azure telaffuz değerlendirmesi iptal edildi.',
+      {
+        cancellationReason: sdk.CancellationReason[cancellation.reason] ?? cancellation.reason,
+        cancellationErrorCode:
+          sdk.CancellationErrorCode[cancellation.ErrorCode] ?? cancellation.ErrorCode,
+        cancellationErrorDetails: cancellation.errorDetails,
+      },
+    );
+  }
+
+  return unavailableResult(
+    'pronunciation_recognition_failed',
+    'Azure telaffuz değerlendirmesi tamamlanamadı.',
+    {
+      reason: sdk.ResultReason[result.reason] ?? result.reason,
+      errorDetails: result.errorDetails,
+    },
+  );
+}
+
 export function isAzurePronunciationAssessmentConfigured(): boolean {
   return isAzurePronunciationConfigured();
 }
@@ -177,25 +278,43 @@ export async function assessAzurePronunciation(
     );
   }
 
-  const pcmAudio = await prepareAzurePcmAudio(input.audioBuffer, input.mimeType);
-  if (!pcmAudio) {
+  const referenceText = input.referenceText?.trim() ?? '';
+  const language = input.language ?? AZURE_SPEECH_LANGUAGE;
+
+  console.log('[EchoSpeak Pronunciation] reference', {
+    referenceText,
+    referenceTextLength: referenceText.length,
+    language,
+  });
+
+  if (!referenceText) {
+    return unavailableResult(
+      'reference_text_missing',
+      'Telaffuz değerlendirmesi için hedef cümle bulunamadı.',
+    );
+  }
+
+  const preparedAudio = await prepareAzureWavAudio(input.audioBuffer, input.mimeType);
+  if (!preparedAudio.ok) {
     console.log('[EchoSpeak Pronunciation] fallback', {
-      reason: 'pronunciation_audio_unsupported',
-      errorCode: 'pronunciation_audio_unsupported',
-      errorMessage: 'Audio could not be converted to PCM for Azure pronunciation assessment.',
+      reason: preparedAudio.errorCode,
+      errorCode: preparedAudio.errorCode,
+      errorMessage: preparedAudio.message ?? preparedAudio.stderr ?? 'Audio conversion failed.',
       audioMimeType: input.mimeType,
       audioBytes: input.audioBuffer.length,
     });
     return unavailableResult(
-      'pronunciation_audio_unsupported',
-      'Ses formatı telaffuz değerlendirmesi için dönüştürülemedi.',
+      preparedAudio.errorCode,
+      preparedAudio.errorCode === 'audio_conversion_failed'
+        ? 'Ses dosyası Azure telaffuz analizi için dönüştürülemedi.'
+        : 'Ses formatı telaffuz değerlendirmesi için uygun değil.',
+      preparedAudio.stderr,
     );
   }
 
-  const language = input.language ?? AZURE_SPEECH_LANGUAGE;
-
   return new Promise((resolve) => {
     let recognizer: sdk.SpeechRecognizer | null = null;
+    const wavFilePath = preparedAudio.wavFilePath;
 
     const finish = (result: AzurePronunciationAssessmentOutput) => {
       try {
@@ -203,6 +322,7 @@ export async function assessAzurePronunciation(
       } catch {
         // ignore close errors
       }
+      void cleanupAzureWavFile(wavFilePath);
       resolve(result);
     };
 
@@ -213,20 +333,14 @@ export async function assessAzurePronunciation(
       );
       speechConfig.speechRecognitionLanguage = language;
 
-      const audioFormat = sdk.AudioStreamFormat.getWaveFormatPCM(
-        pcmAudio.sampleRate,
-        pcmAudio.bitsPerSample,
-        pcmAudio.channels,
+      const audioConfig = sdk.AudioConfig.fromWavFileInput(
+        preparedAudio.wavBuffer,
+        'echospeak-pronunciation.wav',
       );
-      const pushStream = sdk.AudioInputStream.createPushStream(audioFormat);
-      pushStream.write(toArrayBuffer(pcmAudio.pcmBuffer));
-      pushStream.close();
-
-      const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
       recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
 
       const pronunciationConfig = new sdk.PronunciationAssessmentConfig(
-        input.referenceText,
+        referenceText,
         sdk.PronunciationAssessmentGradingSystem.HundredMark,
         sdk.PronunciationAssessmentGranularity.Phoneme,
         true,
@@ -252,11 +366,7 @@ export async function assessAzurePronunciation(
                 return;
               }
 
-              finish({
-                available: true,
-                provider: 'azure',
-                ...parsed,
-              });
+              logAzureResultDetails(result);
               console.log('[EchoSpeak Pronunciation] azure_result', {
                 pronunciationScore: parsed.pronunciationScore,
                 accuracyScore: parsed.accuracyScore,
@@ -264,6 +374,12 @@ export async function assessAzurePronunciation(
                 completenessScore: parsed.completenessScore,
                 prosodyScore: parsed.prosodyScore,
                 wordCount: parsed.words.length,
+              });
+
+              finish({
+                available: true,
+                provider: 'azure',
+                ...parsed,
               });
               return;
             } catch (error) {
@@ -276,25 +392,14 @@ export async function assessAzurePronunciation(
             }
           }
 
-          if (result.reason === sdk.ResultReason.NoMatch) {
-            finish(unavailableResult(
-              'pronunciation_no_match',
-              'Konuşma net algılanamadı; telaffuz değerlendirmesi yapılamadı.',
-              result.reason,
-            ));
-            return;
-          }
-
-          finish(unavailableResult(
-            'pronunciation_recognition_failed',
-            'Azure telaffuz değerlendirmesi tamamlanamadı.',
-            {
-              reason: sdk.ResultReason[result.reason],
-              errorDetails: result.errorDetails,
-            },
-          ));
+          finish(resolveFailureFromResult(result));
         },
         (error) => {
+          console.log('[EchoSpeak Pronunciation] fallback', {
+            reason: 'pronunciation_provider_error',
+            errorCode: 'pronunciation_provider_error',
+            errorMessage: error?.slice?.(0, 500) ?? String(error),
+          });
           finish(unavailableResult(
             'pronunciation_provider_error',
             'Azure telaffuz değerlendirmesi sırasında bir sorun oluştu.',

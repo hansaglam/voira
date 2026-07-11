@@ -42,6 +42,11 @@ export const azurePronunciationProvider: PronunciationAssessmentProvider = {
     });
 
     if (!azureResult.available) {
+      console.log('[EchoSpeak Pronunciation] provider_fallback', {
+        errorCode: azureResult.errorCode ?? 'pronunciation_unavailable',
+        messageTr: azureResult.messageTr ?? null,
+        hasRawDetails: Boolean(azureResult.raw),
+      });
       return {
         ok: false,
         errorCode: azureResult.errorCode ?? 'pronunciation_unavailable',

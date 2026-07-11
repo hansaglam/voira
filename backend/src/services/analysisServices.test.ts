@@ -488,13 +488,13 @@ test('pronunciation debug explains fallback reason', () => {
   const decision = resolvePronunciationDecision(request);
   const result: PronunciationAssessmentResult = {
     ok: false,
-    errorCode: 'pronunciation_audio_unsupported',
-    messageTr: 'Ses formatı telaffuz değerlendirmesi için dönüştürülemedi.',
+    errorCode: 'audio_conversion_failed',
+    messageTr: 'Ses dosyası Azure telaffuz analizi için dönüştürülemedi.',
   };
 
   const debug = buildPronunciationAssessmentDebug(request, result, decision);
 
   assert.equal(debug.referenceTextLength, 12);
   assert.equal(debug.audioMimeType, 'audio/m4a');
-  assert.equal(debug.fallbackReason, 'pronunciation_audio_unsupported');
+  assert.equal(debug.fallbackReason, 'audio_conversion_failed');
 });
