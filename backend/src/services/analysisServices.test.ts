@@ -485,7 +485,12 @@ test('pronunciation debug explains fallback reason', () => {
     lessonId: 'lesson-1',
     segmentId: 'segment-1',
   };
-  const decision = resolvePronunciationDecision(request);
+  const decision = {
+    enabled: true,
+    hasProvider: true,
+    willAttempt: true,
+    reasonIfSkipped: null,
+  };
   const result: PronunciationAssessmentResult = {
     ok: false,
     errorCode: 'audio_conversion_failed',

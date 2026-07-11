@@ -1,10 +1,13 @@
 import type { PronunciationAssessmentDebug } from '../../types/analysis.js';
 import { azurePronunciationProvider } from './azurePronunciationProvider.js';
+import { azurePronunciationRestProvider } from './azurePronunciationRestProvider.js';
 import { disabledPronunciationProvider } from './disabledPronunciationProvider.js';
 import {
   getPronunciationSkipReason,
   isAzurePronunciationConfigured,
   isAzurePronunciationEnabled,
+  resolveAzurePronunciationTransport,
+  type AzurePronunciationTransport,
 } from './pronunciationAssessmentConfig.js';
 import type {
   PronunciationAssessmentProvider,
@@ -12,12 +15,71 @@ import type {
   PronunciationAssessmentResult,
 } from './pronunciationAssessmentTypes.js';
 
-function resolveProvider(): PronunciationAssessmentProvider {
-  if (!isAzurePronunciationEnabled()) {
-    return disabledPronunciationProvider;
+const NON_ALTERNATE_FALLBACK_CODES = new Set([
+  'reference_text_missing',
+  'audio_conversion_failed',
+  'invalid_wav_output',
+  'pronunciation_not_configured',
+  'azure_rest_auth_failure',
+  'azure_rest_bad_request',
+  'azure_canceled_authentication_failure',
+  'azure_canceled_bad_request',
+  'azure_canceled_forbidden',
+  'missing_reference_text',
+  'missing_audio_buffer',
+]);
+
+function getProviderForTransport(transport: AzurePronunciationTransport): PronunciationAssessmentProvider {
+  return transport === 'rest' ? azurePronunciationRestProvider : azurePronunciationProvider;
+}
+
+function shouldTryAlternateTransport(
+  result: PronunciationAssessmentResult,
+  failedTransport: AzurePronunciationTransport,
+): boolean {
+  const errorCode = result.errorCode ?? '';
+  if (NON_ALTERNATE_FALLBACK_CODES.has(errorCode)) {
+    return false;
   }
 
-  return azurePronunciationProvider;
+  if (failedTransport === 'sdk' && errorCode === 'azure_canceled_connection_failure') {
+    return true;
+  }
+
+  if (failedTransport === 'rest') {
+    return [
+      'azure_rest_network_error',
+      'azure_rest_timeout',
+      'azure_rest_service_error',
+      'azure_rest_http_error',
+      'azure_rest_recognition_failed',
+      'azure_rest_empty_result',
+      'azure_rest_no_match',
+      'pronunciation_provider_error',
+      'pronunciation_recognition_failed',
+      'pronunciation_unavailable',
+    ].includes(errorCode);
+  }
+
+  return true;
+}
+
+function logSdkConnectionFailureHint(result: PronunciationAssessmentResult): void {
+  const raw = result.raw;
+  const details =
+    raw && typeof raw === 'object' && 'cancellationErrorDetails' in raw
+      ? String((raw as Record<string, unknown>).cancellationErrorDetails ?? '')
+      : '';
+
+  if (
+    result.errorCode === 'azure_canceled_connection_failure' &&
+    details.includes('1006')
+  ) {
+    console.log('[EchoSpeak Pronunciation] sdk_connection_failure_hint', {
+      hint: 'Azure Speech SDK WebSocket failed (StatusCode 1006). Use AZURE_PRONUNCIATION_TRANSPORT=rest on Render.',
+      cancellationErrorDetails: details.slice(0, 200),
+    });
+  }
 }
 
 function resolveDecision(request: PronunciationAssessmentRequest): {
@@ -29,15 +91,6 @@ function resolveDecision(request: PronunciationAssessmentRequest): {
   const enabled = isAzurePronunciationEnabled();
   const hasProvider = isAzurePronunciationConfigured();
   const skipReason = getPronunciationSkipReason();
-
-  if (!enabled || !hasProvider) {
-    return {
-      enabled,
-      hasProvider,
-      willAttempt: false,
-      reasonIfSkipped: skipReason ?? 'pronunciation_not_configured',
-    };
-  }
 
   if (!request.referenceText?.trim()) {
     return {
@@ -54,6 +107,15 @@ function resolveDecision(request: PronunciationAssessmentRequest): {
       hasProvider,
       willAttempt: false,
       reasonIfSkipped: 'missing_audio_buffer',
+    };
+  }
+
+  if (!enabled || !hasProvider) {
+    return {
+      enabled,
+      hasProvider,
+      willAttempt: false,
+      reasonIfSkipped: skipReason ?? 'pronunciation_not_configured',
     };
   }
 
@@ -98,12 +160,16 @@ export async function assessPronunciation(
   request: PronunciationAssessmentRequest,
 ): Promise<PronunciationAssessmentResult> {
   const decision = resolveDecision(request);
+  const configuredTransport = resolveAzurePronunciationTransport();
+  const alternateTransport: AzurePronunciationTransport =
+    configuredTransport === 'rest' ? 'sdk' : 'rest';
 
   console.log('[EchoSpeak Pronunciation] decision', {
     enabled: decision.enabled,
     hasProvider: decision.hasProvider,
     willAttempt: decision.willAttempt,
     reasonIfSkipped: decision.reasonIfSkipped,
+    transport: configuredTransport,
     lessonId: request.lessonId,
     segmentId: request.segmentId,
     referenceTextLength: request.referenceText?.length ?? 0,
@@ -111,7 +177,7 @@ export async function assessPronunciation(
   });
 
   if (!decision.willAttempt) {
-    const result = await resolveProvider().assess(request);
+    const result = await disabledPronunciationProvider.assess(request);
     console.log('[EchoSpeak Pronunciation] fallback', {
       reason: decision.reasonIfSkipped ?? result.errorCode ?? 'pronunciation_skipped',
       errorCode: result.errorCode ?? 'pronunciation_skipped',
@@ -120,47 +186,74 @@ export async function assessPronunciation(
     return result;
   }
 
-  console.log('[EchoSpeak Pronunciation] start');
+  console.log('[EchoSpeak Pronunciation] start', { transport: configuredTransport });
 
-  const provider = resolveProvider();
+  let lastResult: PronunciationAssessmentResult = {
+    ok: false,
+    errorCode: 'pronunciation_unavailable',
+    messageTr: 'Azure telaffuz değerlendirmesi kullanılamadı.',
+  };
 
-  try {
-    const result = await provider.assess(request);
-
-    if (result.ok) {
-      console.log('[EchoSpeak Pronunciation] success', {
-        provider: result.provider ?? 'azure',
-        pronunciationScore: result.pronunciationScore ?? null,
-        accuracyScore: result.accuracyScore ?? null,
-        fluencyScore: result.fluencyScore ?? null,
-        completenessScore: result.completenessScore ?? null,
-        prosodyScore: result.prosodyScore ?? null,
-        wordCount: result.wordScores?.length ?? 0,
+  for (const transport of [configuredTransport, alternateTransport] as const) {
+    if (transport !== configuredTransport) {
+      if (!shouldTryAlternateTransport(lastResult, configuredTransport)) {
+        break;
+      }
+      console.log('[EchoSpeak Pronunciation] alternate_transport', {
+        from: configuredTransport,
+        to: transport,
+        previousErrorCode: lastResult.errorCode ?? null,
       });
-      return result;
     }
 
-    console.log('[EchoSpeak Pronunciation] fallback', {
-      reason: result.errorCode ?? 'pronunciation_unavailable',
-      errorCode: result.errorCode ?? 'pronunciation_unavailable',
-      errorMessage: result.messageTr ?? 'Azure pronunciation assessment failed.',
-    });
-    return result;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'unknown';
-    console.log('[EchoSpeak Pronunciation] fallback', {
-      reason: 'pronunciation_provider_error',
-      errorCode: 'pronunciation_provider_error',
-      errorMessage,
-    });
+    try {
+      const result = await getProviderForTransport(transport).assess(request);
 
-    return {
-      ok: false,
-      errorCode: 'pronunciation_provider_error',
-      messageTr: 'Telaffuz değerlendirmesi sırasında bir sorun oluştu.',
-      raw: errorMessage,
-    };
+      if (result.ok) {
+        console.log('[EchoSpeak Pronunciation] success', {
+          transport,
+          provider: result.provider ?? 'azure',
+          pronunciationScore: result.pronunciationScore ?? null,
+          accuracyScore: result.accuracyScore ?? null,
+          fluencyScore: result.fluencyScore ?? null,
+          completenessScore: result.completenessScore ?? null,
+          prosodyScore: result.prosodyScore ?? null,
+          wordCount: result.wordScores?.length ?? 0,
+        });
+        return result;
+      }
+
+      lastResult = result;
+
+      if (transport === 'sdk') {
+        logSdkConnectionFailureHint(result);
+      }
+
+      console.log('[EchoSpeak Pronunciation] fallback', {
+        transport,
+        reason: result.errorCode ?? 'pronunciation_unavailable',
+        errorCode: result.errorCode ?? 'pronunciation_unavailable',
+        errorMessage: result.messageTr ?? 'Azure pronunciation assessment failed.',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'unknown';
+      lastResult = {
+        ok: false,
+        errorCode: 'pronunciation_provider_error',
+        messageTr: 'Telaffuz değerlendirmesi sırasında bir sorun oluştu.',
+        raw: errorMessage,
+      };
+
+      console.log('[EchoSpeak Pronunciation] fallback', {
+        transport,
+        reason: 'pronunciation_provider_error',
+        errorCode: 'pronunciation_provider_error',
+        errorMessage,
+      });
+    }
   }
+
+  return lastResult;
 }
 
 export function isPronunciationAssessmentAvailable(): boolean {

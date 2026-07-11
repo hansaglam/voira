@@ -22,4 +22,13 @@ export {
   isAzurePronunciationConfigured,
   isAzurePronunciationEnabled,
   logAzureSpeechStartupStatus,
+  resolveAzurePronunciationTransport,
+  type AzurePronunciationTransport,
 } from './pronunciationAssessmentConfig.js';
+
+export {
+  getAzurePronunciationRestEndpoint,
+  buildPronunciationAssessmentHeader,
+} from './azurePronunciationRestService.js';
+
+export { parseAzurePronunciationPayload } from './azurePronunciationResultParser.js';
