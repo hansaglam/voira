@@ -23,6 +23,7 @@ export {
   isAzurePronunciationEnabled,
   logAzureSpeechStartupStatus,
   resolveAzurePronunciationTransport,
+  isAzureSdkFallbackAllowed,
   type AzurePronunciationTransport,
 } from './pronunciationAssessmentConfig.js';
 
@@ -31,4 +32,8 @@ export {
   buildPronunciationAssessmentHeader,
 } from './azurePronunciationRestService.js';
 
-export { parseAzurePronunciationPayload } from './azurePronunciationResultParser.js';
+export {
+  parseAzurePronunciationPayload,
+  summarizeAzureRestResponse,
+  hasPronunciationScores,
+} from './azurePronunciationResultParser.js';

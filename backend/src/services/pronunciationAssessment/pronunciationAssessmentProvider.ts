@@ -6,6 +6,7 @@ import {
   getPronunciationSkipReason,
   isAzurePronunciationConfigured,
   isAzurePronunciationEnabled,
+  isAzureSdkFallbackAllowed,
   resolveAzurePronunciationTransport,
   type AzurePronunciationTransport,
 } from './pronunciationAssessmentConfig.js';
@@ -22,6 +23,9 @@ const NON_ALTERNATE_FALLBACK_CODES = new Set([
   'pronunciation_not_configured',
   'azure_rest_auth_failure',
   'azure_rest_bad_request',
+  'azure_rest_no_pronunciation_assessment',
+  'azure_rest_no_pronunciation_scores',
+  'azure_rest_empty_result',
   'azure_canceled_authentication_failure',
   'azure_canceled_bad_request',
   'azure_canceled_forbidden',
@@ -37,6 +41,10 @@ function shouldTryAlternateTransport(
   result: PronunciationAssessmentResult,
   failedTransport: AzurePronunciationTransport,
 ): boolean {
+  if (!isAzureSdkFallbackAllowed() && failedTransport === 'rest') {
+    return false;
+  }
+
   const errorCode = result.errorCode ?? '';
   if (NON_ALTERNATE_FALLBACK_CODES.has(errorCode)) {
     return false;
@@ -53,7 +61,6 @@ function shouldTryAlternateTransport(
       'azure_rest_service_error',
       'azure_rest_http_error',
       'azure_rest_recognition_failed',
-      'azure_rest_empty_result',
       'azure_rest_no_match',
       'pronunciation_provider_error',
       'pronunciation_recognition_failed',
@@ -197,6 +204,16 @@ export async function assessPronunciation(
   for (const transport of [configuredTransport, alternateTransport] as const) {
     if (transport !== configuredTransport) {
       if (!shouldTryAlternateTransport(lastResult, configuredTransport)) {
+        if (
+          configuredTransport === 'rest' &&
+          !isAzureSdkFallbackAllowed()
+        ) {
+          console.log('[EchoSpeak Pronunciation] sdk_fallback_skipped', {
+            reason: 'production_rest_transport',
+            previousErrorCode: lastResult.errorCode ?? null,
+            hint: 'Set AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK=true to retry SDK after REST failure.',
+          });
+        }
         break;
       }
       console.log('[EchoSpeak Pronunciation] alternate_transport', {

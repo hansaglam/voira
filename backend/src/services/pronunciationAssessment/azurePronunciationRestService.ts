@@ -12,7 +12,11 @@ import type {
   AzurePronunciationAssessmentInput,
   AzurePronunciationAssessmentOutput,
 } from '../azurePronunciationAssessmentService.js';
-import { parseAzurePronunciationPayload } from './azurePronunciationResultParser.js';
+import {
+  hasPronunciationScores,
+  logAzureRestResponseSummary,
+  parseAzurePronunciationPayload,
+} from './azurePronunciationResultParser.js';
 
 const REST_TIMEOUT_MS = 30_000;
 
@@ -20,14 +24,20 @@ function buildRestEndpoint(region: string): string {
   return `https://${region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1`;
 }
 
-export function buildPronunciationAssessmentHeader(referenceText: string): string {
-  const params = {
+export function buildPronunciationAssessmentHeader(
+  referenceText: string,
+  options?: { enableProsodyAssessment?: boolean },
+): string {
+  const params: Record<string, unknown> = {
     ReferenceText: referenceText,
     GradingSystem: 'HundredMark',
     Granularity: 'Phoneme',
     Dimension: 'Comprehensive',
-    EnableProsodyAssessment: true,
   };
+
+  if (options?.enableProsodyAssessment !== false) {
+    params.EnableProsodyAssessment = true;
+  }
 
   return Buffer.from(JSON.stringify(params), 'utf8').toString('base64');
 }
@@ -63,6 +73,63 @@ function mapHttpStatusToErrorCode(status: number): string {
     return 'azure_rest_service_error';
   }
   return 'azure_rest_http_error';
+}
+
+function getRecognitionStatus(payload: unknown): string | null {
+  const status = (payload as Record<string, unknown> | null)?.RecognitionStatus;
+  return typeof status === 'string' ? status : null;
+}
+
+interface RestAttemptResult {
+  response: Response;
+  responseText: string;
+  payload: unknown;
+}
+
+async function postAzurePronunciationRequest(
+  wavBuffer: Buffer,
+  referenceText: string,
+  language: string,
+  enableProsodyAssessment: boolean,
+): Promise<RestAttemptResult> {
+  const endpoint = buildRestEndpoint(AZURE_SPEECH_REGION);
+  const requestUrl = new URL(endpoint);
+  requestUrl.searchParams.set('language', language);
+  requestUrl.searchParams.set('format', 'detailed');
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(requestUrl, {
+      method: 'POST',
+      headers: {
+        'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY,
+        'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
+        Accept: 'application/json',
+        'Pronunciation-Assessment': buildPronunciationAssessmentHeader(referenceText, {
+          enableProsodyAssessment,
+        }),
+      },
+      body: wavBuffer,
+      signal: controller.signal,
+    });
+
+    const responseText = await response.text();
+    let payload: unknown = null;
+
+    if (responseText.trim()) {
+      try {
+        payload = JSON.parse(responseText);
+      } catch {
+        payload = { rawBody: responseText.slice(0, 500) };
+      }
+    }
+
+    return { response, responseText, payload };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export function getAzurePronunciationRestEndpoint(region: string = AZURE_SPEECH_REGION): string {
@@ -112,104 +179,125 @@ export async function assessAzurePronunciationRest(
   });
 
   try {
-    const requestUrl = new URL(endpoint);
-    requestUrl.searchParams.set('language', language);
-    requestUrl.searchParams.set('format', 'detailed');
+    const attempts: Array<{ enableProsodyAssessment: boolean; label: string }> = [
+      { enableProsodyAssessment: true, label: 'with_prosody' },
+      { enableProsodyAssessment: false, label: 'without_prosody' },
+    ];
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REST_TIMEOUT_MS);
+    let lastSummary: ReturnType<typeof logAzureRestResponseSummary> | null = null;
+    let lastPayload: unknown = null;
+    let lastRecognitionStatus: string | null = null;
 
-    let response: Response;
-    try {
-      response = await fetch(requestUrl, {
-        method: 'POST',
-        headers: {
-          'Ocp-Apim-Subscription-Key': AZURE_SPEECH_KEY,
-          'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
-          Accept: 'application/json',
-          'Pronunciation-Assessment': buildPronunciationAssessmentHeader(referenceText),
-        },
-        body: preparedAudio.wavBuffer,
-        signal: controller.signal,
+    for (const [index, attempt] of attempts.entries()) {
+      const { response, responseText, payload } = await postAzurePronunciationRequest(
+        preparedAudio.wavBuffer,
+        referenceText,
+        language,
+        attempt.enableProsodyAssessment,
+      );
+
+      lastPayload = payload;
+      lastRecognitionStatus = getRecognitionStatus(payload);
+
+      const summary = logAzureRestResponseSummary(payload, {
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+        bodyLength: responseText.length,
+        responseText,
       });
-    } finally {
-      clearTimeout(timeout);
-    }
+      lastSummary = summary;
 
-    const responseText = await response.text();
-    let payload: unknown = null;
+      if (!response.ok) {
+        const errorCode = mapHttpStatusToErrorCode(response.status);
+        console.log('[EchoSpeak Pronunciation REST] fallback', {
+          status: response.status,
+          errorCode,
+          errorMessage: `Azure REST pronunciation request failed with HTTP ${response.status}.`,
+          attempt: attempt.label,
+        });
+        return unavailableResult(
+          errorCode,
+          'Azure telaffuz değerlendirmesi REST üzerinden tamamlanamadı.',
+          payload,
+        );
+      }
 
-    if (responseText.trim()) {
-      try {
-        payload = JSON.parse(responseText);
-      } catch {
-        payload = { rawBody: responseText.slice(0, 500) };
+      if (lastRecognitionStatus === 'NoMatch') {
+        console.log('[EchoSpeak Pronunciation REST] fallback', {
+          status: response.status,
+          errorCode: 'azure_rest_no_match',
+          errorMessage: 'Azure REST recognition status: NoMatch',
+          attempt: attempt.label,
+        });
+        return unavailableResult(
+          'azure_rest_no_match',
+          'Konuşma net algılanamadı; telaffuz değerlendirmesi yapılamadı.',
+          payload,
+        );
+      }
+
+      if (lastRecognitionStatus && lastRecognitionStatus !== 'Success') {
+        console.log('[EchoSpeak Pronunciation REST] fallback', {
+          status: response.status,
+          errorCode: 'azure_rest_recognition_failed',
+          errorMessage: `Azure REST recognition status: ${lastRecognitionStatus}`,
+          attempt: attempt.label,
+        });
+        return unavailableResult(
+          'azure_rest_recognition_failed',
+          'Konuşma net algılanamadı; telaffuz değerlendirmesi yapılamadı.',
+          payload,
+        );
+      }
+
+      const parsed = parseAzurePronunciationPayload(payload);
+      if (hasPronunciationScores(parsed)) {
+        console.log('[EchoSpeak Pronunciation REST] success', {
+          pronunciationScore: parsed.pronunciationScore,
+          accuracyScore: parsed.accuracyScore,
+          fluencyScore: parsed.fluencyScore,
+          completenessScore: parsed.completenessScore,
+          prosodyScore: parsed.prosodyScore,
+          wordCount: parsed.words.length,
+          attempt: attempt.label,
+        });
+
+        return {
+          available: true,
+          provider: 'azure',
+          ...parsed,
+          raw: payload,
+        };
+      }
+
+      if (index === 0 && attempt.enableProsodyAssessment) {
+        console.log('[EchoSpeak Pronunciation REST] retry_without_prosody', {
+          reason: 'no_pronunciation_scores_with_prosody',
+          firstNBestKeys: summary.firstNBestKeys,
+        });
+        continue;
       }
     }
 
-    if (!response.ok) {
-      const errorCode = mapHttpStatusToErrorCode(response.status);
-      console.log('[EchoSpeak Pronunciation REST] fallback', {
-        status: response.status,
-        errorCode,
-        errorMessage: `Azure REST pronunciation request failed with HTTP ${response.status}.`,
-      });
-      return unavailableResult(
-        errorCode,
-        'Azure telaffuz değerlendirmesi REST üzerinden tamamlanamadı.',
-        payload,
-      );
-    }
+    const errorCode = lastRecognitionStatus === 'Success'
+      ? 'azure_rest_no_pronunciation_assessment'
+      : 'azure_rest_no_pronunciation_scores';
 
-    const recognitionStatus = typeof (payload as Record<string, unknown> | null)?.RecognitionStatus === 'string'
-      ? (payload as Record<string, unknown>).RecognitionStatus as string
-      : null;
-
-    if (recognitionStatus && recognitionStatus !== 'Success') {
-      const errorCode = recognitionStatus === 'NoMatch'
-        ? 'azure_rest_no_match'
-        : 'azure_rest_recognition_failed';
-      console.log('[EchoSpeak Pronunciation REST] fallback', {
-        status: response.status,
-        errorCode,
-        errorMessage: `Azure REST recognition status: ${recognitionStatus}`,
-      });
-      return unavailableResult(
-        errorCode,
-        'Konuşma net algılanamadı; telaffuz değerlendirmesi yapılamadı.',
-        payload,
-      );
-    }
-
-    const parsed = parseAzurePronunciationPayload(payload);
-    if (parsed.pronunciationScore === null && parsed.accuracyScore === null) {
-      console.log('[EchoSpeak Pronunciation REST] fallback', {
-        status: response.status,
-        errorCode: 'azure_rest_empty_result',
-        errorMessage: 'Azure REST pronunciation response had no scores.',
-      });
-      return unavailableResult(
-        'azure_rest_empty_result',
-        'Azure telaffuz değerlendirmesi sonuç döndürmedi.',
-        payload,
-      );
-    }
-
-    console.log('[EchoSpeak Pronunciation REST] success', {
-      pronunciationScore: parsed.pronunciationScore,
-      accuracyScore: parsed.accuracyScore,
-      fluencyScore: parsed.fluencyScore,
-      completenessScore: parsed.completenessScore,
-      prosodyScore: parsed.prosodyScore,
-      wordCount: parsed.words.length,
+    console.log('[EchoSpeak Pronunciation REST] fallback', {
+      status: lastSummary?.status ?? 200,
+      errorCode,
+      errorMessage: lastRecognitionStatus === 'Success'
+        ? 'Azure REST returned Success but no pronunciation assessment scores were found.'
+        : 'Azure REST pronunciation response had no scores.',
+      responseSummary: lastSummary,
+      firstNBestKeys: lastSummary?.firstNBestKeys ?? [],
     });
 
-    return {
-      available: true,
-      provider: 'azure',
-      ...parsed,
-      raw: payload,
-    };
+    return unavailableResult(
+      errorCode,
+      'Azure telaffuz değerlendirmesi sonuç döndürmedi.',
+      lastPayload,
+    );
   } catch (error) {
     const isAbort = error instanceof Error && error.name === 'AbortError';
     const errorCode = isAbort ? 'azure_rest_timeout' : 'azure_rest_network_error';

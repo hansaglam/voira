@@ -47,6 +47,20 @@ export function resolveAzurePronunciationTransport(): AzurePronunciationTranspor
   return nodeEnv === 'production' ? 'rest' : 'sdk';
 }
 
+export function isAzureSdkFallbackAllowed(): boolean {
+  if (process.env.AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK === 'true') {
+    return true;
+  }
+
+  const transport = resolveAzurePronunciationTransport();
+  const nodeEnv = process.env.NODE_ENV ?? 'development';
+  if (transport === 'rest' && nodeEnv === 'production') {
+    return false;
+  }
+
+  return true;
+}
+
 export function logAzureSpeechStartupStatus(): void {
   const isDev = (process.env.NODE_ENV ?? 'development') !== 'production';
   console.log('[EchoSpeak Azure Speech]', {
@@ -55,6 +69,7 @@ export function logAzureSpeechStartupStatus(): void {
     azureSpeechLanguage: AZURE_SPEECH_LANGUAGE,
     pronunciationAssessmentEnabled: isAzurePronunciationEnabled(),
     pronunciationTransport: resolveAzurePronunciationTransport(),
+    sdkFallbackAllowed: isAzureSdkFallbackAllowed(),
     ffmpegAvailable: isFfmpegAvailable(),
     analysisDebugEnabled: isAnalysisDebugEnabled(),
     ...(isDev ? { explicitlyDisabled: explicitDisable } : {}),
