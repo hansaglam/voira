@@ -10,7 +10,7 @@ const SUPPORT_EMAIL = 'support@echospeak.app';
 
 export function SupportScreen(_props: Props) {
   const openEmail = () => {
-    void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=EchoSpeak%20Destek`);
+    void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Voira%20Destek`);
   };
 
   return (

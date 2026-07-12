@@ -144,6 +144,10 @@ export const productionTravelSpeakingLessons = linkLessonChain([
         rhythm: 'I have a reservation / for tonight',
         patternTr: '"I have a reservation for…" resepsiyon kalıbı',
         stressTr: 'for tonight tek blok olarak söyle',
+        vocabulary: [
+          { word: 'checking in', translationTr: 'otele giriş yapmak' },
+          { word: 'reservation', translationTr: 'rezervasyon' },
+        ],
       },
       {
         en: 'What time is check-out tomorrow?',
@@ -372,6 +376,10 @@ export const productionTravelSpeakingLessons = linkLessonChain([
         rhythm: 'What are the must-see places / around here?',
         patternTr: '"What are the must-see places…?" öneri sorma kalıbı',
         stressTr: 'must-see birleşik sıfat olarak söyle',
+        vocabulary: [
+          { word: 'must-see places', translationTr: 'mutlaka görülmesi gereken yerler' },
+          { word: 'around here', translationTr: 'buralarda / bu civarda' },
+        ],
       },
       {
         en: 'How long does it take to get there?',

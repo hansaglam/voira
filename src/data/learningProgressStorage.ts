@@ -14,6 +14,8 @@ export interface LastLessonState {
   source?: 'library' | 'dailySession';
   sessionId?: string;
   practiceIndex?: number;
+  segmentId?: string;
+  segmentIndex?: number;
   updatedAt: string;
 }
 

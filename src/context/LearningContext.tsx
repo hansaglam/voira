@@ -361,8 +361,20 @@ export function LearningProvider({ children }: { children: ReactNode }) {
         lessonId: result.lessonId,
         source: result.mode === 'daily' ? 'dailySession' : 'library',
         sessionId: result.sessionId,
+        segmentId: result.segmentId,
         updatedAt: result.createdAt,
       };
+
+      if (result.segmentId) {
+        const lesson = lessons.find((item) => item.id === result.lessonId);
+        if (lesson) {
+          const sortedSegments = [...lesson.segments].sort((a, b) => a.order - b.order);
+          const segmentIndex = sortedSegments.findIndex((segment) => segment.id === result.segmentId);
+          if (segmentIndex >= 0) {
+            nextLastLessonState.segmentIndex = segmentIndex;
+          }
+        }
+      }
       lastLessonStateRef.current = nextLastLessonState;
       setLastLessonState(nextLastLessonState);
 

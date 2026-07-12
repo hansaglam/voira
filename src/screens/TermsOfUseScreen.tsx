@@ -8,12 +8,12 @@ export function TermsOfUseScreen(_props: Props) {
   return (
     <InfoScreenLayout
       title="Kullanım Şartları"
-      subtitle="EchoSpeak dil pratiği uygulaması"
+      subtitle="Voira dil pratiği uygulaması"
       sections={[
         {
           title: 'Amaç',
           body:
-            'EchoSpeak, İngilizce konuşma pratiği ve shadowing çalışması için tasarlanmış bir dil öğrenme uygulamasıdır.',
+            'Voira, İngilizce konuşma pratiği ve shadowing çalışması için tasarlanmış bir dil öğrenme uygulamasıdır.',
         },
         {
           title: 'Skorlar ve geri bildirim',

@@ -9,6 +9,7 @@ export type UserGoal =
   | 'pronunciation';
 
 export type { LessonSegment } from './segment';
+export type { VocabularyEntry, VocabularyItem } from './vocabulary';
 export type {
   Lesson,
   LessonCategory,

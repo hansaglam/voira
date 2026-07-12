@@ -36,6 +36,7 @@ yarn-error.*
 .env*.local
 backend/.env
 android/keystore.properties
+credentials/
 
 # typescript
 *.tsbuildinfo

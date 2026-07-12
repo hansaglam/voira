@@ -13,9 +13,11 @@ import {
 } from '../components';
 import { useUser } from '../context/UserContext';
 import { usePremium } from '../context/PremiumContext';
+import { useAuth } from '../context/AuthContext';
+import { isRegisteredUser } from '../utils/authAccess';
 import { useLearning } from '../context/LearningContext';
 import {
-  getContinueLesson,
+  getContinueLessonEntry,
   getRecommendedLessons,
   openLessonFromLibrary,
 } from '../data/lessonLibrary';
@@ -38,10 +40,13 @@ const SPEAKPLUS_BENEFITS = [
 export function HomeScreen({ navigation }: Props) {
   const { profile, pendingFirstLesson, clearPendingFirstLesson } = useUser();
   const { isPremium } = usePremium();
+  const { user } = useAuth();
+  const registered = isRegisteredUser(user);
   const openedPendingLessonRef = useRef(false);
   const { learningProfile, getDailySession } = useLearning();
   const session = getDailySession();
-  const continueLesson = getContinueLesson(learningProfile);
+  const continueEntry = getContinueLessonEntry(learningProfile);
+  const continueLesson = continueEntry.lesson;
   const recommended = getRecommendedLessons(learningProfile);
 
   const dailyGoalLabel = session.focusSkill?.trim() || 'Daha akıcı konuşma';
@@ -68,7 +73,7 @@ export function HomeScreen({ navigation }: Props) {
     <ScreenContainer withTabBar>
       <View style={styles.greeting}>
         <View style={styles.greetingText}>
-          <Text style={styles.brandLabel}>EchoSpeak</Text>
+          <Text style={styles.brandLabel}>VOIRA</Text>
           <Text style={typography.h1}>Merhaba, {profile.name}</Text>
           <Text style={styles.greetingSub}>
             Bugün kısa bir pratik yap, telaffuzunu analiz et ve zayıf kelimelerini gör.
@@ -143,7 +148,7 @@ export function HomeScreen({ navigation }: Props) {
             <View style={styles.valueIcon}>
               <Ionicons name="sparkles" size={14} color={colors.secondary} />
             </View>
-            <Text style={styles.valueTitle}>Neden EchoSpeak?</Text>
+            <Text style={styles.valueTitle}>Neden Voira?</Text>
           </View>
           <View style={styles.valueBullets}>
             {VALUE_BULLETS.map((bullet) => (
@@ -165,7 +170,14 @@ export function HomeScreen({ navigation }: Props) {
           title="Devam et"
           size="compact"
           onPress={() =>
-            openLessonFromLibrary(navigation, continueLesson, isPremium)
+            openLessonFromLibrary(
+              navigation,
+              continueLesson,
+              isPremium,
+              registered,
+              continueLesson.category,
+              continueEntry.segmentIndex,
+            )
           }
           style={styles.continueButton}
         />
@@ -192,7 +204,7 @@ export function HomeScreen({ navigation }: Props) {
             isPremiumUser={isPremium}
             variant="compact"
             completedLessonIds={learningProfile.completedLessonIds}
-            onPress={() => openLessonFromLibrary(navigation, lesson, isPremium)}
+            onPress={() => openLessonFromLibrary(navigation, lesson, isPremium, registered)}
           />
         ))}
       </ScrollView>
@@ -258,6 +270,8 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.primary,
     marginBottom: spacing.xs,
+    letterSpacing: 2.2,
+    textTransform: 'uppercase',
   },
   greetingSub: {
     ...typography.body,

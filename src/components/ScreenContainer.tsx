@@ -29,6 +29,8 @@ interface ScreenContainerProps {
   footerBorderless?: boolean;
   /** Optional style override for the fixed footer container */
   footerStyle?: ViewStyle;
+  /** Optional ref for the inner ScrollView (tab screens, focus scroll) */
+  scrollRef?: React.RefObject<ScrollView | null>;
 }
 
 function getTabBarScrollPadding(insetBottom: number): number {
@@ -49,6 +51,7 @@ export function ScreenContainer({
   footerCompact = false,
   footerBorderless = false,
   footerStyle,
+  scrollRef,
 }: ScreenContainerProps) {
   const insets = useSafeAreaInsets();
   const tabBarPadding = getTabBarScrollPadding(insets.bottom);
@@ -79,6 +82,7 @@ export function ScreenContainer({
       <SafeAreaView style={[styles.safe, style]} edges={['top']}>
         <View style={styles.flex}>
           <ScrollView
+            ref={scrollRef}
             style={styles.scroll}
             contentContainerStyle={[
               styles.scrollContent,
@@ -113,6 +117,7 @@ export function ScreenContainer({
       <SafeAreaView style={[styles.safe, style]} edges={['top']}>
         <View style={styles.flex}>
           <ScrollView
+            ref={scrollRef}
             style={styles.flex}
             contentContainerStyle={[
               styles.scrollContent,

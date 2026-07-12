@@ -7,7 +7,7 @@ const ADMIN_UNAUTHORIZED_HTML = `<!DOCTYPE html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>EchoSpeak Admin</title>
+  <title>Voira Admin</title>
   <style>
     body { font-family: system-ui, sans-serif; background: #0f1020; color: #e5e7eb; margin: 0; min-height: 100vh; display: grid; place-items: center; }
     main { max-width: 420px; padding: 24px; border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 16px; background: rgba(26, 27, 46, 0.95); }

@@ -15,7 +15,7 @@ export type MainTabParamList = {
   Home: undefined;
   Categories: undefined;
   Progress: undefined;
-  Profile: undefined;
+  Profile: { focusAuth?: boolean } | undefined;
 };
 
 export type RootStackParamList = {
@@ -53,6 +53,7 @@ export type RootStackParamList = {
     shadowingMode?: import('../types/practiceMethodology').ShadowingPracticeMode;
   };
   Premium: undefined;
+  Vocabulary: undefined;
   PrivacyPolicy: undefined;
   TermsOfUse: undefined;
   Support: undefined;

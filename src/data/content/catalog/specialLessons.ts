@@ -106,7 +106,7 @@ export const specialLessons = linkLessonChain([
       slowPracticeText: 'EV-ry step / I TAKE / builds my CON-fi-dence',
       naturalVersion: 'Every step I take builds my confidence.',
       nativeSpeedNoteTr: 'Vurgu: step, take, confidence. 4\'lük ritimle 3 kez tekrar et.',
-      usageExplanationTr: 'Orijinal EchoSpeak metni — telifsiz. Ritim ve vurgu çalışması için tasarlandı.',
+      usageExplanationTr: 'Orijinal Voira metni — telifsiz. Ritim ve vurgu çalışması için tasarlandı.',
       pronunciationTipTr: 'Metronom gibi düşün: vurgulu heceleri uzun, diğerlerini kısa söyle.',
       commonMistakeTr: 'Tüm kelimeleri eşit uzunlukta söylemek — ritim kaybolur.',
       shadowingInstructionTr: buildShadowingCoach({
@@ -143,7 +143,7 @@ export const specialLessons = linkLessonChain([
       text: 'Listen first, then shadow the rhythm.',
       translationTr: 'Önce dinle, sonra ritmi shadowing yap.',
       slowPracticeText: 'Listen first / then shadow / the rhythm',
-      usageExplanationTr: 'EchoSpeak ritim metodunun öz cümlesi: önce dinle, sonra akışı kopyala.',
+      usageExplanationTr: 'Voira ritim metodunun öz cümlesi: önce dinle, sonra akışı kopyala.',
       pronunciationTipTr: 'Listen first kısa ve net; shadow the rhythm tek ritim bloğu.',
       commonMistakeTr: 'Kelime kelime kopyalamak — ritim kaybolur; önce dinle, sonra gruplar halinde söyle.',
       shadowingInstructionTr: buildShadowingCoach({

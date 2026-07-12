@@ -24,6 +24,7 @@ interface InfoScreenLayoutProps {
   subtitle?: string;
   sections: InfoSection[];
   footer?: React.ReactNode;
+  header?: React.ReactNode;
   contentStyle?: ViewStyle;
 }
 
@@ -32,6 +33,7 @@ export function InfoScreenLayout({
   subtitle,
   sections,
   footer,
+  header,
   contentStyle,
 }: InfoScreenLayoutProps) {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
@@ -48,6 +50,8 @@ export function InfoScreenLayout({
       >
         <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
       </TouchableOpacity>
+
+      {header ? <View style={styles.header}>{header}</View> : null}
 
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -80,6 +84,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   title: {
     ...typography.h1,

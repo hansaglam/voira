@@ -15,9 +15,18 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { RootScreenProps } from '../navigation/types';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { AppCard } from '../components/AppCard';
+import { VoiraLogo } from '../components/VoiraLogo';
 import { PremiumDebugPanel } from '../components/PremiumDebugPanel';
 import { PremiumFeatureItem } from '../components/PremiumFeatureItem';
 import { usePremium } from '../context/PremiumContext';
+import { useAuth } from '../context/AuthContext';
+import { isRegisteredUser } from '../utils/authAccess';
+import {
+  ACCOUNT_REQUIRED_COPY,
+  GUEST_PREMIUM_WARNING_COPY,
+  navigateToProfileAuth,
+  showRestoreRequiresSignInAlert,
+} from '../utils/premiumAccountGate';
 import type { PremiumPackageOption } from '../services/premium';
 import { colors, spacing, borderRadius, layout } from '../theme';
 
@@ -117,6 +126,50 @@ function PackageCard({
   );
 }
 
+function AccountRequiredFooter({
+  onCreateAccount,
+  onSignIn,
+  onContinueAsGuest,
+}: {
+  onCreateAccount: () => void;
+  onSignIn: () => void;
+  onContinueAsGuest: () => void;
+}) {
+  return (
+    <View style={styles.footerShell}>
+      <LinearGradient
+        colors={[
+          'rgba(15, 16, 32, 0)',
+          'rgba(15, 16, 32, 0.72)',
+          'rgba(15, 16, 32, 0.94)',
+        ]}
+        locations={[0, 0.45, 1]}
+        style={styles.footerFade}
+        pointerEvents="none"
+      />
+      <View style={styles.footerPanel}>
+        <PremiumCtaButton title="Hesap oluştur" onPress={onCreateAccount} />
+        <TouchableOpacity
+          onPress={onSignIn}
+          activeOpacity={0.65}
+          style={styles.secondaryAuthTouchable}
+          hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
+        >
+          <Text style={styles.secondaryAuthText}>Giriş yap</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={onContinueAsGuest}
+          activeOpacity={0.65}
+          style={styles.skipTouchable}
+          hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
+        >
+          <Text style={styles.skipText}>Misafir olarak devam et</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 function PremiumFooter({
   ctaTitle,
   onPrimary,
@@ -208,6 +261,8 @@ function defaultSelectedPackage(
 
 export function PremiumScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const registered = isRegisteredUser(user);
   const {
     isPremium,
     isLoadingPremium,
@@ -241,7 +296,10 @@ export function PremiumScreen({ navigation }: Props) {
 
   const handleClose = () => navigation.goBack();
 
+  const handleGoToAuth = () => navigateToProfileAuth(navigation);
+
   const handlePurchase = async () => {
+    if (!registered) return;
     if (!selectedPackage) return;
 
     const result = await purchasePackage(selectedPackage);
@@ -264,6 +322,11 @@ export function PremiumScreen({ navigation }: Props) {
   };
 
   const handleRestore = async () => {
+    if (!registered) {
+      showRestoreRequiresSignInAlert(navigation);
+      return;
+    }
+
     const result = await restorePurchases();
     if (result === 'restored') {
       Alert.alert('Satın alımın geri yüklendi.', 'SpeakPlus aboneliğin aktif.', [
@@ -285,10 +348,19 @@ export function PremiumScreen({ navigation }: Props) {
   const ctaTitle = isPremium ? 'Devam et' : "SpeakPlus'u Başlat";
   const isPackagesLoading = isLoadingPremium || isOfferingsLoading;
   const showOfferingsFallback =
-    !isPackagesLoading && !isPremium && packageOptions.length === 0;
-  const footerClearance = 49 + 10 + 14 + 12 + 34 + insets.bottom + spacing.md + 40;
+    registered && !isPackagesLoading && !isPremium && packageOptions.length === 0;
+  const showGuestAccountGate = !registered && !isPremium;
+  const footerClearance = showGuestAccountGate
+    ? 49 + 10 + 14 + 34 + insets.bottom + spacing.md + 40
+    : 49 + 10 + 14 + 12 + 34 + insets.bottom + spacing.md + 40;
 
-  const footer = (
+  const footer = showGuestAccountGate ? (
+    <AccountRequiredFooter
+      onCreateAccount={handleGoToAuth}
+      onSignIn={handleGoToAuth}
+      onContinueAsGuest={handleClose}
+    />
+  ) : (
     <PremiumFooter
       ctaTitle={ctaTitle}
       onPrimary={isPremium ? handleClose : handlePurchase}
@@ -338,15 +410,8 @@ export function PremiumScreen({ navigation }: Props) {
       </TouchableOpacity>
 
       <View style={styles.hero}>
-        <LinearGradient
-          colors={[colors.gradientStart, colors.gradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.logoBadge}
-        >
-          <Ionicons name="diamond" size={26} color={colors.textPrimary} />
-        </LinearGradient>
-        <Text style={styles.brand}>SpeakPlus</Text>
+        <VoiraLogo size={72} style={styles.heroLogo} />
+        <Text style={styles.brand}>Voira SpeakPlus</Text>
         {isPremium ? (
           <>
             <Text style={styles.title}>SpeakPlus aktif</Text>
@@ -358,7 +423,7 @@ export function PremiumScreen({ navigation }: Props) {
           <>
             <Text style={styles.title}>SpeakPlus ile sınırsız konuşma pratiği</Text>
             <Text style={styles.subtitle}>
-              Gelişmiş geri bildirim, tüm ders paketleri ve kişisel gelişim raporu.
+              Daha fazla pratik, gelişmiş telaffuz analizi ve zayıf kelime geri bildirimi.
             </Text>
           </>
         )}
@@ -370,6 +435,14 @@ export function PremiumScreen({ navigation }: Props) {
           <Text style={styles.activeBody}>
             Premium derslere ve gelişmiş geri bildirimlere erişimin var.
           </Text>
+        </AppCard>
+      ) : showGuestAccountGate ? (
+        <AppCard style={styles.accountRequiredCard}>
+          <View style={styles.accountRequiredIcon}>
+            <Ionicons name="person-circle-outline" size={28} color={colors.primary} />
+          </View>
+          <Text style={styles.accountRequiredTitle}>{ACCOUNT_REQUIRED_COPY.title}</Text>
+          <Text style={styles.accountRequiredBody}>{ACCOUNT_REQUIRED_COPY.body}</Text>
         </AppCard>
       ) : (
         <>
@@ -393,16 +466,27 @@ export function PremiumScreen({ navigation }: Props) {
         </>
       )}
 
+      {!registered && isPremium ? (
+        <AppCard style={styles.guestWarningCard}>
+          <Text style={styles.guestWarningTitle}>{GUEST_PREMIUM_WARNING_COPY.title}</Text>
+          <Text style={styles.guestWarningBody}>{GUEST_PREMIUM_WARNING_COPY.body}</Text>
+          <TouchableOpacity onPress={handleGoToAuth} style={styles.guestWarningCta} activeOpacity={0.7}>
+            <Text style={styles.guestWarningCtaText}>Hesap oluştur veya giriş yap</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
+        </AppCard>
+      ) : null}
+
       <PremiumDebugPanel />
 
-      {!isPremium && isPackagesLoading ? (
+      {registered && !isPremium && isPackagesLoading ? (
         <View style={styles.loadingBlock}>
           <ActivityIndicator color={colors.primary} />
           <Text style={styles.loadingText}>Abonelik seçenekleri yükleniyor…</Text>
         </View>
       ) : null}
 
-      {!isPremium && showOfferingsFallback ? (
+      {registered && !isPremium && showOfferingsFallback ? (
         <AppCard style={styles.fallbackCard}>
           <Text style={styles.fallbackTitle}>Paketler yüklenemedi</Text>
           <Text style={styles.fallbackBody}>
@@ -423,13 +507,13 @@ export function PremiumScreen({ navigation }: Props) {
         </AppCard>
       ) : null}
 
-      {!isPremium && !isPackagesLoading && errorMessage ? (
+      {registered && !isPremium && !isPackagesLoading && errorMessage ? (
         <AppCard style={styles.errorCard}>
           <Text style={styles.errorText}>{errorMessage}</Text>
         </AppCard>
       ) : null}
 
-      {!isPremium && !isPackagesLoading && packageOptions.length > 0 ? (
+      {registered && !isPremium && !isPackagesLoading && packageOptions.length > 0 ? (
         <View style={styles.packageRow}>
           {packageOptions.map((option) => (
             <PackageCard
@@ -442,7 +526,7 @@ export function PremiumScreen({ navigation }: Props) {
         </View>
       ) : null}
 
-      {!isPremium && !isPackagesLoading && selectedPackage ? (
+      {registered && !isPremium && !isPackagesLoading && selectedPackage ? (
         <AppCard style={styles.priceCard}>
           <Text style={styles.priceAmount}>{selectedPackage.product.priceString}</Text>
           <Text style={styles.pricePeriod}>
@@ -479,6 +563,9 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: 'center',
     marginBottom: spacing.md,
+  },
+  heroLogo: {
+    marginBottom: spacing.sm,
   },
   logoBadge: {
     width: 60,
@@ -538,6 +625,78 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
+  },
+  accountRequiredCard: {
+    marginBottom: spacing.md,
+    borderColor: 'rgba(91, 95, 239, 0.28)',
+    borderWidth: 1,
+    backgroundColor: 'rgba(91, 95, 239, 0.08)',
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
+  },
+  accountRequiredIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(139, 92, 246, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  accountRequiredTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
+  },
+  accountRequiredBody: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 21,
+    paddingHorizontal: spacing.sm,
+  },
+  guestWarningCard: {
+    marginBottom: spacing.md,
+    borderColor: 'rgba(229, 184, 74, 0.35)',
+    borderWidth: 1,
+    backgroundColor: 'rgba(229, 184, 74, 0.08)',
+  },
+  guestWarningTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.premium,
+    marginBottom: spacing.xs,
+  },
+  guestWarningBody: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  guestWarningCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  guestWarningCtaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  secondaryAuthTouchable: {
+    alignSelf: 'center',
+    marginTop: spacing.sm,
+    paddingVertical: spacing.xs,
+    minHeight: 20,
+    justifyContent: 'center',
+  },
+  secondaryAuthText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   benefitRow: {
     flexDirection: 'row',

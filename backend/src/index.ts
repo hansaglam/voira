@@ -55,7 +55,7 @@ app.use((req, _res, next) => {
 app.get('/health', (_req, res) => {
   res.json({
     ok: true,
-    service: 'EchoSpeak backend',
+    service: 'Voira backend',
     hasOpenAIKey: Boolean(OPENAI_API_KEY),
     hasSupabase: isSupabaseAdminConfigured(),
     pronunciationAssessmentAvailable: isPronunciationAssessmentAvailable(),

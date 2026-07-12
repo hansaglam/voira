@@ -5,12 +5,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { RootScreenProps } from '../navigation/types';
 import { ScreenContainer, LibraryLessonCard, SectionHeader, EmptyState } from '../components';
 import {
-  getContinueLesson,
   getCategoryLessonStats,
   openLessonFromLibrary,
-  type LessonProgressState,
+  resolveLessonProgressState,
 } from '../data/lessonLibrary';
+import { getAllPracticeResults } from '../data/learningSessionStore';
+import { resolveResumeSegmentIndex } from '../data/lessonSegmentProgress';
 import { usePremium } from '../context/PremiumContext';
+import { useAuth } from '../context/AuthContext';
+import { isRegisteredUser } from '../utils/authAccess';
 import { useLearning } from '../context/LearningContext';
 import { resolveLessonPremium } from '../utils/lessonUtils';
 import { Lesson, LessonLevel } from '../types/lesson';
@@ -31,7 +34,7 @@ function levelSortOrder(level: LessonLevel): number {
   return 2;
 }
 
-function sortCategoryLessons(lessons: Lesson[], completedLessonIds: string[]): Lesson[] {
+function sortActiveLessons(lessons: Lesson[]): Lesson[] {
   return [...lessons].sort((a, b) => {
     const aPremium = resolveLessonPremium(a);
     const bPremium = resolveLessonPremium(b);
@@ -40,52 +43,70 @@ function sortCategoryLessons(lessons: Lesson[], completedLessonIds: string[]): L
     const levelDiff = levelSortOrder(a.level) - levelSortOrder(b.level);
     if (levelDiff !== 0) return levelDiff;
 
-    const aCompleted = completedLessonIds.includes(a.id);
-    const bCompleted = completedLessonIds.includes(b.id);
-    if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
-
     return a.title.localeCompare(b.title, 'tr');
   });
 }
 
+function sortCompletedLessons(lessons: Lesson[]): Lesson[] {
+  return [...lessons].sort((a, b) => a.title.localeCompare(b.title, 'tr'));
+}
+
 export function CategoryLessonsScreen({ navigation, route }: Props) {
   const { isPremium } = usePremium();
+  const { user } = useAuth();
+  const registered = isRegisteredUser(user);
   const { learningProfile } = useLearning();
   const { categoryId } = route.params;
   const stats = useMemo(() => getCategoryLessonStats(categoryId), [categoryId]);
-  const continueLesson = getContinueLesson(learningProfile);
+  const practiceResults = useMemo(
+    () => getAllPracticeResults(),
+    [
+      learningProfile.completedLessonIds,
+      learningProfile.lastPracticeDate,
+      learningProfile.averageScore,
+      learningProfile.bestScore,
+    ],
+  );
 
   const category = stats.category;
 
-  const continueInCategory =
-    continueLesson.category === categoryId ? continueLesson : null;
+  const { activeLessons, completedLessons } = useMemo(() => {
+    const active: Lesson[] = [];
+    const completed: Lesson[] = [];
 
-  const getLessonProgressState = (lessonId: string): LessonProgressState => {
-    if (learningProfile.completedLessonIds.includes(lessonId)) return 'completed';
-    if (continueInCategory?.id === lessonId) return 'in_progress';
-    return 'not_started';
-  };
+    for (const lesson of stats.lessons) {
+      const progressState = resolveLessonProgressState(
+        lesson,
+        learningProfile.completedLessonIds,
+        practiceResults,
+      );
+      if (progressState === 'completed') {
+        completed.push(lesson);
+      } else {
+        active.push(lesson);
+      }
+    }
 
-  const { continueLessons, allLessons } = useMemo(() => {
-    const sorted = sortCategoryLessons(stats.lessons, learningProfile.completedLessonIds);
-    const continueLessonId = continueInCategory?.id;
-    const inProgress = sorted.filter(
-      (lesson) =>
-        lesson.id === continueLessonId &&
-        !learningProfile.completedLessonIds.includes(lesson.id),
-    );
-    const inProgressIds = new Set(inProgress.map((lesson) => lesson.id));
-    const remaining = sorted.filter((lesson) => !inProgressIds.has(lesson.id));
-
-    return { continueLessons: inProgress, allLessons: remaining };
-  }, [stats, learningProfile.completedLessonIds, continueInCategory?.id]);
+    return {
+      activeLessons: sortActiveLessons(active),
+      completedLessons: sortCompletedLessons(completed),
+    };
+  }, [learningProfile.completedLessonIds, practiceResults, stats.lessons]);
 
   const categoryGoal = CATEGORY_GOAL_COPY[categoryId];
 
-  const handleLessonPress = (lessonId: string) => {
-    const lesson = stats.lessons.find((l) => l.id === lessonId);
-    if (!lesson) return;
-    openLessonFromLibrary(navigation, lesson, isPremium, categoryId);
+  const handleLessonPress = (lesson: Lesson) => {
+    const progressState = resolveLessonProgressState(
+      lesson,
+      learningProfile.completedLessonIds,
+      practiceResults,
+    );
+    const segmentIndex =
+      progressState === 'completed'
+        ? 0
+        : resolveResumeSegmentIndex(lesson, learningProfile.completedLessonIds, practiceResults);
+
+    openLessonFromLibrary(navigation, lesson, isPremium, registered, categoryId, segmentIndex);
   };
 
   if (!category) {
@@ -145,35 +166,52 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
         </LinearGradient>
       ) : null}
 
-      {continueLessons.length > 0 ? (
-        <View style={styles.sectionBlock}>
-          <SectionHeader title="Devam Et" subtitle={`${continueLessons.length} ders`} />
-          {continueLessons.map((lesson) => (
+      <View style={styles.sectionBlock}>
+        <SectionHeader
+          title="Devam edebileceğin dersler"
+          subtitle={`${activeLessons.length} ders`}
+        />
+        {activeLessons.length > 0 ? (
+          activeLessons.map((lesson) => (
             <LibraryLessonCard
-              key={`continue-${lesson.id}`}
+              key={lesson.id}
               lesson={lesson}
               isPremiumUser={isPremium}
               dense
-              progressState="in_progress"
-              onPress={() => handleLessonPress(lesson.id)}
+              progressState={resolveLessonProgressState(
+                lesson,
+                learningProfile.completedLessonIds,
+                practiceResults,
+              )}
+              onPress={() => handleLessonPress(lesson)}
+            />
+          ))
+        ) : (
+          <Text style={styles.emptySectionText}>
+            Bu paketteki tüm dersleri tamamladın. Aşağıdan tekrar çalışabilirsin.
+          </Text>
+        )}
+      </View>
+
+      {completedLessons.length > 0 ? (
+        <View style={styles.sectionBlock}>
+          <SectionHeader
+            title="Tamamlanan dersler"
+            subtitle="İstersen tekrar çalışabilirsin."
+          />
+          {completedLessons.map((lesson) => (
+            <LibraryLessonCard
+              key={`completed-${lesson.id}`}
+              lesson={lesson}
+              isPremiumUser={isPremium}
+              dense
+              sectionTone="completed"
+              progressState="completed"
+              onPress={() => handleLessonPress(lesson)}
             />
           ))}
         </View>
       ) : null}
-
-      <View style={styles.sectionBlock}>
-        <SectionHeader title="Tüm Dersler" subtitle={`${stats.total} ders`} />
-        {allLessons.map((lesson) => (
-          <LibraryLessonCard
-            key={lesson.id}
-            lesson={lesson}
-            isPremiumUser={isPremium}
-            dense
-            progressState={getLessonProgressState(lesson.id)}
-            onPress={() => handleLessonPress(lesson.id)}
-          />
-        ))}
-      </View>
 
       <View style={styles.bottomSpacer} />
     </ScreenContainer>
@@ -252,6 +290,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   sectionBlock: {
+    marginBottom: spacing.sm,
+  },
+  emptySectionText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textMuted,
+    paddingHorizontal: spacing.xs,
     marginBottom: spacing.sm,
   },
   bottomSpacer: {

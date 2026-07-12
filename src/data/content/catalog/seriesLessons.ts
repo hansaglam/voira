@@ -96,7 +96,7 @@ export const seriesLessons = linkLessonChain([
       translationTr: 'Seni bir daha göreceğimi sanmıyordum.',
       slowPracticeText: "I didn't think / I'd see you / again",
       nativeSpeedNoteTr: 'Yavaş, duygusal ton. Duraksama think sonrası doğal.',
-      usageExplanationTr: 'Drama sahnelerinde sık duyulan kısa duygusal itiraf. Orijinal EchoSpeak metni.',
+      usageExplanationTr: 'Drama sahnelerinde sık duyulan kısa duygusal itiraf. Orijinal Voira metni.',
       pronunciationTipTr: "Didn't think birleşik; again sonda yumuşak, kırılgan ton.",
       commonMistakeTr: 'Nötr ton — duygu kaybolur; önce yavaş ve duygulu söyle.',
       shadowingInstructionTr: buildShadowingCoach({

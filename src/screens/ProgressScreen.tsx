@@ -15,7 +15,9 @@ import { lessons, getLessonById } from '../data/lessons';
 import { getAllPracticeResults } from '../data/learningSessionStore';
 import { buildProgressSummary } from '../services/progress';
 import { getRecommendedLessonsFromAnalysis } from '../services/recommendations';
-import { isLessonLocked } from '../utils/premiumAccess';
+import { useAuth } from '../context/AuthContext';
+import { isRegisteredUser } from '../utils/authAccess';
+import { handlePremiumLessonAccess, requirePremiumAccess } from '../utils/premiumAccess';
 import { CATEGORY_LABELS, LEVEL_TO_DIFFICULTY } from '../types/lesson';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
@@ -31,6 +33,8 @@ export function ProgressScreen({ navigation }: Props) {
   const { learningProfile, getDailySession } = useLearning();
   const { profile } = useUser();
   const { isPremium } = usePremium();
+  const { user } = useAuth();
+  const registered = isRegisteredUser(user);
   const allResults = getAllPracticeResults();
   const resultCount = allResults.length;
   const isEmpty = resultCount === 0;
@@ -95,15 +99,12 @@ export function ProgressScreen({ navigation }: Props) {
   const handleRecommendationPress = (lessonId: string) => {
     const lesson = getLessonById(lessonId);
     if (!lesson) return;
-    const locked = isLessonLocked(lesson, isPremium);
-    if (locked) {
-      navigation.navigate('Premium');
-      return;
-    }
-    navigation.navigate('Lesson', {
-      lessonId: lesson.id,
-      source: 'library',
-      categoryId: lesson.category,
+    handlePremiumLessonAccess(lesson, isPremium, registered, navigation, () => {
+      navigation.navigate('Lesson', {
+        lessonId: lesson.id,
+        source: 'library',
+        categoryId: lesson.category,
+      });
     });
   };
 
@@ -285,7 +286,10 @@ export function ProgressScreen({ navigation }: Props) {
             <Text style={styles.lockedText}>
               İlk kaydınla 7. gün kaydını karşılaştırarak gelişimini gör.
             </Text>
-            <Pressable style={styles.lockedCta} onPress={() => navigation.navigate('Premium')}>
+            <Pressable
+              style={styles.lockedCta}
+              onPress={() => requirePremiumAccess(false, registered, navigation, () => {})}
+            >
               <Text style={styles.lockedCtaText}>SpeakPlus ile aç</Text>
             </Pressable>
           </View>

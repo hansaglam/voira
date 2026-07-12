@@ -19,6 +19,8 @@ export type QuickSegment = {
   patternTr?: string;
   /** Which words to stress, e.g. "please kelimesini yumuşak bitir" */
   stressTr?: string;
+  /** Optional curated vocabulary for Kelime Defterim */
+  vocabulary?: Array<{ word: string; translationTr: string }>;
 };
 
 const DIFFICULTY_BY_LEVEL: Record<LessonLevel, LessonDifficultyLabel> = {
@@ -83,6 +85,9 @@ export function segmentsForLesson(
       containsReductions: order > 1,
       linkedWords: item.keywords.slice(0, 2),
       targetSounds: item.targetSounds,
+      ...(item.vocabulary && item.vocabulary.length > 0
+        ? { vocabulary: item.vocabulary }
+        : {}),
     };
   });
 }

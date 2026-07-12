@@ -19,6 +19,21 @@ const store: SessionStoreState = {
   todaySessionKey: null,
 };
 
+export const LIBRARY_PRACTICE_RESULTS_KEY = '__library__';
+
+function upsertPracticeResult(
+  storageKey: string,
+  result: PracticeResult,
+): PracticeResult[] {
+  const prior = store.results.get(storageKey) ?? [];
+  return [
+    ...prior.filter(
+      (entry) => !(entry.lessonId === result.lessonId && entry.segmentId === result.segmentId),
+    ),
+    result,
+  ];
+}
+
 function todayDateKey(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -62,31 +77,34 @@ export function recordPracticeResult(
   profile: UserLearningProfile,
   result: PracticeResult,
 ): { profile: UserLearningProfile; session?: DailyPracticeSession } {
-  const sessionId = result.sessionId;
+  const storageKey =
+    result.sessionId ??
+    (result.mode === 'library' ? LIBRARY_PRACTICE_RESULTS_KEY : undefined);
   let updatedSession: DailyPracticeSession | undefined;
 
-  if (sessionId) {
-    const existing = store.sessions.get(sessionId);
-    const prior = store.results.get(sessionId) ?? [];
-    const results = [...prior.filter((r) => r.lessonId !== result.lessonId), result];
-    store.results.set(sessionId, results);
+  if (storageKey) {
+    const results = upsertPracticeResult(storageKey, result);
+    store.results.set(storageKey, results);
 
-    if (existing) {
-      const completedLessonIds = existing.completedLessonIds.includes(result.lessonId)
-        ? existing.completedLessonIds
-        : [...existing.completedLessonIds, result.lessonId];
+    if (result.sessionId) {
+      const existing = store.sessions.get(result.sessionId);
+      if (existing) {
+        const completedLessonIds = existing.completedLessonIds.includes(result.lessonId)
+          ? existing.completedLessonIds
+          : [...existing.completedLessonIds, result.lessonId];
 
-      const { averageScore } = aggregateSessionResults(results);
-      const isCompleted = completedLessonIds.length >= existing.totalLessons;
+        const { averageScore } = aggregateSessionResults(results);
+        const isCompleted = completedLessonIds.length >= existing.totalLessons;
 
-      updatedSession = {
-        ...existing,
-        completedLessonIds,
-        currentIndex: Math.min(completedLessonIds.length, existing.totalLessons - 1),
-        averageScore,
-        isCompleted,
-      };
-      store.sessions.set(sessionId, updatedSession);
+        updatedSession = {
+          ...existing,
+          completedLessonIds,
+          currentIndex: Math.min(completedLessonIds.length, existing.totalLessons - 1),
+          averageScore,
+          isCompleted,
+        };
+        store.sessions.set(result.sessionId, updatedSession);
+      }
     }
   }
 

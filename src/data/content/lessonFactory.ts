@@ -55,6 +55,7 @@ export interface SegmentInput {
   highlightedWords?: string[];
   availablePracticeModes?: ShadowingPracticeMode[];
   recommendedPracticeStep?: PracticeStep;
+  vocabulary?: LessonSegment['vocabulary'];
 }
 
 export interface LessonInput {

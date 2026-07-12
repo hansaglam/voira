@@ -17,7 +17,7 @@ export function DataDeletionScreen(_props: Props) {
 
   const openSupportEmail = () => {
     void Linking.openURL(
-      `mailto:${SUPPORT_EMAIL}?subject=EchoSpeak%20Veri%20Silme%20Talebi`,
+      `mailto:${SUPPORT_EMAIL}?subject=Voira%20Veri%20Silme%20Talebi`,
     );
   };
 

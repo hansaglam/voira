@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,27 +18,36 @@ import { PremiumDebugPanel } from '../components/PremiumDebugPanel';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
+import { GUEST_PREMIUM_WARNING_COPY, navigateToProfileAuth } from '../utils/premiumAccountGate';
 import { useLearning } from '../context/LearningContext';
+import { useVocabulary } from '../hooks/useVocabulary';
 import { LEVEL_LABELS, GOAL_LABELS } from '../constants/options';
 import { getAllPracticeResults } from '../data/learningSessionStore';
 import { buildProgressSummary } from '../services/progress';
 import { lessons } from '../data/lessons';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.0.8';
 
 type Props = TabScreenProps<'Profile'>;
 
-type ProfileInfoRoute = 'Support' | 'PrivacyPolicy' | 'TermsOfUse' | 'About';
+type ProfileInfoRoute = 'Support' | 'PrivacyPolicy' | 'TermsOfUse' | 'About' | 'Vocabulary';
 
 type SettingsItem = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   route?: ProfileInfoRoute;
   comingSoon?: boolean;
+  subtitle?: string;
 };
 
 const SETTINGS_ITEMS: SettingsItem[] = [
+  {
+    icon: 'bookmark-outline',
+    label: 'Kelime Defterim',
+    route: 'Vocabulary',
+    subtitle: 'Kaydettiğin kelime ve ifadeler',
+  },
   { icon: 'mail-outline', label: 'Destek', route: 'Support' },
   { icon: 'document-text-outline', label: 'Gizlilik Politikası', route: 'PrivacyPolicy' },
   { icon: 'newspaper-outline', label: 'Kullanım Şartları', route: 'TermsOfUse' },
@@ -63,7 +73,7 @@ function resolveProfileDisplayName(
 ): string {
   if (displayName?.trim()) return displayName.trim();
   if (email?.trim()) return formatEmailPrefix(email.trim());
-  return fallbackName?.trim() || 'EchoSpeak Kullanıcısı';
+  return fallbackName?.trim() || 'Voira Kullanıcısı';
 }
 
 type StatCardProps = {
@@ -149,7 +159,9 @@ function AccountRow({
   return <View style={styles.accountRow}>{content}</View>;
 }
 
-export function ProfileScreen({ navigation }: Props) {
+export function ProfileScreen({ navigation, route }: Props) {
+  const scrollRef = useRef<ScrollView>(null);
+  const authCardOffsetY = useRef(0);
   const { profile } = useUser();
   const { learningProfile } = useLearning();
   const {
@@ -164,6 +176,7 @@ export function ProfileScreen({ navigation }: Props) {
     clearError,
   } = useAuth();
   const { restorePurchases, isRevenueCatConfigured, isPremium, isRestoring } = usePremium();
+  const { count: vocabularyCount } = useVocabulary();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -173,6 +186,20 @@ export function ProfileScreen({ navigation }: Props) {
 
   const isAuthFormValid = email.trim().length > 0 && password.length >= 6;
   const isSubmitting = isSigningIn || isSigningUp;
+
+  useEffect(() => {
+    if (!route.params?.focusAuth || !isGuest) return;
+
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(authCardOffsetY.current - spacing.md, 0),
+        animated: true,
+      });
+      navigation.setParams({ focusAuth: undefined });
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [isGuest, navigation, route.params?.focusAuth]);
 
   const progressSummary = useMemo(() => {
     const results = getAllPracticeResults();
@@ -310,7 +337,7 @@ export function ProfileScreen({ navigation }: Props) {
   };
 
   return (
-    <ScreenContainer withTabBar>
+    <ScreenContainer withTabBar scrollRef={scrollRef}>
       <View style={styles.hero}>
         <View style={styles.avatarOuter}>
           <View style={styles.avatarGlow} />
@@ -389,6 +416,21 @@ export function ProfileScreen({ navigation }: Props) {
         </LinearGradient>
       </TouchableOpacity>
 
+      {isGuest && isPremium ? (
+        <AppCard style={styles.guestPremiumWarning}>
+          <Text style={styles.guestPremiumWarningTitle}>{GUEST_PREMIUM_WARNING_COPY.title}</Text>
+          <Text style={styles.guestPremiumWarningBody}>{GUEST_PREMIUM_WARNING_COPY.body}</Text>
+          <TouchableOpacity
+            onPress={() => navigateToProfileAuth(navigation)}
+            style={styles.guestPremiumWarningCta}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.guestPremiumWarningCtaText}>Hesap oluştur veya giriş yap</Text>
+            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+          </TouchableOpacity>
+        </AppCard>
+      ) : null}
+
       <PremiumDebugPanel />
 
       <SectionHeader title="İstatistikler" />
@@ -401,10 +443,18 @@ export function ProfileScreen({ navigation }: Props) {
       {isGuest ? (
         <>
           <SectionHeader title="Hesap" />
-          <AppCard style={styles.authCard}>
+          <View
+            onLayout={(event) => {
+              authCardOffsetY.current = event.nativeEvent.layout.y;
+            }}
+          >
+            <AppCard style={styles.authCard}>
             <Text style={styles.authTitle}>Hesabını oluştur</Text>
             <Text style={styles.authSubtitle}>
-              Hesap oluşturarak gelişimini ve SpeakPlus erişimini güvenle sakla.
+              Gelişimini, SpeakPlus erişimini ve pratik geçmişini güvenle sakla.
+            </Text>
+            <Text style={styles.authPremiumNote}>
+              SpeakPlus satın almak için hesap gereklidir.
             </Text>
 
             {isLoadingAuth ? (
@@ -462,6 +512,7 @@ export function ProfileScreen({ navigation }: Props) {
               </>
             )}
           </AppCard>
+          </View>
         </>
       ) : (
         <>
@@ -515,13 +566,24 @@ export function ProfileScreen({ navigation }: Props) {
             <View style={styles.settingIconWrap}>
               <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
             </View>
-            <Text style={styles.settingLabel}>{item.label}</Text>
+            <View style={styles.settingTextWrap}>
+              <Text style={styles.settingLabel}>{item.label}</Text>
+              {item.route === 'Vocabulary' ? (
+                <Text style={styles.settingSubtitle}>
+                  {vocabularyCount > 0
+                    ? `${vocabularyCount} kelime`
+                    : item.subtitle ?? 'Kaydettiğin kelime ve ifadeler'}
+                </Text>
+              ) : item.subtitle ? (
+                <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+              ) : null}
+            </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </TouchableOpacity>
         ))}
       </AppCard>
 
-      <Text style={styles.versionText}>EchoSpeak v{APP_VERSION}</Text>
+      <Text style={styles.versionText}>Voira v{APP_VERSION}</Text>
     </ScreenContainer>
   );
 }
@@ -740,6 +802,41 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.textSecondary,
   },
+  authPremiumNote: {
+    ...typography.caption,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
+    lineHeight: 18,
+  },
+  guestPremiumWarning: {
+    marginBottom: spacing.md,
+    borderColor: 'rgba(229, 184, 74, 0.35)',
+    borderWidth: 1,
+    backgroundColor: 'rgba(229, 184, 74, 0.08)',
+  },
+  guestPremiumWarningTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.premium,
+    marginBottom: spacing.xs,
+  },
+  guestPremiumWarningBody: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  guestPremiumWarningCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+  },
+  guestPremiumWarningCtaText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   authLoading: {
     marginVertical: spacing.sm,
   },
@@ -834,10 +931,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   settingLabel: {
-    flex: 1,
     fontSize: 14,
     fontWeight: '500',
     color: colors.textPrimary,
+  },
+  settingTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  settingSubtitle: {
+    fontSize: 11,
+    color: colors.textMuted,
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,

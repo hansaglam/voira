@@ -10,11 +10,13 @@ import { DailyPracticeSessionScreen } from '../screens/DailyPracticeSessionScree
 import { CategoryLessonsScreen } from '../screens/CategoryLessonsScreen';
 import { DailyPracticeSummaryScreen } from '../screens/DailyPracticeSummaryScreen';
 import { PremiumScreen } from '../screens/PremiumScreen';
+import { VocabularyScreen } from '../screens/VocabularyScreen';
 import { PrivacyPolicyScreen } from '../screens/PrivacyPolicyScreen';
 import { TermsOfUseScreen } from '../screens/TermsOfUseScreen';
 import { SupportScreen } from '../screens/SupportScreen';
 import { DataDeletionScreen } from '../screens/DataDeletionScreen';
 import { AboutScreen } from '../screens/AboutScreen';
+import { VoiraLogo } from '../components/VoiraLogo';
 import { useUser } from '../context/UserContext';
 import { useLearning } from '../context/LearningContext';
 import { lessons } from '../data/lessons';
@@ -70,6 +72,11 @@ function MainNavigator() {
         component={PremiumScreen}
         options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
       />
+      <Stack.Screen
+        name="Vocabulary"
+        component={VocabularyScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
       <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="TermsOfUse" component={TermsOfUseScreen} />
       <Stack.Screen name="Support" component={SupportScreen} />
@@ -84,7 +91,11 @@ export function RootNavigator() {
   const { isLearningHydrated } = useLearning();
 
   if (!isOnboardingHydrated || !isLearningHydrated) {
-    return <View style={styles.bootSplash} />;
+    return (
+      <View style={styles.bootSplash}>
+        <VoiraLogo size={160} />
+      </View>
+    );
   }
 
   if (!onboardingComplete) {
@@ -97,6 +108,8 @@ export function RootNavigator() {
 const styles = StyleSheet.create({
   bootSplash: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#0D1334',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

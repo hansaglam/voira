@@ -8,7 +8,7 @@ export function buildAudioAdminPageHtml(isDev: boolean): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EchoSpeak Audio Admin</title>
+  <title>Voira Audio Admin</title>
   <style>
     :root {
       color-scheme: dark;
@@ -420,7 +420,7 @@ export function buildAudioAdminPageHtml(isDev: boolean): string {
   <div class="page">
     ${devBanner}
 
-    <h1>EchoSpeak Audio Admin</h1>
+    <h1>Voira Audio Admin</h1>
     <p class="subtitle">Upload and preview lesson segment audio without curl.</p>
     <div id="storageStatus" class="storage-status" hidden>
       Storage: <strong id="storageProviderLabel">—</strong>

@@ -32,6 +32,8 @@ export { PersonalizationSection } from './PersonalizationSection';
 export { LessonTeachingCard } from './LessonTeachingCard';
 export { LessonHeader } from './LessonHeader';
 export { LessonSegmentNavigator } from './LessonSegmentNavigator';
+export { LessonVocabularySection } from './LessonVocabularySection';
+export { VoiraLogo } from './VoiraLogo';
 export { SentenceCard } from './SentenceCard';
 export {
   AnimatedMic,

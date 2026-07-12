@@ -1,5 +1,6 @@
 import { LessonDifficultyLabel } from './lesson';
 import { PracticeStep, ShadowingPracticeMode, SpeechAccent, SpeechSpeedLevel } from './practiceMethodology';
+import type { VocabularyEntry } from './vocabulary';
 
 export interface LessonSegment {
   id: string;
@@ -40,4 +41,6 @@ export interface LessonSegment {
   slowLocalAudioAsset?: number;
   naturalLocalAudioAsset?: number;
   nativeLocalAudioAsset?: number;
+  /** Optional curated vocabulary for Kelime Defterim (MVP). */
+  vocabulary?: VocabularyEntry[];
 }

@@ -19,6 +19,7 @@ import {
   PracticePlaybackControls,
   LessonSegmentNavigator,
 } from '../components';
+import { LessonVocabularySection } from '../components/LessonVocabularySection';
 import { getAllLessons, getLessonById } from '../services/contentRepository';
 import { Lesson } from '../types/lesson';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
@@ -34,7 +35,12 @@ import {
 import type { LessonAudioSpeedMode } from '../services/audio';
 import { validateRecordedAudio } from '../services/audio/recordingValidation';
 import { useLearning } from '../context/LearningContext';
+import { getAllPracticeResults } from '../data/learningSessionStore';
+import { resolveResumeSegmentIndex } from '../data/lessonSegmentProgress';
 import { usePremium } from '../context/PremiumContext';
+import { useAuth } from '../context/AuthContext';
+import { isRegisteredUser } from '../utils/authAccess';
+import { requirePremiumAccess } from '../utils/premiumAccess';
 import { formatRecordingTime } from '../utils/recordingTime';
 import {
   getActiveSegment,
@@ -166,21 +172,20 @@ function buildDetailAccordionContent(
 function resolveInitialSegmentIndex(
   lesson: Lesson,
   params: RootStackParamList['Lesson'],
+  completedLessonIds: string[],
 ): number {
-  const total = getSegmentCount(lesson);
-  if (total <= 1) return 0;
+  const hasExplicitSegment =
+    (typeof params.segmentIndex === 'number' && Number.isFinite(params.segmentIndex)) ||
+    !!params.segmentId;
 
-  if (typeof params.segmentIndex === 'number' && Number.isFinite(params.segmentIndex)) {
-    return Math.min(Math.max(0, params.segmentIndex), total - 1);
+  if (hasExplicitSegment) {
+    return resolveResumeSegmentIndex(lesson, completedLessonIds, getAllPracticeResults(), {
+      explicitSegmentIndex: params.segmentIndex,
+      explicitSegmentId: params.segmentId,
+    });
   }
 
-  if (params.segmentId) {
-    const sorted = [...lesson.segments].sort((a, b) => a.order - b.order);
-    const idx = sorted.findIndex((item) => item.id === params.segmentId);
-    if (idx >= 0) return idx;
-  }
-
-  return 0;
+  return resolveResumeSegmentIndex(lesson, completedLessonIds, getAllPracticeResults());
 }
 
 async function resetSegmentPracticeMedia(options: {
@@ -301,6 +306,7 @@ function QuickLessonScreenContent({
   route,
   lesson,
 }: Props & { lesson: Lesson }) {
+  const { learningProfile, recordActiveLesson } = useLearning();
   const isDailySession =
     route.params.source === 'dailySession' || !!route.params.sessionId;
   const practiceIndex = route.params.practiceIndex;
@@ -308,10 +314,32 @@ function QuickLessonScreenContent({
   const showSession =
     isDailySession && typeof practiceIndex === 'number' && typeof totalLessons === 'number';
   const [segmentIndex, setSegmentIndex] = useState(() =>
-    resolveInitialSegmentIndex(lesson, route.params),
+    resolveInitialSegmentIndex(lesson, route.params, learningProfile.completedLessonIds),
   );
   const segment = getActiveSegment(lesson, segmentIndex);
   const segmentTotal = getSegmentCount(lesson);
+
+  useEffect(() => {
+    recordActiveLesson({
+      lessonId: lesson.id,
+      categoryId: route.params.categoryId,
+      source: route.params.source,
+      sessionId: route.params.sessionId,
+      practiceIndex: route.params.practiceIndex,
+      segmentId: segment.id,
+      segmentIndex,
+    });
+  }, [
+    lesson.id,
+    recordActiveLesson,
+    route.params.categoryId,
+    route.params.practiceIndex,
+    route.params.sessionId,
+    route.params.source,
+    segment.id,
+    segmentIndex,
+  ]);
+
   const highlightedWords = getSegmentHighlightedWords(segment);
   const pauseMarkedText = getSegmentPauseMarkedText(segment);
   const focusTip = segment.pronunciationTipTr || segment.shadowingInstructionTr;
@@ -403,9 +431,19 @@ function QuickLessonScreenContent({
     if (typeof route.params.segmentIndex !== 'number' && !route.params.segmentId) {
       return;
     }
-    const nextIndex = resolveInitialSegmentIndex(lesson, route.params);
+    const nextIndex = resolveInitialSegmentIndex(
+      lesson,
+      route.params,
+      learningProfile.completedLessonIds,
+    );
     void goToSegment(nextIndex);
-  }, [goToSegment, lesson.id, route.params.segmentId, route.params.segmentIndex]);
+  }, [
+    goToSegment,
+    learningProfile.completedLessonIds,
+    lesson.id,
+    route.params.segmentId,
+    route.params.segmentIndex,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -624,6 +662,8 @@ function QuickLessonScreenContent({
         </View>
       ) : null}
 
+      <LessonVocabularySection lesson={lesson} segment={segment} />
+
       {detailContent ? (
         <AccordionCard
           title="Detaylı incele"
@@ -646,8 +686,10 @@ function GuidedLessonScreenContent({
   route,
   lesson,
 }: Props & { lesson: Lesson }) {
-  const { learningProfile } = useLearning();
+  const { learningProfile, recordActiveLesson } = useLearning();
   const { isPremium: isPremiumUser } = usePremium();
+  const { user } = useAuth();
+  const registered = isRegisteredUser(user);
   const isDailySession =
     route.params.source === 'dailySession' || !!route.params.sessionId;
   const practiceIndex = route.params.practiceIndex;
@@ -655,10 +697,32 @@ function GuidedLessonScreenContent({
   const showSession =
     isDailySession && typeof practiceIndex === 'number' && typeof totalLessons === 'number';
   const [segmentIndex, setSegmentIndex] = useState(() =>
-    resolveInitialSegmentIndex(lesson, route.params),
+    resolveInitialSegmentIndex(lesson, route.params, learningProfile.completedLessonIds),
   );
   const segment = getActiveSegment(lesson, segmentIndex);
   const segmentTotal = getSegmentCount(lesson);
+
+  useEffect(() => {
+    recordActiveLesson({
+      lessonId: lesson.id,
+      categoryId: route.params.categoryId,
+      source: route.params.source,
+      sessionId: route.params.sessionId,
+      practiceIndex: route.params.practiceIndex,
+      segmentId: segment.id,
+      segmentIndex,
+    });
+  }, [
+    lesson.id,
+    recordActiveLesson,
+    route.params.categoryId,
+    route.params.practiceIndex,
+    route.params.sessionId,
+    route.params.source,
+    segment.id,
+    segmentIndex,
+  ]);
+
   const visibleSteps = useMemo(
     () => getVisiblePracticeSteps(lesson, isPremiumUser),
     [lesson.id, lesson.isPremium, isPremiumUser],
@@ -785,9 +849,19 @@ function GuidedLessonScreenContent({
     if (typeof route.params.segmentIndex !== 'number' && !route.params.segmentId) {
       return;
     }
-    const nextIndex = resolveInitialSegmentIndex(lesson, route.params);
+    const nextIndex = resolveInitialSegmentIndex(
+      lesson,
+      route.params,
+      learningProfile.completedLessonIds,
+    );
     void goToSegment(nextIndex);
-  }, [goToSegment, lesson.id, route.params.segmentId, route.params.segmentIndex]);
+  }, [
+    goToSegment,
+    learningProfile.completedLessonIds,
+    lesson.id,
+    route.params.segmentId,
+    route.params.segmentIndex,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -827,10 +901,10 @@ function GuidedLessonScreenContent({
   const handleLockedStepPress = useCallback(
     (step: PracticeStep) => {
       if (step === 'blind_shadowing') {
-        navigation.navigate('Premium');
+        requirePremiumAccess(isPremiumUser, registered, navigation, () => {});
       }
     },
-    [navigation],
+    [isPremiumUser, navigation, registered],
   );
 
   const handlePlay = useCallback(async () => {
@@ -972,17 +1046,16 @@ function GuidedLessonScreenContent({
   }, [retryPermission]);
 
   const handleLockedModePress = useCallback(() => {
-    navigation.navigate('Premium');
-  }, [navigation]);
+    requirePremiumAccess(isPremiumUser, registered, navigation, () => {});
+  }, [isPremiumUser, navigation, registered]);
 
   const handleContinueToBlind = useCallback(() => {
-    if (!isPremiumUser || !visibleSteps.includes('blind_shadowing')) {
-      navigation.navigate('Premium');
-      return;
-    }
-    setCurrentStep('blind_shadowing');
-    void resetRecording();
-  }, [isPremiumUser, navigation, resetRecording, visibleSteps]);
+    requirePremiumAccess(isPremiumUser, registered, navigation, () => {
+      if (!visibleSteps.includes('blind_shadowing')) return;
+      setCurrentStep('blind_shadowing');
+      void resetRecording();
+    });
+  }, [isPremiumUser, navigation, registered, resetRecording, visibleSteps]);
 
   const stepInstruction = useMemo(() => {
     switch (currentStep) {

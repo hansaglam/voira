@@ -1,11 +1,17 @@
-import { UserLearningProfile } from '../types/learning';
-import { Lesson } from '../types/lesson';
+import { PracticeResult, UserLearningProfile } from '../types/learning';
+import { Lesson, LessonCategory, LESSON_TYPE_LABELS } from '../types/lesson';
 import {
   getAccessibleLessons,
   getLockedPremiumLessons,
   getRecommendedLessons as selectRecommendedLessons,
   getContinueLesson as selectContinueLesson,
 } from './learningAlgorithm';
+import { getAllPracticeResults } from './learningSessionStore';
+import {
+  buildLessonSegmentProgress,
+  resolveLessonProgressState,
+  resolveResumeSegmentIndex,
+} from './lessonSegmentProgress';
 import {
   getLessonById,
   getCategoryLessonStats,
@@ -16,19 +22,14 @@ import { normalizeLearningProfile } from '../utils/recommendationSafety';
 import {
   canAccessLesson,
   getLessonActionLabel,
+  handlePremiumLessonAccess,
   isLessonLocked,
   type LessonCtaLabel,
   type LessonProgressState,
 } from '../utils/premiumAccess';
-import { LessonCategory, LESSON_TYPE_LABELS } from '../types/lesson';
 
 export type { LessonProgressState, LessonCtaLabel };
-export { canAccessLesson, getLessonActionLabel, isLessonLocked };
-
-export {
-  getAccessibleLessons,
-  getLockedPremiumLessons,
-} from './learningAlgorithm';
+export { canAccessLesson, getLessonActionLabel, isLessonLocked, resolveLessonProgressState };
 
 /** @deprecated Use getLessonActionLabel */
 export function getLessonCtaLabel(
@@ -62,7 +63,50 @@ export function getPremiumValueLabels(lesson: Lesson): string[] {
 }
 
 export function getContinueLesson(profile: UserLearningProfile): Lesson {
-  return selectContinueLesson(profile, lessons);
+  return getContinueLessonEntry(profile, lessons).lesson;
+}
+
+export function getContinueLessonEntry(
+  profile: UserLearningProfile,
+  lessonList: Lesson[] = lessons,
+): { lesson: Lesson; segmentIndex: number } {
+  const safeProfile = normalizeLearningProfile(profile);
+  const results = getAllPracticeResults();
+  const accessible = getAccessibleLessons(safeProfile, lessonList);
+
+  const inProgressLessons = accessible
+    .filter((lesson) => !safeProfile.completedLessonIds.includes(lesson.id))
+    .filter(
+      (lesson) =>
+        buildLessonSegmentProgress(lesson, safeProfile.completedLessonIds, results).isInProgress,
+    )
+    .sort(
+      (a, b) =>
+        scoreLessonForContinue(b, safeProfile, results) - scoreLessonForContinue(a, safeProfile, results),
+    );
+
+  if (inProgressLessons.length > 0) {
+    const lesson = inProgressLessons[0];
+    return {
+      lesson,
+      segmentIndex: resolveResumeSegmentIndex(lesson, safeProfile.completedLessonIds, results),
+    };
+  }
+
+  const lesson = selectContinueLesson(safeProfile, lessonList);
+  return {
+    lesson,
+    segmentIndex: resolveResumeSegmentIndex(lesson, safeProfile.completedLessonIds, results),
+  };
+}
+
+function scoreLessonForContinue(
+  lesson: Lesson,
+  profile: UserLearningProfile,
+  results: PracticeResult[],
+): number {
+  const progress = buildLessonSegmentProgress(lesson, profile.completedLessonIds, results);
+  return progress.completedSegmentIds.length * 10 + (lesson.isPremium ? 0 : 2);
 }
 
 export function getRecommendedLessons(profile: UserLearningProfile, limit = 3): Lesson[] {
@@ -79,20 +123,22 @@ export function openLessonFromLibrary(
         lessonId?: string;
         source?: 'library';
         categoryId?: LessonCategory;
+        segmentIndex?: number;
       },
     ) => void;
   },
   lesson: Lesson,
   isPremiumUser: boolean,
+  isRegisteredUser: boolean,
   categoryId?: LessonCategory,
+  segmentIndex?: number,
 ) {
-  if (!canAccessLesson(lesson, isPremiumUser)) {
-    navigation.navigate('Premium');
-    return;
-  }
-  navigation.navigate('Lesson', {
-    lessonId: lesson.id,
-    source: 'library',
-    categoryId,
+  handlePremiumLessonAccess(lesson, isPremiumUser, isRegisteredUser, navigation as never, () => {
+    navigation.navigate('Lesson', {
+      lessonId: lesson.id,
+      source: 'library',
+      categoryId,
+      ...(typeof segmentIndex === 'number' ? { segmentIndex } : {}),
+    });
   });
 }

@@ -32,6 +32,10 @@ export const productionCafeSpeakingLessons = linkLessonChain([
         rhythm: 'Can I get / an iced latte / please?',
         patternTr: '"Can I get…" kafe sipariş kalıbı',
         stressTr: 'iced latte ve please üzerinde hafif vurgu',
+        vocabulary: [
+          { word: 'Can I get...?', translationTr: '... alabilir miyim?' },
+          { word: 'iced latte', translationTr: 'buzlu latte' },
+        ],
       },
       {
         en: 'Could you make it with oat milk?',

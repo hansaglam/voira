@@ -31,6 +31,10 @@ import {
   isValidRecordingForAnalysis,
   MIN_AUDIO_ANALYSIS_DURATION_MS,
 } from '../services/audioAnalysis';
+import {
+  isFinalLessonSegment,
+  resolveCurrentSegmentIndex,
+} from '../data/lessonSegmentProgress';
 import { getActiveSegment } from '../utils/lessonUtils';
 import {
   SHADOWING_MODE_ANALYSIS_LABELS,
@@ -39,7 +43,9 @@ import {
 import { CATEGORY_LABELS } from '../types/lesson';
 import { colors, spacing, typography, borderRadius } from '../theme';
 import { getRecommendedLessonsFromAnalysis } from '../services/recommendations';
-import { isLessonLocked } from '../utils/premiumAccess';
+import { useAuth } from '../context/AuthContext';
+import { isRegisteredUser } from '../utils/authAccess';
+import { handlePremiumLessonAccess } from '../utils/premiumAccess';
 import {
   buildImproveDisplayWords,
   buildMissingDisplayWords,
@@ -157,6 +163,8 @@ function sanitizeWordChips(words: string[]): string[] {
 export function AnalysisResultScreen({ navigation, route }: Props) {
   const { profile } = useUser();
   const { isPremium } = usePremium();
+  const { user } = useAuth();
+  const registered = isRegisteredUser(user);
   const { generateAnalysisAsync, submitPracticeResult, getSession } = useLearning();
 
   const lessonId = route.params.lessonId;
@@ -218,14 +226,14 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     );
   }
 
-  const segment = useMemo(() => {
-    const currentLesson = lesson;
-    if (segmentId) {
-      const matched = currentLesson.segments.find((s) => s.id === segmentId);
-      if (matched) return matched;
-    }
-    return getActiveSegment(currentLesson, 0);
-  }, [lessonId, segmentId]);
+  const currentSegmentIndex = useMemo(
+    () => resolveCurrentSegmentIndex(lesson, segmentId, segmentIndexParam),
+    [lesson, segmentId, segmentIndexParam],
+  );
+
+  const segment = useMemo(() => getActiveSegment(lesson, currentSegmentIndex), [lesson, currentSegmentIndex]);
+
+  const isLastSegment = isFinalLessonSegment(lesson, currentSegmentIndex);
 
   const analysis = shouldRunPipeline ? asyncAnalysis : null;
   const displayCorrectWords = useMemo(
@@ -513,6 +521,32 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     categoryId,
   };
 
+  const navigateToLesson = (options: {
+    segmentIndex?: number;
+    segmentId?: string;
+  }) => {
+    const params = {
+      ...libraryLessonParams,
+      ...(options.segmentId ? { segmentId: options.segmentId } : {}),
+      ...(typeof options.segmentIndex === 'number' ? { segmentIndex: options.segmentIndex } : {}),
+    };
+
+    if (inDailySession) {
+      navigation.replace('Lesson', {
+        lessonId,
+        source: 'dailySession',
+        sessionId,
+        practiceIndex,
+        totalLessons,
+        segmentId: options.segmentId,
+        segmentIndex: options.segmentIndex,
+      });
+      return;
+    }
+
+    navigation.replace('Lesson', params);
+  };
+
   const handleNext = () => {
     if (inDailySession && sessionId) {
       if (isFinal) {
@@ -535,6 +569,11 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
       return;
     }
 
+    if (!isLastSegment) {
+      navigateToLesson({ segmentIndex: currentSegmentIndex + 1 });
+      return;
+    }
+
     if (inLibrary && categoryId) {
       navigation.navigate('CategoryLessons', { categoryId });
       return;
@@ -547,38 +586,14 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     ? isFinal
       ? 'Günlük özeti gör'
       : 'Devam et'
-    : 'Derslere dön';
+    : isLastSegment
+      ? 'Dersi tamamla'
+      : 'Sonraki bölüme geç';
 
   const handleRetry = () => {
-    const resumeSegmentIndex =
-      typeof segmentIndexParam === 'number' && Number.isFinite(segmentIndexParam)
-        ? segmentIndexParam
-        : segmentId
-          ? lesson.segments.findIndex((item) => item.id === segmentId)
-          : undefined;
-
-    if (inDailySession) {
-      navigation.navigate('Lesson', {
-        lessonId,
-        source: 'dailySession',
-        sessionId,
-        practiceIndex,
-        totalLessons,
-        segmentId,
-        segmentIndex:
-          resumeSegmentIndex !== undefined && resumeSegmentIndex >= 0
-            ? resumeSegmentIndex
-            : undefined,
-      });
-      return;
-    }
-    navigation.navigate('Lesson', {
-      ...libraryLessonParams,
-      segmentId,
-      segmentIndex:
-        resumeSegmentIndex !== undefined && resumeSegmentIndex >= 0
-          ? resumeSegmentIndex
-          : undefined,
+    navigateToLesson({
+      segmentId: segment.id,
+      segmentIndex: currentSegmentIndex,
     });
   };
   const handleReturnToLesson = () => {
@@ -592,15 +607,12 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
     const recommended = getLessonById(recommendedLessonId);
     if (!recommended) return;
-    const locked = isLessonLocked(recommended, isPremium);
-    if (locked) {
-      navigation.navigate('Premium');
-      return;
-    }
-    navigation.navigate('Lesson', {
-      lessonId: recommended.id,
-      source: 'library',
-      categoryId: recommended.category,
+    handlePremiumLessonAccess(recommended, isPremium, registered, navigation, () => {
+      navigation.navigate('Lesson', {
+        lessonId: recommended.id,
+        source: 'library',
+        categoryId: recommended.category,
+      });
     });
   };
 

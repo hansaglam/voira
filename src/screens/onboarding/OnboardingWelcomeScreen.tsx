@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { OnboardingScreenProps } from '../../navigation/types';
-import { ScreenContainer, AppButton } from '../../components';
+import { ScreenContainer, AppButton, VoiraLogo } from '../../components';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
 type Props = OnboardingScreenProps<'OnboardingWelcome'>;
@@ -30,20 +30,11 @@ export function OnboardingWelcomeScreen({ navigation }: Props) {
           colors={['rgba(91,95,239,0.25)', 'rgba(139,92,246,0.08)', 'transparent']}
           style={styles.glow}
         />
-        <View style={styles.logoContainer}>
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientEnd]}
-            style={styles.logo}
-          >
-            <Ionicons name="mic" size={36} color={colors.textPrimary} />
-          </LinearGradient>
-        </View>
-        <Text style={styles.brand}>EchoSpeak</Text>
-        <Text style={styles.tagline}>
-          İngilizce konuşma pratiğini her gün kısa shadowing egzersizleriyle geliştir.
-        </Text>
+        <VoiraLogo size={128} style={styles.logo} />
+        <Text style={styles.brand}>Voira</Text>
+        <Text style={styles.tagline}>Konuş, analiz al, geliş.</Text>
         <Text style={styles.subtitle}>
-          Dinle, tekrar et, kaydet ve konuşmana göre geri bildirim al.
+          İngilizce konuşmanı analiz eden AI konuşma koçu. Dinle, tekrar et, kaydet.
         </Text>
       </View>
 
@@ -78,22 +69,15 @@ const styles = StyleSheet.create({
     borderRadius: 130,
     top: -36,
   },
-  logoContainer: {
-    marginBottom: spacing.lg,
-  },
   logo: {
-    width: 84,
-    height: 84,
-    borderRadius: borderRadius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: spacing.lg,
   },
   brand: {
     fontSize: 34,
     fontWeight: '700',
     color: colors.textPrimary,
     letterSpacing: -0.8,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   tagline: {
     ...typography.h3,

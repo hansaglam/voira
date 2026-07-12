@@ -16,6 +16,7 @@ import type {
   PurchasesPackage,
 } from 'react-native-purchases';
 import { useAuth } from './AuthContext';
+import { isRegisteredUser } from '../utils/authAccess';
 import { useLearning } from './LearningContext';
 import {
   addCustomerInfoListener,
@@ -330,6 +331,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     async (
       selectedPackage: PurchasesPackage,
     ): Promise<'unlocked' | 'cancelled' | 'already_subscribed' | 'failed'> => {
+      if (!isRegisteredUser(user)) return 'failed';
       if (!isRevenueCatReady) return 'failed';
 
       setIsPurchasing(true);
@@ -364,12 +366,13 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         setIsPurchasing(false);
       }
     },
-    [applyCustomerInfo, isRevenueCatReady],
+    [applyCustomerInfo, isRevenueCatReady, user],
   );
 
   const restorePurchases = useCallback(async (): Promise<
     'restored' | 'not_found' | 'error'
   > => {
+    if (!isRegisteredUser(user)) return 'error';
     if (!isRevenueCatReady) return 'error';
 
     setIsRestoring(true);
@@ -386,7 +389,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsRestoring(false);
     }
-  }, [applyCustomerInfo, isRevenueCatReady]);
+  }, [applyCustomerInfo, isRevenueCatReady, user]);
 
   const value = useMemo(
     (): PremiumContextType => ({

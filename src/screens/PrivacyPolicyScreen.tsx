@@ -8,12 +8,12 @@ export function PrivacyPolicyScreen(_props: Props) {
   return (
     <InfoScreenLayout
       title="Gizlilik Politikası"
-      subtitle="EchoSpeak MVP sürümü için özet bilgilendirme"
+      subtitle="Voira MVP sürümü için özet bilgilendirme"
       sections={[
         {
           title: 'Ses kayıtları',
           body:
-            'EchoSpeak yalnızca kayıt düğmesine bastığında ses kaydı alır. Kayıt, analiz tamamlanana kadar cihazında tutulur ve analiz sunucusuna gönderilir.',
+            'Voira yalnızca kayıt düğmesine bastığında ses kaydı alır. Kayıt, analiz tamamlanana kadar cihazında tutulur ve analiz sunucusuna gönderilir.',
         },
         {
           title: 'Analiz sunucusu',
@@ -27,7 +27,7 @@ export function PrivacyPolicyScreen(_props: Props) {
         },
         {
           title: 'Veri satışı',
-          body: 'EchoSpeak kullanıcı verilerini satmaz.',
+          body: 'Voira kullanıcı verilerini satmaz.',
         },
         {
           title: 'İletişim',

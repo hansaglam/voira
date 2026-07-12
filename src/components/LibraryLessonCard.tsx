@@ -26,6 +26,8 @@ interface LibraryLessonCardProps {
   dense?: boolean;
   progressState?: LessonProgressState;
   ctaLabelOverride?: ReturnType<typeof getLessonActionLabel>;
+  /** Lower emphasis for completed section grouping */
+  sectionTone?: 'default' | 'completed';
 }
 
 export function LibraryLessonCard({
@@ -38,6 +40,7 @@ export function LibraryLessonCard({
   dense = false,
   progressState,
   ctaLabelOverride,
+  sectionTone = 'default',
 }: LibraryLessonCardProps) {
   const locked = isLessonLocked(lesson, isPremiumUser);
   const isCompleted =
@@ -87,18 +90,22 @@ export function LibraryLessonCard({
   }
 
   return (
-    <AppCard style={locked ? styles.listLockedCard : styles.listCard}>
+    <AppCard
+      style={
+        locked
+          ? styles.listLockedCard
+          : sectionTone === 'completed'
+            ? styles.completedSectionCard
+            : styles.listCard
+      }
+    >
       <View style={styles.listRow}>
         <View style={styles.listContent}>
           <View style={styles.titleRow}>
             <Text style={styles.listTitle} numberOfLines={1}>
               {lesson.title}
             </Text>
-            {effectiveState === 'completed' ? (
-              <Ionicons name="checkmark-circle" size={15} color={colors.success} />
-            ) : locked ? (
-              <LockedBadge compact />
-            ) : null}
+            {locked ? <LockedBadge compact /> : null}
           </View>
           <Text style={styles.listFocus} numberOfLines={1}>
             {lesson.subtitle || lesson.focusSkill}
@@ -126,11 +133,14 @@ export function LibraryLessonCard({
             <Text style={styles.metaDot}>•</Text>
             <Text style={styles.metaText}>{difficulty}</Text>
             {effectiveState === 'in_progress' ? (
-              <>
-                <Text style={styles.metaDot}>•</Text>
-                <View style={styles.inProgressDot} />
-                <Text style={styles.metaText}>Devam ediyor</Text>
-              </>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>Devam ediyor</Text>
+              </View>
+            ) : null}
+            {effectiveState === 'completed' ? (
+              <View style={[styles.statusBadge, styles.completedBadge]}>
+                <Text style={[styles.statusBadgeText, styles.completedBadgeText]}>Tamamlandı</Text>
+              </View>
             ) : null}
           </View>
           {locked && premiumLabel ? (
@@ -158,6 +168,12 @@ const styles = StyleSheet.create({
   listCard: {
     marginBottom: spacing.sm,
     padding: spacing.sm,
+  },
+  completedSectionCard: {
+    marginBottom: spacing.sm,
+    padding: spacing.sm,
+    opacity: 0.92,
+    backgroundColor: 'rgba(21, 22, 40, 0.88)',
   },
   listLockedCard: {
     marginBottom: spacing.sm,
@@ -234,6 +250,26 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: colors.secondary,
+  },
+  statusBadge: {
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    borderRadius: borderRadius.full,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  statusBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.secondary,
+  },
+  completedBadge: {
+    backgroundColor: 'rgba(52, 211, 153, 0.08)',
+    borderColor: 'rgba(52, 211, 153, 0.18)',
+  },
+  completedBadgeText: {
+    color: colors.success,
   },
   speakPlusBadge: {
     flexDirection: 'row',
