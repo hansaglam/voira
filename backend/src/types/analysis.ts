@@ -7,6 +7,7 @@ export type ScoreSource = 'azure_pronunciation' | 'text_match_only';
 export type AnalysisFeedbackType =
   | 'wrong_sentence'
   | 'missing_words'
+  | 'clarity_issue'
   | 'weak_pronunciation'
   | 'fluency_issue'
   | 'prosody_issue'

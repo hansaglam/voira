@@ -30,9 +30,9 @@ const PREMIUM_UNLOCKS = [
   'Sınırsız pratik',
   'Tüm ders paketleri',
   'Gelişmiş geri bildirimler',
-  'Kelime eşleşmesi, eksik kelimeler ve akıcılık tahmini',
+  'Azure telaffuz analizi ve kelime bazlı geri bildirim',
   'Kişisel gelişim raporu',
-  'Detaylı telaffuz değerlendirmesi yakında',
+  'Detaylı telaffuz, akıcılık ve tamamlama skorları',
 ];
 
 const BENEFIT_PILLS = [

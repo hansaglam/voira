@@ -1,3 +1,6 @@
+import {
+  buildAzureScoringDecision,
+} from './azureScoringService.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 import type { SpeechAnalysisMode, SpeechScores, TextComparisonResult } from '../types/analysis.js';
 import { clampScore, tokenize } from '../utils/normalize.js';
@@ -253,21 +256,19 @@ function buildPronunciationAssessmentScores(
     ? undefined
     : clampScore(assessment.prosodyScore);
 
-  const fluencyWeight = prosodyScore === undefined ? 0.2 : 0.15;
-  const prosodyWeight = prosodyScore === undefined ? 0 : 0.05;
-
-  let nativeScore = clampScore(
-    Math.round(
-      pronunciationScore * 0.4 +
-        accuracyScore * 0.25 +
-        fluencyScore * fluencyWeight +
-        completenessScore * 0.15 +
-        (prosodyScore ?? 0) * prosodyWeight,
-    ),
+  const azureScoringDecision = buildAzureScoringDecision(
+    {
+      accuracyScore,
+      pronunciationScore,
+      fluencyScore,
+      completenessScore,
+      prosodyScore,
+    },
+    assessment,
   );
 
-  nativeScore = applyStrictComparisonCaps(
-    nativeScore,
+  let nativeScore = applyStrictComparisonCaps(
+    azureScoringDecision.finalScore,
     comparison,
     durationMillis,
     'pronunciation_assessment',

@@ -4,7 +4,7 @@ import { InfoScreenLayout } from '../components/InfoScreenLayout';
 
 type Props = RootScreenProps<'About'>;
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.5';
 
 export function AboutScreen(_props: Props) {
   return (
@@ -20,7 +20,7 @@ export function AboutScreen(_props: Props) {
         {
           title: 'MVP sürümü',
           body:
-            'Bu sürüm erken erişim (MVP) niteliğindedir. Geri bildirim kelime eşleşmesi ve akıcılık tahminine dayanır; detaylı telaffuz değerlendirmesi yakında eklenecektir.',
+            'Bu sürüm erken erişim (MVP) niteliğindedir. Konuşma analizi kelime eşleşmesi, Azure telaffuz değerlendirmesi ve akıcılık ölçümlerine dayanır.',
         },
         {
           title: 'SpeakPlus',

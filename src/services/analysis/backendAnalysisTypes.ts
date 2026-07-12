@@ -48,6 +48,7 @@ export type BackendAnalysisSuccessResponse = {
   feedbackType?:
     | 'wrong_sentence'
     | 'missing_words'
+    | 'clarity_issue'
     | 'weak_pronunciation'
     | 'fluency_issue'
     | 'prosody_issue'

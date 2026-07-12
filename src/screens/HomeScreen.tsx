@@ -23,6 +23,18 @@ import { colors, spacing, typography, borderRadius, layout, gradients, shadows }
 
 type Props = TabScreenProps<'Home'>;
 
+const VALUE_BULLETS = [
+  'Gerçek telaffuz analizi',
+  'Zayıf kelimelerini gör',
+  'Türkçe AI koç yorumu',
+  'Kısa derslerle pratik yap',
+] as const;
+
+const SPEAKPLUS_BENEFITS = [
+  'İleri seviye dersler',
+  'Kelime bazlı geri bildirim',
+] as const;
+
 export function HomeScreen({ navigation }: Props) {
   const { profile, pendingFirstLesson, clearPendingFirstLesson } = useUser();
   const { isPremium } = usePremium();
@@ -59,7 +71,7 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.brandLabel}>EchoSpeak</Text>
           <Text style={typography.h1}>Merhaba, {profile.name}</Text>
           <Text style={styles.greetingSub}>
-            Bugün kısa bir shadowing pratiğiyle konuşmanı geliştir.
+            Bugün kısa bir pratik yap, telaffuzunu analiz et ve zayıf kelimelerini gör.
           </Text>
         </View>
         {!isPremium ? (
@@ -81,7 +93,7 @@ export function HomeScreen({ navigation }: Props) {
         </View>
         <View style={styles.streakPill}>
           <Ionicons name="stats-chart-outline" size={14} color={colors.secondary} />
-          <Text style={styles.streakText}>Ort. {learningProfile.averageScore} Native</Text>
+          <Text style={styles.streakText}>Ort. {learningProfile.averageScore} Skor</Text>
         </View>
       </View>
 
@@ -112,13 +124,37 @@ export function HomeScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.dailyGoal}>Hedef: {dailyGoalLabel}</Text>
           <View style={styles.dailyCta}>
-            <Text style={styles.dailyCtaText}>Bugünkü pratiğe başla</Text>
+            <Text style={styles.dailyCtaText}>Pratiğe başla</Text>
             <View style={styles.dailyCtaIcon}>
               <Ionicons name="arrow-forward" size={18} color={colors.textPrimary} />
             </View>
           </View>
         </LinearGradient>
       </TouchableOpacity>
+
+      <View style={styles.valueCard}>
+        <LinearGradient
+          colors={['rgba(91, 95, 239, 0.14)', 'rgba(26, 27, 46, 0.92)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.valueCardInner}
+        >
+          <View style={styles.valueHeader}>
+            <View style={styles.valueIcon}>
+              <Ionicons name="sparkles" size={14} color={colors.secondary} />
+            </View>
+            <Text style={styles.valueTitle}>Neden EchoSpeak?</Text>
+          </View>
+          <View style={styles.valueBullets}>
+            {VALUE_BULLETS.map((bullet) => (
+              <View key={bullet} style={styles.valueBulletRow}>
+                <Ionicons name="checkmark-circle" size={12} color={colors.primary} />
+                <Text style={styles.valueBulletText}>{bullet}</Text>
+              </View>
+            ))}
+          </View>
+        </LinearGradient>
+      </View>
 
       {/* B. Continue Learning */}
       <AppCard style={styles.continueCard} elevated>
@@ -161,11 +197,12 @@ export function HomeScreen({ navigation }: Props) {
         ))}
       </ScrollView>
 
-      <SectionHeader title="Yakında" subtitle="SpeakPlus pratikler" />
+      <SectionHeader title="SpeakPlus araçları" subtitle="Kişisel pratik ve gelişmiş geri bildirim" />
       <FuturePracticeCard
         title="AI ile kendi dersini oluştur"
         subtitle="Sevdiğin bir cümleyi shadowing dersine çevir."
         icon="sparkles"
+        benefits={['Kişisel cümle pratiği', 'Azure telaffuz analizi']}
         onPress={() => navigation.navigate('Premium')}
       />
 
@@ -174,7 +211,7 @@ export function HomeScreen({ navigation }: Props) {
         onPress={() => navigation.navigate('Premium')}
       >
         <LinearGradient
-          colors={['rgba(139, 92, 246, 0.18)', 'rgba(26, 27, 46, 0.95)']}
+          colors={['rgba(229, 184, 74, 0.14)', 'rgba(139, 92, 246, 0.16)', 'rgba(26, 27, 46, 0.95)']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.plusCard}
@@ -184,12 +221,20 @@ export function HomeScreen({ navigation }: Props) {
               <Ionicons name="diamond" size={16} color={colors.premium} />
             </View>
             <View style={styles.plusTextWrap}>
-              <Text style={styles.plusTitle}>SpeakPlus yakında</Text>
+              <Text style={styles.plusTitle}>SpeakPlus pratikleri</Text>
               <Text style={styles.plusSubtitle} numberOfLines={1}>
-                Daha fazla pratik ve gelişmiş geri bildirimler
+                İleri telaffuz, akıcılık ve profesyonel konuşma dersleri
               </Text>
+              <View style={styles.plusBenefits}>
+                {SPEAKPLUS_BENEFITS.map((benefit) => (
+                  <View key={benefit} style={styles.plusBenefitRow}>
+                    <Ionicons name="ellipse" size={5} color={colors.premium} />
+                    <Text style={styles.plusBenefitText}>{benefit}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.premium} />
+            <Ionicons name="chevron-forward" size={18} color={colors.premium} style={styles.plusChevron} />
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -325,6 +370,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  valueCard: {
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(91, 95, 239, 0.22)',
+  },
+  valueCardInner: {
+    padding: spacing.sm + 4,
+  },
+  valueHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  valueIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(139, 92, 246, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  valueTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  valueBullets: {
+    gap: 5,
+  },
+  valueBulletRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  valueBulletText: {
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textSecondary,
+    flex: 1,
+  },
   continueCard: {
     marginBottom: spacing.md,
     padding: spacing.sm + 4,
@@ -361,18 +449,18 @@ const styles = StyleSheet.create({
     padding: spacing.sm + 4,
     marginBottom: spacing.xs,
     borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.2)',
+    borderColor: 'rgba(229, 184, 74, 0.28)',
   },
   plusRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
   },
   plusIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(196, 181, 253, 0.12)',
+    backgroundColor: 'rgba(229, 184, 74, 0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -389,5 +477,23 @@ const styles = StyleSheet.create({
   plusSubtitle: {
     fontSize: 11,
     color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  plusBenefits: {
+    gap: 2,
+    marginTop: 2,
+  },
+  plusBenefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  plusBenefitText: {
+    fontSize: 10,
+    color: colors.textMuted,
+    lineHeight: 14,
+  },
+  plusChevron: {
+    marginTop: 8,
   },
 });

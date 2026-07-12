@@ -81,7 +81,7 @@ export function NativeScoreRing({ score, size = 88 }: NativeScoreRingProps) {
           </Text>
           <Text style={styles.max}>/100</Text>
         </View>
-        <Text style={[styles.label, { fontSize: labelFontSize }]}>Native Score</Text>
+        <Text style={[styles.label, { fontSize: labelFontSize }]}>Konuşma Skoru</Text>
       </View>
     </View>
   );

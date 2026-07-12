@@ -13,7 +13,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 export function AnimatedScoreRing({
   score,
   maxScore = 100,
-  label = 'Native Score',
+  label = 'Konuşma Skoru',
   progress,
   size = 96,
   autoPlay = true,

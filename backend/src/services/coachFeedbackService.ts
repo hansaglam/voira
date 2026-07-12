@@ -27,11 +27,14 @@ const TEXT_MATCH_NOTE_TR =
 const WORDS_PER_SECOND_ESTIMATE = 2.4;
 const LOW_ORDER_SCORE_THRESHOLD = 75;
 const WEAK_WORD_ACCURACY_THRESHOLD = 70;
+const SEVERE_WEAK_WORD_ACCURACY_THRESHOLD = 50;
 
 const WRONG_SENTENCE_MATCH_THRESHOLD = 40;
 const WRONG_SENTENCE_COVERAGE_THRESHOLD = 40;
-const PARTIAL_COMPLETENESS_THRESHOLD = 70;
-const PARTIAL_COVERAGE_THRESHOLD = 75;
+const MISSING_COMPLETENESS_THRESHOLD = 75;
+const MISSING_COVERAGE_THRESHOLD = 75;
+const HIGH_COMPLETION_THRESHOLD = 85;
+const CLARITY_COMPLETENESS_THRESHOLD = 80;
 const STRONG_COVERAGE_THRESHOLD = 75;
 const STRONG_COMPLETENESS_THRESHOLD = 75;
 
@@ -51,11 +54,58 @@ export interface CoachFeedbackDecision {
   completenessScore: number;
   prosodyScore: number | null;
   weakWordCount: number;
+  severeWeakWordCount: number;
 }
 
 function getImproveOnlyWords(comparison: TextComparisonResult): string[] {
   const missingSet = new Set(comparison.missingWords);
   return comparison.wordsToImprove.filter((word) => !missingSet.has(word));
+}
+
+function getSevereWeakAzureWords(
+  assessment?: PronunciationAssessmentResult | null,
+  limit = 2,
+): string[] {
+  if (!assessment?.ok || !assessment.wordScores?.length) {
+    return [];
+  }
+
+  return [...assessment.wordScores]
+    .filter((word) => (
+      word.accuracyScore !== undefined
+      && word.accuracyScore < SEVERE_WEAK_WORD_ACCURACY_THRESHOLD
+    ))
+    .sort((a, b) => (a.accuracyScore ?? 100) - (b.accuracyScore ?? 100))
+    .slice(0, limit)
+    .map((word) => word.word);
+}
+
+function countWeakAzureWords(
+  assessment?: PronunciationAssessmentResult | null,
+): { weakWordCount: number; severeWeakWordCount: number } {
+  if (!assessment?.ok || !assessment.wordScores?.length) {
+    return { weakWordCount: 0, severeWeakWordCount: 0 };
+  }
+
+  let weakWordCount = 0;
+  let severeWeakWordCount = 0;
+
+  for (const word of assessment.wordScores) {
+    const accuracy = word.accuracyScore;
+    if (accuracy === undefined) {
+      continue;
+    }
+
+    if (accuracy < WEAK_WORD_ACCURACY_THRESHOLD) {
+      weakWordCount += 1;
+    }
+
+    if (accuracy < SEVERE_WEAK_WORD_ACCURACY_THRESHOLD) {
+      severeWeakWordCount += 1;
+    }
+  }
+
+  return { weakWordCount, severeWeakWordCount };
 }
 
 function getWeakAzureWords(
@@ -116,6 +166,8 @@ function buildNextFocus(
       return 'Önce hedef cümleyi doğru kelimelerle baştan sona tamamlamaya odaklan.';
     case 'missing_words':
       return 'Bir sonraki denemede cümleyi baştan sona tamamlamaya odaklan.';
+    case 'clarity_issue':
+      return 'Zayıf görünen kelimeleri daha yavaş ve net söylemeye odaklan.';
     case 'weak_pronunciation':
       return 'Zayıf kalan kelimeleri daha net söylemeye odaklan.';
     case 'fluency_issue':
@@ -252,10 +304,32 @@ function isMissingWords(input: CoachFeedbackInput): boolean {
   const missingWordCount = comparison.missingWordCount || comparison.missingWords.length;
   const completenessScore = scores.completenessScore ?? comparison.coveragePercent;
 
+  if (completenessScore >= HIGH_COMPLETION_THRESHOLD && coveragePercent >= STRONG_COVERAGE_THRESHOLD) {
+    return false;
+  }
+
   return (
-    completenessScore < PARTIAL_COMPLETENESS_THRESHOLD
+    completenessScore < MISSING_COMPLETENESS_THRESHOLD
     || missingWordCount >= 1
-    || coveragePercent < PARTIAL_COVERAGE_THRESHOLD
+    || coveragePercent < MISSING_COVERAGE_THRESHOLD
+  );
+}
+
+function isClarityIssue(input: CoachFeedbackInput, weakWordCount: number): boolean {
+  const { comparison, scores } = input;
+  const coveragePercent = comparison.coveragePercent;
+  const completenessScore = scores.completenessScore ?? comparison.coveragePercent;
+  const pronunciationScore = scores.pronunciationScore;
+  const accuracyScore = scores.accuracyScore ?? pronunciationScore;
+
+  return (
+    coveragePercent >= STRONG_COVERAGE_THRESHOLD
+    && completenessScore >= CLARITY_COMPLETENESS_THRESHOLD
+    && (
+      accuracyScore < 70
+      || pronunciationScore < 70
+      || weakWordCount >= 2
+    )
   );
 }
 
@@ -287,7 +361,7 @@ export function resolveCoachFeedbackDecision(input: CoachFeedbackInput): CoachFe
   const fluencyScore = scores.fluencyScore;
   const completenessScore = scores.completenessScore ?? comparison.coveragePercent;
   const prosodyScore = scores.prosodyScore ?? null;
-  const weakWords = getWeakAzureWords(pronunciationAssessment, 2);
+  const weakWordCounts = countWeakAzureWords(pronunciationAssessment);
 
   let feedbackType: CoachFeedbackType = 'general';
 
@@ -295,7 +369,9 @@ export function resolveCoachFeedbackDecision(input: CoachFeedbackInput): CoachFe
     feedbackType = 'wrong_sentence';
   } else if (isMissingWords(input)) {
     feedbackType = 'missing_words';
-  } else if (meetsWeakPronunciationThreshold(input, weakWords.length)) {
+  } else if (isClarityIssue(input, weakWordCounts.weakWordCount)) {
+    feedbackType = 'clarity_issue';
+  } else if (meetsWeakPronunciationThreshold(input, weakWordCounts.weakWordCount)) {
     feedbackType = 'weak_pronunciation';
   } else if (
     pronunciationScore >= 75
@@ -315,6 +391,7 @@ export function resolveCoachFeedbackDecision(input: CoachFeedbackInput): CoachFe
     && pronunciationScore >= 80
     && accuracyScore >= 80
     && completenessScore >= 85
+    && accuracyScore >= 70
   ) {
     feedbackType = 'good_result';
   }
@@ -332,7 +409,8 @@ export function resolveCoachFeedbackDecision(input: CoachFeedbackInput): CoachFe
     fluencyScore,
     completenessScore,
     prosodyScore,
-    weakWordCount: weakWords.length,
+    weakWordCount: weakWordCounts.weakWordCount,
+    severeWeakWordCount: weakWordCounts.severeWeakWordCount,
   };
 }
 
@@ -358,6 +436,20 @@ function logCoachDecision(
   });
 }
 
+function buildClarityIssueComment(
+  pronunciationAssessment?: PronunciationAssessmentResult | null,
+): string {
+  const severeWeakWords = getSevereWeakAzureWords(pronunciationAssessment, 2);
+  let comment =
+    'Cümleyi büyük ölçüde tamamladın fakat telaffuz netliği düşük kaldı. Önce zayıf görünen kelimeleri daha yavaş ve net söylemeye odaklan.';
+
+  if (severeWeakWords.length > 0) {
+    comment += ` Özellikle ${formatWeakWordPhrase(severeWeakWords)} kelimelerini daha net söylemeyi dene.`;
+  }
+
+  return comment;
+}
+
 function buildPronunciationAssessmentComment(
   input: CoachFeedbackInput,
   decision: CoachFeedbackDecision,
@@ -365,6 +457,7 @@ function buildPronunciationAssessmentComment(
   const { comparison, pronunciationAssessment } = input;
   const weakWords = getWeakAzureWords(pronunciationAssessment, 2);
   const missingWordsText = formatMissingWords(comparison.missingWords);
+  const completenessScore = decision.completenessScore;
 
   switch (decision.feedbackType) {
     case 'wrong_sentence':
@@ -377,6 +470,9 @@ function buildPronunciationAssessmentComment(
       }
       return comment;
     }
+
+    case 'clarity_issue':
+      return buildClarityIssueComment(pronunciationAssessment);
 
     case 'weak_pronunciation':
       return `Cümleyi büyük ölçüde tamamladın ama bazı kelimelerin telaffuzu zayıf kaldı. Özellikle ${formatWeakWordPhrase(weakWords)} kelimelerini daha net söylemeye odaklan.`;
@@ -391,11 +487,15 @@ function buildPronunciationAssessmentComment(
       return 'Güzel iş. Cümleyi anlaşılır ve akıcı söyledin. Bir sonraki denemede daha doğal vurgu ve ritme odaklanabilirsin.';
 
     default:
-      if (decision.pronunciationScore < 65) {
+      if (decision.pronunciationScore < 65 || decision.accuracyScore < 65) {
         return 'Cümle anlaşılıyor ama telaffuz netliği düşük; hedef cümleyi daha yavaş ve net söylemeyi dene.';
       }
 
-      return 'Cümleyi tamamlamaya yaklaştın. Bir sonraki denemede hem tamamlamayı hem telaffuz netliğini güçlendirmeye odaklan.';
+      if (completenessScore >= CLARITY_COMPLETENESS_THRESHOLD) {
+        return 'Cümleyi büyük ölçüde tamamladın fakat telaffuz netliğini güçlendirmeye devam et. Zayıf kalan kelimeleri daha yavaş ve net söyle.';
+      }
+
+      return 'Bir sonraki denemede hem tamamlamayı hem telaffuz netliğini güçlendirmeye odaklan.';
   }
 }
 

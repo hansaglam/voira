@@ -120,6 +120,18 @@ export function getCategoryWithCounts(): Array<Category & { lessonCount: number;
   });
 }
 
+/** Category header counts — sum of lessons visible in category detail screens. */
+export function getCatalogDisplayCounts(): {
+  categoryCount: number;
+  totalLessons: number;
+} {
+  const categoriesWithCounts = getCategoryWithCounts();
+  return {
+    categoryCount: categoriesWithCounts.length,
+    totalLessons: categoriesWithCounts.reduce((sum, category) => sum + category.lessonCount, 0),
+  };
+}
+
 export function getTodaysLesson(): Lesson {
   const freeLessons = lessons.filter((l) => !l.isPremium);
   const dayIndex = new Date().getDate() % freeLessons.length;

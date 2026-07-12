@@ -2,26 +2,27 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TabScreenProps } from '../navigation/types';
 import { ScreenContainer, CategoryCard, SectionHeader } from '../components';
-import { getCategoryWithCounts } from '../data/lessons';
+import { getCategoryWithCounts, getCatalogDisplayCounts } from '../data/lessons';
 import { spacing, typography } from '../theme';
 
 type Props = TabScreenProps<'Categories'>;
 
 export function CategoriesScreen({ navigation }: Props) {
   const categories = getCategoryWithCounts();
+  const { categoryCount, totalLessons } = getCatalogDisplayCounts();
 
   return (
     <ScreenContainer withTabBar>
       <View style={styles.header}>
         <Text style={typography.h1}>Öğrenme yolları</Text>
         <Text style={typography.screenSubtitle}>
-          Hedefine uygun shadowing paketlerini keşfet.
+          Hedefine uygun konuşma pratiği yollarını keşfet.
         </Text>
       </View>
 
       <SectionHeader
         title="Tüm kategoriler"
-        subtitle={`${categories.length} paket • ${categories.reduce((sum, c) => sum + c.lessonCount, 0)} ders`}
+        subtitle={`${categoryCount} öğrenme yolu • ${totalLessons} ders`}
       />
 
       {categories.map((category) => (

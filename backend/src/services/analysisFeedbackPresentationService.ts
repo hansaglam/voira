@@ -8,6 +8,11 @@ import type { ReconciledWordFeedback } from './wordFeedbackReconciliationService
 import { wordsEquivalentForReconciliation } from './wordFeedbackReconciliationService.js';
 
 const WRONG_SENTENCE_WEAK_AREAS = ['hedef cümle', 'baştan dene', 'kelime eşleşmesi'];
+const CLARITY_ISSUE_WEAK_AREAS = [
+  'telaffuz netliği',
+  'yavaş ve net söyle',
+  'zayıf kelimeler',
+];
 
 export interface FeedbackPresentationInput {
   feedbackType: AnalysisFeedbackType;
@@ -64,6 +69,17 @@ export function applyAnalysisFeedbackPresentation(
       wordsToImprove: reconciled.wordsToImprove,
       wordPronunciationFeedback: filtered,
       weakAreasDetected,
+      weakWordCountAfterFilter: filtered.length,
+    };
+  }
+
+  if (feedbackType === 'clarity_issue') {
+    const filtered = filterToSpokenWeakWords(reconciled.wordPronunciationFeedback, comparison);
+    return {
+      missingWords: reconciled.missingWords,
+      wordsToImprove: reconciled.wordsToImprove,
+      wordPronunciationFeedback: filtered,
+      weakAreasDetected: CLARITY_ISSUE_WEAK_AREAS,
       weakWordCountAfterFilter: filtered.length,
     };
   }

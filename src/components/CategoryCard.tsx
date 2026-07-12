@@ -10,7 +10,46 @@ interface CategoryCardProps {
   onPress: () => void;
 }
 
+const CATEGORY_ACCENTS: Record<
+  string,
+  { iconBg: string; iconBorder: string; badgeBg: string }
+> = {
+  daily: {
+    iconBg: 'rgba(91, 95, 239, 0.2)',
+    iconBorder: 'rgba(91, 95, 239, 0.35)',
+    badgeBg: 'rgba(91, 95, 239, 0.14)',
+  },
+  cafe_restaurant: {
+    iconBg: 'rgba(245, 158, 11, 0.16)',
+    iconBorder: 'rgba(245, 158, 11, 0.32)',
+    badgeBg: 'rgba(245, 158, 11, 0.12)',
+  },
+  travel: {
+    iconBg: 'rgba(56, 189, 248, 0.16)',
+    iconBorder: 'rgba(56, 189, 248, 0.3)',
+    badgeBg: 'rgba(56, 189, 248, 0.12)',
+  },
+  job_interview: {
+    iconBg: 'rgba(139, 92, 246, 0.2)',
+    iconBorder: 'rgba(139, 92, 246, 0.35)',
+    badgeBg: 'rgba(139, 92, 246, 0.14)',
+  },
+  pronunciation: {
+    iconBg: 'rgba(229, 184, 74, 0.16)',
+    iconBorder: 'rgba(229, 184, 74, 0.32)',
+    badgeBg: 'rgba(229, 184, 74, 0.12)',
+  },
+};
+
+const DEFAULT_ACCENT = {
+  iconBg: 'rgba(255,255,255,0.14)',
+  iconBorder: 'rgba(255,255,255,0.12)',
+  badgeBg: 'rgba(255,255,255,0.12)',
+};
+
 export function CategoryCard({ category, onPress }: CategoryCardProps) {
+  const accent = CATEGORY_ACCENTS[category.id] ?? DEFAULT_ACCENT;
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={styles.wrapper}>
       <LinearGradient
@@ -21,14 +60,22 @@ export function CategoryCard({ category, onPress }: CategoryCardProps) {
         style={styles.gradient}
       >
         <View style={styles.topRow}>
-          <View style={styles.iconContainer}>
+          <View
+            style={[
+              styles.iconContainer,
+              {
+                backgroundColor: accent.iconBg,
+                borderColor: accent.iconBorder,
+              },
+            ]}
+          >
             <Ionicons
               name={category.icon as keyof typeof Ionicons.glyphMap}
               size={18}
               color={colors.textPrimary}
             />
           </View>
-          <View style={styles.badge}>
+          <View style={[styles.badge, { backgroundColor: accent.badgeBg }]}>
             <Text style={styles.badgeText}>{category.difficulty}</Text>
           </View>
         </View>
@@ -72,9 +119,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: borderRadius.sm,
-    backgroundColor: 'rgba(255,255,255,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   title: {
     ...typography.h3,
@@ -113,7 +160,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   badge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: borderRadius.sm,

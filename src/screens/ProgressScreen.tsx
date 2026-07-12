@@ -120,7 +120,7 @@ export function ProgressScreen({ navigation }: Props) {
         <View style={styles.earlyDataNote}>
           <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
           <Text style={styles.earlyDataText}>
-            Birkaç pratikten sonra gelişim verilerin daha anlamlı hale gelecek.
+            Birkaç gerçek telaffuz analizinden sonra gelişim grafiğin burada görünecek.
           </Text>
         </View>
       ) : null}
@@ -129,7 +129,7 @@ export function ProgressScreen({ navigation }: Props) {
         <AppCard style={styles.emptyCard}>
           <EmptyState
             title="Henüz gelişim verisi yok"
-            message="İlk pratiğini tamamladığında gelişim verilerin burada görünecek."
+            message="Birkaç gerçek telaffuz analizinden sonra gelişim grafiğin burada görünecek."
             icon="stats-chart-outline"
             actionLabel="İlk pratiğe başla"
             onAction={handleStartPractice}
@@ -149,7 +149,7 @@ export function ProgressScreen({ navigation }: Props) {
           {[
             { label: 'Süre', value: `${summary.totalPracticeMinutes} dk`, icon: 'time-outline' as const },
             { label: 'Ders', value: `${summary.completedLessons} ders`, icon: 'book-outline' as const },
-            { label: 'Ortalama', value: `${summary.averageNativeScore} Native`, icon: 'stats-chart-outline' as const },
+            { label: 'Ortalama', value: `${summary.averageNativeScore} Skor`, icon: 'stats-chart-outline' as const },
             { label: 'Seri', value: `${summary.currentStreak} gün`, icon: 'flame-outline' as const },
           ].map((stat) => (
             <View key={stat.label} style={styles.statTile}>
@@ -164,7 +164,7 @@ export function ProgressScreen({ navigation }: Props) {
       <AppCard style={styles.trendCard}>
         <Text style={styles.cardTitle}>Skor gelişimin</Text>
         <View style={styles.trendMetric}>
-          <Text style={styles.trendLabel}>Native Score</Text>
+          <Text style={styles.trendLabel}>Konuşma Skoru</Text>
           <Text style={styles.trendValue}>{trendAverageNative}</Text>
           <ProgressBar progress={trendAverageNative} color={colors.primary} height={5} />
         </View>
@@ -208,7 +208,7 @@ export function ProgressScreen({ navigation }: Props) {
           </View>
         ) : (
           <Text style={styles.emptyWeakText}>
-            Şu an belirgin bir zayıf alan yok. Pratiğe devam et.
+            Birkaç gerçek telaffuz analizinden sonra zayıf alanların burada görünecek.
           </Text>
         )}
       </AppCard>
@@ -267,7 +267,7 @@ export function ProgressScreen({ navigation }: Props) {
               <View style={styles.recentScoreWrap}>
                 <Text style={styles.recentScore}>{item.nativeScore}</Text>
                 <Text style={styles.recentWeak} numberOfLines={1}>
-                  {item.weakAreasDetected[0] ?? 'akış'}
+                  {item.weakAreasDetected[0] ?? 'skor'}
                 </Text>
               </View>
             </View>

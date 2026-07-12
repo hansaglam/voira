@@ -27,6 +27,8 @@ export interface AnimatedScoreCardProps {
   confidenceScore: number;
   analysisMode?: 'text_match_only' | 'pronunciation_assessment';
   pronunciationAssessmentAvailable?: boolean;
+  /** Mutes positive styling when the user spoke a different sentence */
+  isWrongSentence?: boolean;
 }
 
 type MetricKey =
@@ -79,38 +81,119 @@ function buildMetricRows(
   return rows;
 }
 
+export type ScoreVisualTone = 'retry' | 'building' | 'growing' | 'good' | 'excellent';
+
+export function resolveScoreVisualTone(
+  score: number,
+  accuracyScore?: number,
+): ScoreVisualTone {
+  const canShowExcellent =
+    score >= 85 && (accuracyScore === undefined || accuracyScore >= 70);
+
+  if (score <= 39) return 'retry';
+  if (score <= 59) return 'building';
+  if (score <= 74) return 'growing';
+  if (score <= 84 || !canShowExcellent) return 'good';
+  return 'excellent';
+}
+
+const SCORE_TONE_STYLES: Record<
+  ScoreVisualTone,
+  { borderColor: string; titleColor: string; gradient: [string, string, string] }
+> = {
+  retry: {
+    borderColor: 'rgba(248, 113, 113, 0.32)',
+    titleColor: '#FCA5A5',
+    gradient: [
+      'rgba(248, 113, 113, 0.08)',
+      'rgba(26, 27, 46, 0.95)',
+      'rgba(34, 35, 58, 0.98)',
+    ],
+  },
+  building: {
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    titleColor: '#FCD34D',
+    gradient: [
+      'rgba(245, 158, 11, 0.08)',
+      'rgba(26, 27, 46, 0.95)',
+      'rgba(34, 35, 58, 0.98)',
+    ],
+  },
+  growing: {
+    borderColor: 'rgba(139, 92, 246, 0.28)',
+    titleColor: colors.textPrimary,
+    gradient: [
+      'rgba(91, 95, 239, 0.1)',
+      'rgba(26, 27, 46, 0.95)',
+      'rgba(34, 35, 58, 0.98)',
+    ],
+  },
+  good: {
+    borderColor: 'rgba(91, 95, 239, 0.32)',
+    titleColor: colors.textPrimary,
+    gradient: [
+      'rgba(91, 95, 239, 0.12)',
+      'rgba(26, 27, 46, 0.95)',
+      'rgba(34, 35, 58, 0.98)',
+    ],
+  },
+  excellent: {
+    borderColor: 'rgba(52, 211, 153, 0.35)',
+    titleColor: '#6EE7B7',
+    gradient: [
+      'rgba(52, 211, 153, 0.1)',
+      'rgba(26, 27, 46, 0.95)',
+      'rgba(34, 35, 58, 0.98)',
+    ],
+  },
+};
+
 export function getScoreFeedback(
   score: number,
   options?: {
     analysisMode?: 'text_match_only' | 'pronunciation_assessment';
     pronunciationAssessmentAvailable?: boolean;
+    accuracyScore?: number;
   },
 ): { title: string; subtitle: string } {
-  const { pronunciationAssessmentAvailable } = options ?? {};
+  const { pronunciationAssessmentAvailable, accuracyScore } = options ?? {};
   const isTextMatchOnly = pronunciationAssessmentAvailable !== true;
+  const canShowExcellent =
+    score >= 85 && (accuracyScore === undefined || accuracyScore >= 70);
 
   if (score <= 39) {
     return {
       title: 'Tekrar dene',
-      subtitle: 'Cümleyi daha yavaş ve parça parça tekrar etmeyi dene.',
+      subtitle: isTextMatchOnly
+        ? 'Cümleyi daha yavaş ve parça parça tekrar etmeyi dene.'
+        : 'Önce cümleyi daha net ve yavaş tekrar etmeyi dene.',
     };
   }
 
   if (score <= 59) {
     return {
-      title: 'Devam et',
+      title: 'Temel cümleyi kurdun',
       subtitle: isTextMatchOnly
         ? 'Her deneme kelime eşleşmeni biraz daha güçlendirir.'
-        : 'Her deneme seni ileri taşır, ritme odaklan.',
+        : 'Önce cümleyi daha net ve yavaş tekrar etmeyi dene.',
     };
   }
 
-  if (score <= 79) {
+  if (score <= 74) {
     return {
-      title: 'Güzel ilerleme',
+      title: 'Gelişiyor',
       subtitle: isTextMatchOnly
         ? 'Cümleyi büyük ölçüde tamamladın.'
-        : 'Kelime eşleşmen iyi yönde; küçük dokunuşlarla daha akıcı olacak.',
+        : 'Cümleyi kurdun; şimdi telaffuz netliğini güçlendir.',
+    };
+  }
+
+  if (score <= 84 || !canShowExcellent) {
+    return {
+      title: 'İyi deneme',
+      subtitle: isTextMatchOnly
+        ? 'Kelime eşleşmen iyi yönde; küçük dokunuşlarla daha akıcı olacak.'
+        : 'İyi deneme; birkaç kelimede netlik çalışması gerekiyor.',
     };
   }
 
@@ -138,6 +221,7 @@ export function AnimatedScoreCard({
   confidenceScore,
   analysisMode,
   pronunciationAssessmentAvailable,
+  isWrongSentence = false,
 }: AnimatedScoreCardProps) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [motionPrefReady, setMotionPrefReady] = useState(false);
@@ -149,7 +233,12 @@ export function AnimatedScoreCard({
   const feedback = getScoreFeedback(nativeScore, {
     analysisMode,
     pronunciationAssessmentAvailable,
+    accuracyScore,
   });
+  const visualTone = isWrongSentence
+    ? 'retry'
+    : resolveScoreVisualTone(nativeScore, accuracyScore);
+  const toneStyle = SCORE_TONE_STYLES[visualTone];
 
   const metricRows = buildMetricRows(pronunciationAssessmentAvailable, prosodyScore);
   const metricValues: Record<MetricKey, number> = {
@@ -232,14 +321,10 @@ export function AnimatedScoreCard({
       ]}
     >
       <LinearGradient
-        colors={[
-          'rgba(91, 95, 239, 0.12)',
-          'rgba(26, 27, 46, 0.95)',
-          'rgba(34, 35, 58, 0.98)',
-        ]}
+        colors={toneStyle.gradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.card}
+        style={[styles.card, { borderColor: toneStyle.borderColor }]}
       >
         <View style={styles.hero}>
           <PremiumScoreRing
@@ -248,7 +333,9 @@ export function AnimatedScoreCard({
             pronunciationAssessmentAvailable={pronunciationAssessmentAvailable}
             animate={shouldAnimate}
           />
-          <Text style={styles.resultTitle}>{feedback.title}</Text>
+          <Text style={[styles.resultTitle, { color: toneStyle.titleColor }]}>
+            {feedback.title}
+          </Text>
           <Text style={styles.resultSubtitle}>{feedback.subtitle}</Text>
         </View>
 
@@ -288,7 +375,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(91, 95, 239, 0.28)',
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
     overflow: 'hidden',

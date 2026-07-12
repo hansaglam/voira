@@ -7,6 +7,10 @@ import {
 import { analyzeRateLimit } from '../middleware/analyzeRateLimit.js';
 import { buildCoachFeedbackTr, logCoachDecision, resolveCoachFeedbackDecision } from '../services/coachFeedbackService.js';
 import {
+  buildAzureScoringDecision,
+  logAzureScoringDecision,
+} from '../services/azureScoringService.js';
+import {
   applyAnalysisFeedbackPresentation,
   shouldSuppressPhonemeFeedback,
 } from '../services/analysisFeedbackPresentationService.js';
@@ -217,6 +221,25 @@ analyzeSpeechRouter.post(
           weakWordCountBeforeFilter,
           presentation.weakWordCountAfterFilter,
         );
+
+        if (pronunciationAssessment?.ok) {
+          const azureMetrics = {
+            accuracyScore: scores.accuracyScore ?? scores.pronunciationScore,
+            pronunciationScore: scores.pronunciationScore,
+            fluencyScore: scores.fluencyScore,
+            completenessScore: scores.completenessScore ?? comparison.coveragePercent,
+            prosodyScore: scores.prosodyScore,
+          };
+          const azureScoringDecision = buildAzureScoringDecision(
+            azureMetrics,
+            pronunciationAssessment,
+          );
+          logAzureScoringDecision(
+            { ...azureScoringDecision, finalScore: scores.nativeScore },
+            azureMetrics,
+            decision.feedbackType,
+          );
+        }
       }
 
       const wordPronunciationFeedback = presentation.wordPronunciationFeedback;

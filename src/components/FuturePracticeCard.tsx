@@ -9,6 +9,7 @@ interface FuturePracticeCardProps {
   subtitle: string;
   badge?: string;
   icon: keyof typeof Ionicons.glyphMap;
+  benefits?: string[];
   onPress: () => void;
 }
 
@@ -17,12 +18,13 @@ export function FuturePracticeCard({
   subtitle,
   badge = 'SpeakPlus',
   icon,
+  benefits,
   onPress,
 }: FuturePracticeCardProps) {
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={styles.wrap}>
       <LinearGradient
-        colors={['rgba(139, 92, 246, 0.12)', 'rgba(26, 27, 46, 0.96)']}
+        colors={['rgba(229, 184, 74, 0.1)', 'rgba(139, 92, 246, 0.12)', 'rgba(26, 27, 46, 0.96)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.card}
@@ -36,15 +38,25 @@ export function FuturePracticeCard({
               {title}
             </Text>
             <View style={styles.badge}>
-              <Ionicons name="lock-closed" size={9} color={colors.premium} />
+              <Ionicons name="diamond-outline" size={9} color={colors.premium} />
               <Text style={styles.badgeText}>{badge}</Text>
             </View>
           </View>
           <Text style={styles.subtitle} numberOfLines={2}>
             {subtitle}
           </Text>
+          {benefits && benefits.length > 0 ? (
+            <View style={styles.benefits}>
+              {benefits.map((benefit) => (
+                <View key={benefit} style={styles.benefitRow}>
+                  <Ionicons name="ellipse" size={5} color={colors.secondary} />
+                  <Text style={styles.benefitText}>{benefit}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
-        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        <Ionicons name="chevron-forward" size={16} color={colors.premium} />
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -58,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     padding: spacing.sm + 4,
     borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.18)',
+    borderColor: 'rgba(229, 184, 74, 0.22)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
@@ -67,7 +79,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(196, 181, 253, 0.12)',
+    backgroundColor: 'rgba(229, 184, 74, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -86,12 +98,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: 'rgba(196, 181, 253, 0.1)',
+    backgroundColor: 'rgba(229, 184, 74, 0.1)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.2)',
+    borderColor: 'rgba(229, 184, 74, 0.24)',
   },
   badgeText: {
     fontSize: 9,
@@ -107,5 +119,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 15,
     color: colors.textSecondary,
+  },
+  benefits: {
+    gap: 2,
+    marginTop: 4,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  benefitText: {
+    fontSize: 10,
+    lineHeight: 14,
+    color: colors.textMuted,
   },
 });

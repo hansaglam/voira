@@ -6,7 +6,7 @@ export const spacing = {
   xl: 32,
   xxl: 48,
   /** Extra scroll padding below tab screens (added to tab bar height + safe area) */
-  tabContentBottom: 20,
+  tabContentBottom: 28,
 } as const;
 
 export const borderRadius = {

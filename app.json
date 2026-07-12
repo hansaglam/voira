@@ -2,7 +2,7 @@
   "expo": {
     "name": "EchoSpeak",
     "slug": "echospeak",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "scheme": "echospeak",
     "icon": "./assets/icon.png",
@@ -26,7 +26,7 @@
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "package": "com.ethemsincar.echospeak",
-      "versionCode": 5,
+      "versionCode": 6,
       "intentFilters": [
         {
           "action": "VIEW",

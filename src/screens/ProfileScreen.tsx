@@ -24,7 +24,7 @@ import { buildProgressSummary } from '../services/progress';
 import { lessons } from '../data/lessons';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
-const APP_VERSION = '1.0.4';
+const APP_VERSION = '1.0.5';
 
 type Props = TabScreenProps<'Profile'>;
 
@@ -38,13 +38,11 @@ type SettingsItem = {
 };
 
 const SETTINGS_ITEMS: SettingsItem[] = [
-  { icon: 'notifications-outline', label: 'Bildirimler', comingSoon: true },
-  { icon: 'language-outline', label: 'Dil ayarı', comingSoon: true },
   { icon: 'mail-outline', label: 'Destek', route: 'Support' },
   { icon: 'document-text-outline', label: 'Gizlilik Politikası', route: 'PrivacyPolicy' },
   { icon: 'newspaper-outline', label: 'Kullanım Şartları', route: 'TermsOfUse' },
   { icon: 'information-circle-outline', label: 'Uygulama hakkında', route: 'About' },
-  { icon: 'settings-outline', label: 'Aboneliği yönet (yakında)', comingSoon: true },
+  { icon: 'settings-outline', label: 'Aboneliği yönet' },
 ];
 
 function shortenUserId(userId: string): string {
@@ -247,12 +245,18 @@ export function ProfileScreen({ navigation }: Props) {
   };
 
   const handleSettingsPress = (item: SettingsItem) => {
-    if (item.route) {
-      navigation.navigate(item.route);
+    if (item.label === 'Aboneliği yönet') {
+      Alert.alert(
+        'Aboneliği yönet',
+        Platform.OS === 'android'
+          ? 'Aboneliğini Google Play üzerinden yönetebilirsin.'
+          : 'Aboneliğini App Store üzerinden yönetebilirsin.',
+      );
       return;
     }
-    if (item.comingSoon) {
-      Alert.alert('Yakında', 'Bu özellik yakında eklenecek.');
+
+    if (item.route) {
+      navigation.navigate(item.route);
     }
   };
 
@@ -339,7 +343,7 @@ export function ProfileScreen({ navigation }: Props) {
           </Text>
         ) : isGuest ? (
           <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="tail">
-            Misafir kullanıcı
+            Misafir olarak kullanıyorsun
           </Text>
         ) : null}
       </View>
@@ -400,7 +404,7 @@ export function ProfileScreen({ navigation }: Props) {
           <AppCard style={styles.authCard}>
             <Text style={styles.authTitle}>Hesabını oluştur</Text>
             <Text style={styles.authSubtitle}>
-              Gelişimini, SpeakPlus erişimini ve ayarlarını güvenle sakla.
+              Hesap oluşturarak gelişimini ve SpeakPlus erişimini güvenle sakla.
             </Text>
 
             {isLoadingAuth ? (

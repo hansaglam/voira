@@ -716,6 +716,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
         confidenceScore={result.confidenceScore}
         analysisMode={analysis.analysisMode}
         pronunciationAssessmentAvailable={analysis.pronunciationAssessmentAvailable}
+        isWrongSentence={isWrongSentenceFeedback}
       />
 
       <View style={styles.analysisNoteCard}>
@@ -729,7 +730,14 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
       {isWrongSentenceFeedback ? (
         <AppCard style={styles.wrongSentenceCard}>
-          <Text style={styles.sectionTitle}>Önce hedef cümleyi tamamla</Text>
+          <View style={styles.wrongSentenceHeader}>
+            <View style={styles.wrongSentenceIcon}>
+              <Ionicons name="flag-outline" size={14} color={colors.primary} />
+            </View>
+            <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
+              Önce hedef cümleyi tamamla
+            </Text>
+          </View>
           <Text style={styles.wrongSentenceBody}>
             Telaffuz detaylarına geçmeden önce bu cümleyi doğru kelimelerle baştan sona söylemeyi dene.
           </Text>
@@ -738,7 +746,17 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
       {weakPronunciationWords.length > 0 ? (
         <AppCard style={styles.weakWordsCard}>
-          <Text style={styles.sectionTitle}>Dikkat etmen gereken kelimeler</Text>
+          <View style={styles.weakWordsHeader}>
+            <View style={styles.weakWordsIcon}>
+              <Ionicons name="volume-medium-outline" size={14} color={colors.warning} />
+            </View>
+            <View style={styles.weakWordsTitleWrap}>
+              <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
+                Dikkat etmen gereken kelimeler
+              </Text>
+              <Text style={styles.weakWordsHint}>Telaffuz odağı — panik yok, tekrarla gelişir</Text>
+            </View>
+          </View>
           <View style={styles.weakWordList}>
             {weakPronunciationWords.map((item, index) => (
               <View key={`${item.word}-${index}`} style={styles.weakWordItem}>
@@ -1005,19 +1023,58 @@ const styles = StyleSheet.create({
   wrongSentenceCard: {
     marginBottom: spacing.sm,
     padding: CARD_PADDING,
-    borderColor: 'rgba(91, 95, 239, 0.22)',
-    backgroundColor: 'rgba(91, 95, 239, 0.06)',
+    borderColor: 'rgba(91, 95, 239, 0.28)',
+    backgroundColor: 'rgba(91, 95, 239, 0.08)',
+  },
+  wrongSentenceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  wrongSentenceIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(91, 95, 239, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   wrongSentenceBody: {
     fontSize: 13,
     lineHeight: 20,
     color: colors.textSecondary,
+    paddingLeft: 36,
   },
   weakWordsCard: {
     marginBottom: spacing.sm,
     padding: CARD_PADDING,
-    borderColor: 'rgba(245, 158, 11, 0.22)',
-    backgroundColor: 'rgba(245, 158, 11, 0.04)',
+    borderColor: 'rgba(245, 158, 11, 0.24)',
+    backgroundColor: 'rgba(245, 158, 11, 0.05)',
+  },
+  weakWordsHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  weakWordsIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  weakWordsTitleWrap: {
+    flex: 1,
+    gap: 2,
+  },
+  weakWordsHint: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.textMuted,
   },
   weakWordList: {
     gap: spacing.sm,
@@ -1086,6 +1143,9 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing.sm,
     lineHeight: 20,
+  },
+  sectionTitleInline: {
+    marginBottom: 0,
   },
   wordSection: {
     gap: spacing.xs,

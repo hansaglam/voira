@@ -16,6 +16,7 @@ import {
 } from './src/services/contentRepository';
 import { printContentQualitySummary, validateCatalog } from './src/services/contentQuality';
 import { initializeServicesConfig } from './src/config/servicesConfig';
+import { logMobileCatalogSummary } from './src/utils/catalogDiagnostics';
 
 const EchoSpeakTheme = {
   ...DarkTheme,
@@ -41,6 +42,8 @@ if (__DEV__) {
     console.log('[EchoSpeak Content Quality]', report);
     printContentQualitySummary(report);
   });
+
+  logMobileCatalogSummary();
 }
 
 export default function App() {
