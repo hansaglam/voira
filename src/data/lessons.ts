@@ -60,7 +60,7 @@ export const categories: Category[] = [
   {
     id: 'custom',
     title: 'Özel Dersler',
-    description: 'AI ile kişiselleştirilmiş pratik',
+    description: 'Seçilmiş ekstra pratik dersleri',
     icon: 'sparkles',
     gradient: ['#8B5CF6', '#6366F1'],
   },

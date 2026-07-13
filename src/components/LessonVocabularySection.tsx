@@ -2,7 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Lesson } from '../types/lesson';
+import { CATEGORY_LABELS } from '../types/lesson';
 import type { LessonSegment } from '../types/segment';
+import type { VocabularyCandidate } from '../types/vocabulary';
+import { VoiraFeedbackModal } from './VoiraFeedbackModal';
 import { useVocabulary } from '../hooks/useVocabulary';
 import { getVocabularyCandidates } from '../utils/vocabularyCandidates';
 import { colors, spacing, borderRadius } from '../theme';
@@ -15,25 +18,32 @@ type Props = {
 export function LessonVocabularySection({ lesson, segment }: Props) {
   const { isSaved, addItem } = useVocabulary();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [alreadySavedVisible, setAlreadySavedVisible] = useState(false);
 
   const candidates = useMemo(() => getVocabularyCandidates(segment), [segment]);
+  const categoryTitle = CATEGORY_LABELS[lesson.category];
 
   if (candidates.length === 0) return null;
 
-  const handleAdd = async (word: string, translationTr: string) => {
-    const key = `${word}::${translationTr}`;
-    if (isSaved(word, translationTr) || pendingKey === key) return;
+  const handleAdd = async (entry: VocabularyCandidate) => {
+    if (isSaved(entry.word) || pendingKey === entry.word) return;
 
-    setPendingKey(key);
+    setPendingKey(entry.word);
     try {
-      await addItem({
-        word,
-        translationTr,
+      const result = await addItem({
+        word: entry.word,
+        translationTr: entry.translationTr,
+        contextSentence: entry.contextSentence,
+        contextTr: entry.contextTr,
         lessonId: lesson.id,
         lessonTitle: lesson.title,
         segmentId: segment.id,
         categoryId: lesson.category,
+        categoryTitle,
       });
+      if (!result.added && result.item) {
+        setAlreadySavedVisible(true);
+      }
     } finally {
       setPendingKey(null);
     }
@@ -49,23 +59,33 @@ export function LessonVocabularySection({ lesson, segment }: Props) {
       </View>
 
       {candidates.map((entry) => {
-        const saved = isSaved(entry.word, entry.translationTr);
-        const key = `${entry.word}::${entry.translationTr}`;
-        const loading = pendingKey === key;
+        const saved = isSaved(entry.word);
+        const loading = pendingKey === entry.word;
 
         return (
-          <View key={key} style={styles.row}>
+          <View key={entry.word} style={styles.row}>
             <View style={styles.textWrap}>
               <Text style={styles.word} numberOfLines={2}>
                 {entry.word}
               </Text>
-              <Text style={styles.translation} numberOfLines={2}>
-                {entry.translationTr}
-              </Text>
+              {entry.usedContextFallback ? (
+                <Text style={styles.contextMeaning} numberOfLines={2}>
+                  Bağlam: {entry.translationTr}
+                </Text>
+              ) : (
+                <Text style={styles.translation} numberOfLines={2}>
+                  {entry.translationTr}
+                </Text>
+              )}
+              {entry.contextSentence ? (
+                <Text style={styles.contextLine} numberOfLines={2}>
+                  Cümlede: {entry.contextSentence}
+                </Text>
+              ) : null}
             </View>
             <TouchableOpacity
               style={[styles.button, saved && styles.buttonSaved]}
-              onPress={() => void handleAdd(entry.word, entry.translationTr)}
+              onPress={() => void handleAdd(entry)}
               disabled={saved || loading}
               activeOpacity={0.75}
             >
@@ -80,6 +100,15 @@ export function LessonVocabularySection({ lesson, segment }: Props) {
           </View>
         );
       })}
+
+      <VoiraFeedbackModal
+        visible={alreadySavedVisible}
+        type="info"
+        title="Zaten kayıtlı"
+        message="Bu kelime zaten defterinde"
+        primaryText="Tamam"
+        onPrimaryPress={() => setAlreadySavedVisible(false)}
+      />
     </View>
   );
 }
@@ -129,13 +158,25 @@ const styles = StyleSheet.create({
   },
   word: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   translation: {
     fontSize: 12,
     color: colors.textSecondary,
     lineHeight: 17,
+  },
+  contextMeaning: {
+    fontSize: 12,
+    color: colors.textMuted,
+    lineHeight: 17,
+    fontStyle: 'italic',
+  },
+  contextLine: {
+    fontSize: 11,
+    color: colors.textMuted,
+    lineHeight: 15,
+    marginTop: 2,
   },
   button: {
     minWidth: 72,

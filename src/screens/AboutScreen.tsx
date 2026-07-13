@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import { VoiraLogo } from '../components/VoiraLogo';
@@ -8,11 +8,12 @@ import {
   SUPPORT_EMAIL,
   TERMS_OF_USE_URL,
 } from '../constants/legalLinks';
+import { openExternalLink } from '../utils/openExternalLink';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'About'>;
 
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.0.10';
 
 export function AboutScreen(_props: Props) {
   return (
@@ -38,21 +39,21 @@ export function AboutScreen(_props: Props) {
         },
         {
           title: 'İletişim ve yasal',
-          body: `StudioWebia\nVoira Destek: ${SUPPORT_EMAIL}\nGizlilik Politikası ve Kullanım Şartları uygulama içinden veya web sayfalarından okunabilir.`,
+          body: `StudioWebia\nVoira Destek: ${SUPPORT_EMAIL}\nGizlilik Politikası ve Kullanım Şartları web sayfalarından okunabilir.`,
         },
       ]}
       footer={
         <>
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+            onPress={() => void openExternalLink(PRIVACY_POLICY_URL)}
             activeOpacity={0.85}
           >
             <Text style={styles.linkButtonText}>Gizlilik Politikası</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}
+            onPress={() => void openExternalLink(TERMS_OF_USE_URL)}
             activeOpacity={0.85}
           >
             <Text style={styles.linkButtonText}>Kullanım Şartları</Text>

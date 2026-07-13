@@ -15,6 +15,7 @@ const LOG_PREFIX = '[EchoSpeak Auth]';
 function mapSupabaseUser(user: User): AuthUser {
   const metadata = user.user_metadata as Record<string, unknown> | undefined;
   const displayName =
+    (typeof metadata?.display_name === 'string' && metadata.display_name) ||
     (typeof metadata?.full_name === 'string' && metadata.full_name) ||
     (typeof metadata?.name === 'string' && metadata.name) ||
     undefined;
@@ -22,7 +23,7 @@ function mapSupabaseUser(user: User): AuthUser {
   return {
     id: user.id,
     email: user.email ?? undefined,
-    displayName,
+    displayName: displayName?.trim() || undefined,
     provider: user.app_metadata?.provider ?? undefined,
     createdAt: user.created_at ?? undefined,
   };
@@ -404,6 +405,39 @@ export async function refreshSession(): Promise<AuthUser | null> {
   }
 
   return mapSupabaseUser(data.session.user);
+}
+
+export async function updateDisplayName(displayName: string): Promise<AuthActionResult> {
+  const trimmed = displayName.trim();
+  if (trimmed.length < 2 || trimmed.length > 30) {
+    return { ok: false, errorMessage: 'Lütfen en az 2 karakter gir.' };
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return { ok: false, errorMessage: 'Kimlik doğrulama yapılandırılmamış.' };
+  }
+
+  const { data, error } = await client.auth.updateUser({
+    data: {
+      display_name: trimmed,
+      name: trimmed,
+      full_name: trimmed,
+    },
+  });
+
+  if (error || !data.user) {
+    if (__DEV__) {
+      console.warn(`${LOG_PREFIX} updateDisplayName failed`);
+    }
+    return { ok: false, errorMessage: 'İsim kaydedilemedi. Lütfen tekrar dene.' };
+  }
+
+  if (__DEV__) {
+    console.log(`${LOG_PREFIX} display name updated`);
+  }
+
+  return { ok: true, successMessage: 'İsim güncellendi.' };
 }
 
 export function subscribeToAuthChanges(

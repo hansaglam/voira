@@ -28,35 +28,34 @@ import {
   showRestoreRequiresSignInAlert,
 } from '../utils/premiumAccountGate';
 import type { PremiumPackageOption } from '../services/premium';
+import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legalLinks';
+import { openExternalLink } from '../utils/openExternalLink';
+import { VoiraFeedbackModal, type VoiraFeedbackType } from '../components/VoiraFeedbackModal';
 import { colors, spacing, borderRadius, layout } from '../theme';
 
 type Props = RootScreenProps<'Premium'>;
 
-const CTA_RADIUS = 17;
-const CTA_HEIGHT = 49;
+const CTA_RADIUS = 18;
+const CTA_HEIGHT = 52;
 
-const PREMIUM_UNLOCKS = [
-  'Tüm pratiklere erişim',
-  'Tüm ders paketleri',
-  'Gelişmiş geri bildirimler',
-  'Azure telaffuz analizi ve kelime bazlı geri bildirim',
-  'Kişisel gelişim raporu',
-  'Detaylı telaffuz, akıcılık ve tamamlama skorları',
+const BENEFIT_CHIPS = [
+  { icon: 'library-outline' as const, label: 'Tüm premium dersler' },
+  { icon: 'analytics-outline' as const, label: 'Gelişmiş analiz' },
+  { icon: 'text-outline' as const, label: 'Kelime geri bildirimi' },
 ];
 
-const BENEFIT_PILLS = [
-  { icon: 'infinite-outline' as const, label: 'Ders kütüphanesine tam erişim' },
-  { icon: 'analytics-outline' as const, label: 'Gelişmiş Geri Bildirim' },
-  { icon: 'library-outline' as const, label: 'Tüm Dersler' },
+const SPEAKPLUS_VALUE_ITEMS = [
+  'Premium ders paketlerine eriş',
+  'Telaffuz, doğruluk ve akıcılık skorlarını detaylı gör',
+  'Zayıf kelimelerini kelime bazlı geri bildirimle takip et',
+  'Gelişimini haftalık olarak izle',
 ];
 
-function BenefitPill({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
+function BenefitChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
   return (
-    <View style={styles.benefitPill}>
-      <View style={styles.benefitIcon}>
-        <Ionicons name={icon} size={16} color={colors.secondary} />
-      </View>
-      <Text style={styles.benefitLabel} numberOfLines={2}>
+    <View style={styles.benefitChip}>
+      <Ionicons name={icon} size={13} color={colors.secondary} />
+      <Text style={styles.benefitChipLabel} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -88,7 +87,7 @@ function PremiumCtaButton({
         style={styles.ctaGradient}
       >
         {loading ? (
-          <ActivityIndicator color={colors.textPrimary} />
+          <Text style={styles.ctaText}>İşleniyor...</Text>
         ) : (
           <Text style={styles.ctaText}>{title}</Text>
         )}
@@ -106,6 +105,8 @@ function PackageCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const periodSuffix = option.period === 'yearly' ? '/ yıl' : '/ ay';
+
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -113,15 +114,19 @@ function PackageCard({
       style={[styles.packageCard, selected && styles.packageCardSelected]}
     >
       <View style={styles.packageHeader}>
-        <Text style={styles.packageLabel}>{option.labelTr}</Text>
+        <Text style={[styles.packageLabel, selected && styles.packageLabelSelected]}>
+          {option.labelTr}
+        </Text>
         {option.period === 'yearly' ? (
           <View style={styles.popularBadge}>
             <Text style={styles.popularText}>En avantajlı</Text>
           </View>
         ) : null}
       </View>
-      <Text style={styles.packagePrice}>{option.priceString}</Text>
-      <Text style={styles.packagePeriod}>{option.subscriptionPeriodLabel}</Text>
+      <Text style={[styles.packagePrice, selected && styles.packagePriceSelected]}>
+        {option.priceString || 'Yükleniyor...'}
+      </Text>
+      <Text style={styles.packagePeriod}>{periodSuffix}</Text>
     </TouchableOpacity>
   );
 }
@@ -231,7 +236,7 @@ function PremiumFooter({
               <TouchableOpacity onPress={onPrivacy} hitSlop={8}>
                 <Text style={styles.legalLink}>Gizlilik Politikası</Text>
               </TouchableOpacity>
-              <Text style={styles.legalDivider}>•</Text>
+              <Text style={styles.legalDivider}>·</Text>
               <TouchableOpacity onPress={onTerms} hitSlop={8}>
                 <Text style={styles.legalLink}>Kullanım Şartları</Text>
               </TouchableOpacity>
@@ -279,6 +284,42 @@ export function PremiumScreen({ navigation }: Props) {
   } = usePremium();
 
   const [selectedPackage, setSelectedPackage] = useState<PurchasesPackage | null>(null);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    visible: boolean;
+    type: VoiraFeedbackType;
+    title: string;
+    message: string;
+    primaryText: string;
+    onClose?: () => void;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+    primaryText: 'Tamam',
+  });
+
+  const showSuccessFeedback = (
+    title: string,
+    message: string,
+    primaryText = 'Tamam',
+    onClose?: () => void,
+  ) => {
+    setFeedbackModal({
+      visible: true,
+      type: 'success',
+      title,
+      message,
+      primaryText,
+      onClose,
+    });
+  };
+
+  const closeFeedbackModal = () => {
+    const onClose = feedbackModal.onClose;
+    setFeedbackModal((prev) => ({ ...prev, visible: false, onClose: undefined }));
+    onClose?.();
+  };
 
   useEffect(() => {
     void refreshCustomerInfo();
@@ -304,9 +345,12 @@ export function PremiumScreen({ navigation }: Props) {
 
     const result = await purchasePackage(selectedPackage);
     if (result === 'unlocked') {
-      Alert.alert('SpeakPlus aktif', 'Premium içeriklere erişimin açıldı.', [
-        { text: 'Tamam', onPress: handleClose },
-      ]);
+      showSuccessFeedback(
+        'SpeakPlus aktif',
+        'Premium derslere ve gelişmiş geri bildirimlere erişimin açıldı.',
+        'Devam et',
+        handleClose,
+      );
       return;
     }
     if (result === 'already_subscribed') {
@@ -329,9 +373,10 @@ export function PremiumScreen({ navigation }: Props) {
 
     const result = await restorePurchases();
     if (result === 'restored') {
-      Alert.alert('Satın alımın geri yüklendi.', 'SpeakPlus aboneliğin aktif.', [
-        { text: 'Devam et', onPress: handleClose },
-      ]);
+      showSuccessFeedback(
+        'Satın almalar geri yüklendi',
+        'SpeakPlus erişimin hesabınla eşleştirildi.',
+      );
       return;
     }
     if (result === 'not_found') {
@@ -345,14 +390,18 @@ export function PremiumScreen({ navigation }: Props) {
     }
   };
 
-  const ctaTitle = isPremium ? 'Devam et' : "SpeakPlus'u Başlat";
+  const ctaTitle = isPremium
+    ? 'Devam et'
+    : selectedPeriod === 'yearly'
+      ? "Yıllık SpeakPlus'u Başlat"
+      : "SpeakPlus'u Başlat";
   const isPackagesLoading = isLoadingPremium || isOfferingsLoading;
   const showOfferingsFallback =
     registered && !isPackagesLoading && !isPremium && packageOptions.length === 0;
   const showGuestAccountGate = !registered && !isPremium;
   const footerClearance = showGuestAccountGate
-    ? 49 + 10 + 14 + 34 + insets.bottom + spacing.md + 40
-    : 49 + 10 + 14 + 12 + 34 + insets.bottom + spacing.md + 40;
+    ? CTA_HEIGHT + 10 + 22 + 34 + insets.bottom + spacing.lg + 48
+    : CTA_HEIGHT + 10 + 18 + 12 + 34 + insets.bottom + spacing.lg + 52;
 
   const footer = showGuestAccountGate ? (
     <AccountRequiredFooter
@@ -366,8 +415,8 @@ export function PremiumScreen({ navigation }: Props) {
       onPrimary={isPremium ? handleClose : handlePurchase}
       onRestore={handleRestore}
       onSkip={handleClose}
-      onPrivacy={() => navigation.navigate('PrivacyPolicy')}
-      onTerms={() => navigation.navigate('TermsOfUse')}
+      onPrivacy={() => void openExternalLink(PRIVACY_POLICY_URL)}
+      onTerms={() => void openExternalLink(TERMS_OF_USE_URL)}
       disabled={!isPremium && (!selectedPackage || packageOptions.length === 0)}
       loading={isPurchasing}
       restoring={isRestoring}
@@ -410,8 +459,8 @@ export function PremiumScreen({ navigation }: Props) {
       </TouchableOpacity>
 
       <View style={styles.hero}>
-        <VoiraLogo size={72} style={styles.heroLogo} />
-        <Text style={styles.brand}>Voira SpeakPlus</Text>
+        <VoiraLogo size={48} style={styles.heroLogo} />
+        <Text style={styles.brand}>VOIRA SPEAKPLUS</Text>
         {isPremium ? (
           <>
             <Text style={styles.title}>SpeakPlus aktif</Text>
@@ -421,9 +470,10 @@ export function PremiumScreen({ navigation }: Props) {
           </>
         ) : (
           <>
-            <Text style={styles.title}>SpeakPlus ile daha fazla pratik ve gelişmiş geri bildirim</Text>
+            <Text style={styles.title}>İngilizce konuşmanı bir üst seviyeye taşı</Text>
             <Text style={styles.subtitle}>
-              Daha fazla pratik, gelişmiş telaffuz analizi ve zayıf kelime geri bildirimi.
+              Premium dersler, gelişmiş telaffuz analizi ve kelime bazlı geri bildirimlerle daha
+              düzenli pratik yap.
             </Text>
           </>
         )}
@@ -446,23 +496,84 @@ export function PremiumScreen({ navigation }: Props) {
         </AppCard>
       ) : (
         <>
-          <View style={styles.benefitRow}>
-            {BENEFIT_PILLS.map((pill) => (
-              <BenefitPill key={pill.label} icon={pill.icon} label={pill.label} />
+          <View style={styles.benefitChipRow}>
+            {BENEFIT_CHIPS.map((chip) => (
+              <BenefitChip key={chip.label} icon={chip.icon} label={chip.label} />
             ))}
           </View>
 
+          {isPackagesLoading ? (
+            <View style={styles.packageRow}>
+              <View style={[styles.packageCard, styles.packageCardPlaceholder]}>
+                <Text style={styles.packageLabel}>Aylık</Text>
+                <Text style={styles.packagePrice}>Yükleniyor...</Text>
+                <Text style={styles.packagePeriod}>/ ay</Text>
+              </View>
+              <View style={[styles.packageCard, styles.packageCardSelected, styles.packageCardPlaceholder]}>
+                <Text style={[styles.packageLabel, styles.packageLabelSelected]}>Yıllık</Text>
+                <Text style={[styles.packagePrice, styles.packagePriceSelected]}>Yükleniyor...</Text>
+                <Text style={styles.packagePeriod}>/ yıl</Text>
+              </View>
+            </View>
+          ) : null}
+
+          {!isPackagesLoading && packageOptions.length > 0 ? (
+            <View style={styles.packageRow}>
+              {packageOptions.map((option) => (
+                <PackageCard
+                  key={option.package.identifier}
+                  option={option}
+                  selected={selectedPeriod === option.period}
+                  onSelect={() => setSelectedPackage(option.package)}
+                />
+              ))}
+            </View>
+          ) : null}
+
+          {showOfferingsFallback ? (
+            <AppCard style={styles.fallbackCard}>
+              <Text style={styles.fallbackTitle}>Paketler yüklenemedi</Text>
+              <Text style={styles.fallbackBody}>
+                SpeakPlus seçenekleri şu anda alınamıyor. Bağlantını kontrol edip tekrar dene.
+              </Text>
+              <TouchableOpacity
+                onPress={() => void refreshOfferings()}
+                style={styles.retryButton}
+                disabled={isOfferingsLoading}
+              >
+                {isOfferingsLoading ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Text style={styles.retryText}>Tekrar dene</Text>
+                )}
+              </TouchableOpacity>
+            </AppCard>
+          ) : null}
+
+          {errorMessage ? (
+            <AppCard style={styles.errorCard}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </AppCard>
+          ) : null}
+
           <AppCard style={styles.featuresCard}>
-            <Text style={styles.sectionTitle}>Neler açılır?</Text>
-            {PREMIUM_UNLOCKS.map((feature, index) => (
+            <Text style={styles.sectionTitle}>SpeakPlus ile</Text>
+            {SPEAKPLUS_VALUE_ITEMS.map((feature, index) => (
               <PremiumFeatureItem
                 key={feature}
                 text={feature}
                 compact
-                isLast={index === PREMIUM_UNLOCKS.length - 1}
+                isLast={index === SPEAKPLUS_VALUE_ITEMS.length - 1}
               />
             ))}
           </AppCard>
+
+          {selectedPackage ? (
+            <Text style={styles.cancelNote}>
+              Abonelik Google Play üzerinden yönetilir ve otomatik yenilenir. İstediğin zaman iptal
+              edebilirsin.
+            </Text>
+          ) : null}
         </>
       )}
 
@@ -479,67 +590,16 @@ export function PremiumScreen({ navigation }: Props) {
 
       <PremiumDebugPanel />
 
-      {registered && !isPremium && isPackagesLoading ? (
-        <View style={styles.loadingBlock}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={styles.loadingText}>Abonelik seçenekleri yükleniyor…</Text>
-        </View>
-      ) : null}
-
-      {registered && !isPremium && showOfferingsFallback ? (
-        <AppCard style={styles.fallbackCard}>
-          <Text style={styles.fallbackTitle}>Paketler yüklenemedi</Text>
-          <Text style={styles.fallbackBody}>
-            SpeakPlus seçenekleri şu anda alınamıyor. Mağaza ürünleri yapılandırıldığında burada
-            görünecek.
-          </Text>
-          <TouchableOpacity
-            onPress={() => void refreshOfferings()}
-            style={styles.retryButton}
-            disabled={isOfferingsLoading}
-          >
-            {isOfferingsLoading ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <Text style={styles.retryText}>Tekrar dene</Text>
-            )}
-          </TouchableOpacity>
-        </AppCard>
-      ) : null}
-
-      {registered && !isPremium && !isPackagesLoading && errorMessage ? (
-        <AppCard style={styles.errorCard}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </AppCard>
-      ) : null}
-
-      {registered && !isPremium && !isPackagesLoading && packageOptions.length > 0 ? (
-        <View style={styles.packageRow}>
-          {packageOptions.map((option) => (
-            <PackageCard
-              key={option.package.identifier}
-              option={option}
-              selected={selectedPeriod === option.period}
-              onSelect={() => setSelectedPackage(option.package)}
-            />
-          ))}
-        </View>
-      ) : null}
-
-      {registered && !isPremium && !isPackagesLoading && selectedPackage ? (
-        <AppCard style={styles.priceCard}>
-          <Text style={styles.priceAmount}>{selectedPackage.product.priceString}</Text>
-          <Text style={styles.pricePeriod}>
-            {packageOptions.find((option) => option.package.identifier === selectedPackage.identifier)
-              ?.subscriptionPeriodLabel ?? 'Abonelik'}
-          </Text>
-          <Text style={styles.cancelNote}>
-            Abonelik mağaza hesabın üzerinden yönetilir ve otomatik yenilenir.
-          </Text>
-        </AppCard>
-      ) : null}
-
       <View style={styles.scrollEndSpacer} />
+
+      <VoiraFeedbackModal
+        visible={feedbackModal.visible}
+        type={feedbackModal.type}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        primaryText={feedbackModal.primaryText}
+        onPrimaryPress={closeFeedbackModal}
+      />
     </ScreenContainer>
   );
 }
@@ -562,10 +622,10 @@ const styles = StyleSheet.create({
   },
   hero: {
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm + 2,
   },
   heroLogo: {
-    marginBottom: spacing.sm,
+    marginBottom: spacing.xs + 2,
   },
   logoBadge: {
     width: 60,
@@ -593,21 +653,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
     color: colors.textPrimary,
     textAlign: 'center',
-    lineHeight: 28,
+    lineHeight: 26,
     paddingHorizontal: spacing.sm,
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs + 2,
     paddingHorizontal: spacing.sm,
-    lineHeight: 21,
+    lineHeight: 19,
   },
   activeCard: {
     marginBottom: spacing.md,
@@ -698,56 +758,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  benefitRow: {
+  benefitChipRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing.xs + 2,
     marginBottom: spacing.md,
   },
-  benefitPill: {
-    flex: 1,
-    backgroundColor: 'rgba(91, 95, 239, 0.06)',
-    borderRadius: borderRadius.lg,
+  benefitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(91, 95, 239, 0.08)',
+    borderRadius: borderRadius.full,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(91, 95, 239, 0.14)',
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.xs,
-    alignItems: 'center',
-    gap: spacing.xs,
+    borderColor: 'rgba(91, 95, 239, 0.18)',
+    paddingVertical: 7,
+    paddingHorizontal: spacing.sm + 2,
   },
-  benefitIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(139, 92, 246, 0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  benefitLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+  benefitChipLabel: {
+    fontSize: 11,
+    fontWeight: '600',
     color: colors.textPrimary,
-    textAlign: 'center',
-    lineHeight: 13,
   },
   featuresCard: {
     marginBottom: spacing.sm,
-    paddingVertical: spacing.sm + 4,
+    paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: spacing.sm,
-  },
-  loadingBlock: {
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-  },
-  loadingText: {
-    fontSize: 13,
-    color: colors.textSecondary,
   },
   fallbackCard: {
     marginBottom: spacing.sm,
@@ -788,19 +831,33 @@ const styles = StyleSheet.create({
   packageRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   packageCard: {
     flex: 1,
     borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.18)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(139, 92, 246, 0.16)',
     backgroundColor: 'rgba(26, 27, 46, 0.55)',
-    padding: spacing.md,
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.sm + 2,
+    minHeight: 108,
+  },
+  packageCardPlaceholder: {
+    opacity: 0.85,
   },
   packageCardSelected: {
     borderColor: colors.primary,
-    backgroundColor: 'rgba(91, 95, 239, 0.12)',
+    backgroundColor: 'rgba(91, 95, 239, 0.16)',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+      },
+      android: { elevation: 3 },
+    }),
   },
   packageHeader: {
     flexDirection: 'row',
@@ -810,51 +867,41 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   packageLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  packageLabelSelected: {
     color: colors.textPrimary,
   },
   packagePrice: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 2,
+  },
+  packagePriceSelected: {
+    color: colors.textPrimary,
   },
   packagePeriod: {
     fontSize: 12,
     color: colors.textMuted,
   },
-  priceCard: {
-    marginBottom: spacing.xs,
-    paddingVertical: spacing.md - 2,
-    paddingHorizontal: spacing.md,
-    borderColor: 'rgba(139, 92, 246, 0.22)',
-    borderWidth: 1,
-    backgroundColor: 'rgba(139, 92, 246, 0.04)',
-  },
-  priceAmount: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  pricePeriod: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
   cancelNote: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
-    lineHeight: 17,
+    lineHeight: 16,
+    textAlign: 'center',
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.sm,
   },
   popularBadge: {
-    backgroundColor: 'rgba(91, 95, 239, 0.12)',
+    backgroundColor: 'rgba(91, 95, 239, 0.18)',
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: borderRadius.full,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(91, 95, 239, 0.22)',
+    borderColor: 'rgba(91, 95, 239, 0.35)',
   },
   popularText: {
     fontSize: 9,
@@ -863,7 +910,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   scrollEndSpacer: {
-    height: spacing.xs,
+    height: spacing.md,
   },
   footerContainer: {
     backgroundColor: 'transparent',
@@ -921,35 +968,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   restoreText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
-    color: colors.textSecondary,
+    color: colors.textMuted,
   },
   legalRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: 6,
     marginTop: spacing.sm,
   },
   legalLink: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
-    textDecorationLine: 'underline',
   },
   legalDivider: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textMuted,
   },
   skipTouchable: {
     alignSelf: 'center',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs + 2,
     paddingVertical: spacing.xs,
   },
   skipText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
-    color: 'rgba(156, 163, 175, 0.88)',
+    color: 'rgba(156, 163, 175, 0.78)',
     letterSpacing: 0.1,
   },
   centerState: {

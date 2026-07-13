@@ -22,6 +22,7 @@ import {
   signOut as signOutFromSupabase,
   signUpWithEmailPassword,
   subscribeToAuthChanges,
+  updateDisplayName as updateDisplayNameRequest,
   type AuthActionResult,
   type AuthFeatures,
   type AuthUser,
@@ -38,6 +39,7 @@ interface AuthContextType {
   errorMessage: string | null;
   signInWithEmailPassword: (email: string, password: string) => Promise<AuthActionResult>;
   signUpWithEmailPassword: (email: string, password: string) => Promise<AuthActionResult>;
+  updateDisplayName: (displayName: string) => Promise<AuthActionResult>;
   signOut: () => Promise<boolean>;
   refreshSession: () => Promise<void>;
   clearError: () => void;
@@ -46,9 +48,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { setUserId } = useLearning();
+  const { setUserId, setName } = useLearning();
   const authFeatures = useMemo(() => getAuthFeatures(), []);
-  const isAuthAvailable = isAuthServiceAvailable();
+  const isAuthAvailable = useMemo(() => isAuthServiceAvailable(), []);
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [anonymousUserId, setAnonymousUserId] = useState<string | null>(null);
@@ -60,19 +62,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setAnonymousUserId(guestId);
       setUserId(guestId);
+      setName('');
     },
-    [setUserId],
+    [setName, setUserId],
   );
 
   const applySignedInIdentity = useCallback(
     async (nextUser: AuthUser) => {
       setUser(nextUser);
       setUserId(nextUser.id);
+      if (nextUser.displayName?.trim()) {
+        setName(nextUser.displayName.trim());
+      }
       if (__DEV__) {
         console.log('[EchoSpeak Auth] signed in');
       }
     },
-    [setUserId],
+    [setName, setUserId],
   );
 
   const hydrateAuth = useCallback(async () => {
@@ -245,6 +251,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await applyGuestIdentity(guestId);
   }, [anonymousUserId, applyGuestIdentity, applySignedInIdentity]);
 
+  const updateDisplayNameHandler = useCallback(
+    async (displayName: string): Promise<AuthActionResult> => {
+      setErrorMessage(null);
+      const result = await updateDisplayNameRequest(displayName);
+      if (!result.ok) {
+        setErrorMessage(result.errorMessage ?? 'İsim kaydedilemedi.');
+        return result;
+      }
+
+      const nextUser = await getCurrentAuthUser();
+      if (nextUser) {
+        await applySignedInIdentity(nextUser);
+      } else {
+        const trimmed = displayName.trim();
+        setUser((prev) => (prev ? { ...prev, displayName: trimmed } : prev));
+        setName(trimmed);
+      }
+
+      return result;
+    },
+    [applySignedInIdentity, setName],
+  );
+
   const clearError = useCallback(() => {
     setErrorMessage(null);
   }, []);
@@ -260,6 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       errorMessage,
       signInWithEmailPassword: signInWithEmailPasswordHandler,
       signUpWithEmailPassword: signUpWithEmailPasswordHandler,
+      updateDisplayName: updateDisplayNameHandler,
       signOut: signOutHandler,
       refreshSession: refreshSessionHandler,
       clearError,
@@ -273,6 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       errorMessage,
       signInWithEmailPasswordHandler,
       signUpWithEmailPasswordHandler,
+      updateDisplayNameHandler,
       signOutHandler,
       refreshSessionHandler,
       clearError,

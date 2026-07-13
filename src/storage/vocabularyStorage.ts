@@ -1,10 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { VocabularyItem } from '../types/vocabulary';
+import { normalizeVocabularyTerm } from '../utils/vocabularyMeanings';
 
 export const VOCABULARY_STORAGE_KEY = 'ECHOSPEAK_VOCABULARY_ITEMS_V1';
 
-function normalizeKey(word: string, translationTr: string): string {
-  return `${word.trim().toLocaleLowerCase('en-US')}::${translationTr.trim().toLocaleLowerCase('tr-TR')}`;
+function normalizeWordKey(word: string): string {
+  return normalizeVocabularyTerm(word);
 }
 
 function isValidItem(value: unknown): value is VocabularyItem {
@@ -47,10 +48,10 @@ export async function getVocabularyItems(): Promise<VocabularyItem[]> {
   }
 }
 
-export async function isVocabularySaved(word: string, translationTr: string): Promise<boolean> {
+export async function isVocabularySaved(word: string): Promise<boolean> {
   const items = await getVocabularyItems();
-  const key = normalizeKey(word, translationTr);
-  return items.some((item) => normalizeKey(item.word, item.translationTr) === key);
+  const key = normalizeWordKey(word);
+  return items.some((item) => normalizeWordKey(item.word) === key);
 }
 
 export async function addVocabularyItem(
@@ -64,8 +65,8 @@ export async function addVocabularyItem(
 
   try {
     const items = await getVocabularyItems();
-    const key = normalizeKey(word, translationTr);
-    const existing = items.find((item) => normalizeKey(item.word, item.translationTr) === key);
+    const key = normalizeWordKey(word);
+    const existing = items.find((item) => normalizeWordKey(item.word) === key);
     if (existing) {
       return { item: existing, added: false };
     }
@@ -74,10 +75,13 @@ export async function addVocabularyItem(
       id: input.id ?? `vocab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       word,
       translationTr,
+      contextSentence: input.contextSentence?.trim() || undefined,
+      contextTr: input.contextTr?.trim() || undefined,
       lessonId: input.lessonId,
       lessonTitle: input.lessonTitle,
       segmentId: input.segmentId,
       categoryId: input.categoryId,
+      categoryTitle: input.categoryTitle,
       createdAt: input.createdAt ?? new Date().toISOString(),
     };
 

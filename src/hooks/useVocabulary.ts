@@ -7,10 +7,7 @@ import {
   isVocabularySaved,
   removeVocabularyItem,
 } from '../storage/vocabularyStorage';
-
-function normalizeKey(word: string, translationTr: string): string {
-  return `${word.trim().toLocaleLowerCase('en-US')}::${translationTr.trim().toLocaleLowerCase('tr-TR')}`;
-}
+import { normalizeVocabularyTerm } from '../utils/vocabularyMeanings';
 
 export function useVocabulary() {
   const [items, setItems] = useState<VocabularyItem[]>([]);
@@ -32,14 +29,14 @@ export function useVocabulary() {
     }, [refresh]),
   );
 
-  const savedKeys = useMemo(
-    () => new Set(items.map((item) => normalizeKey(item.word, item.translationTr))),
+  const savedWordKeys = useMemo(
+    () => new Set(items.map((item) => normalizeVocabularyTerm(item.word))),
     [items],
   );
 
   const isSaved = useCallback(
-    (word: string, translationTr: string) => savedKeys.has(normalizeKey(word, translationTr)),
-    [savedKeys],
+    (word: string) => savedWordKeys.has(normalizeVocabularyTerm(word)),
+    [savedWordKeys],
   );
 
   const addItem = useCallback(

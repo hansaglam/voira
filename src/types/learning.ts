@@ -52,7 +52,7 @@ export function createDefaultLearningProfile(
 ): UserLearningProfile {
   const defaults: UserLearningProfile = {
     userId: 'local-user',
-    name: 'Ethem',
+    name: '',
     level: 'intermediate',
     goals: ['daily_conversation'],
     weakAreas: [],

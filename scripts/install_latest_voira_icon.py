@@ -8,7 +8,7 @@ ASSETS = Path(r"c:\Users\ahmet\shadowly\assets")
 SRC = Path(
     r"C:\Users\ahmet\.cursor\projects\c-Users-ahmet-shadowly\assets"
     r"\c__Users_ahmet_AppData_Roaming_Cursor_User_workspaceStorage_"
-    r"5f4f9d9775b05c43459f632785a8db65_images_playstore-icon-bd3f0f73-fe4c-41ca-b618-a833fea5c740.png"
+    r"5f4f9d9775b05c43459f632785a8db65_images_ic_launcher-web-bdbc07ca-c02f-43b3-a6b0-38a74753efc6.png"
 )
 
 play = Image.open(SRC).convert("RGBA")

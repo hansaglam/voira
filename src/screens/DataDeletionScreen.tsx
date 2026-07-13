@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Linking, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Alert, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import { useLearning } from '../context/LearningContext';
@@ -9,6 +9,7 @@ import {
   DATA_DELETION_URL,
   SUPPORT_EMAIL,
 } from '../constants/legalLinks';
+import { openExternalLink } from '../utils/openExternalLink';
 import { colors, spacing, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'DataDeletion'>;
@@ -19,7 +20,7 @@ export function DataDeletionScreen(_props: Props) {
   const [isResetting, setIsResetting] = useState(false);
 
   const openSupportEmail = () => {
-    void Linking.openURL(DATA_DELETION_MAILTO);
+    void openExternalLink(DATA_DELETION_MAILTO);
   };
 
   const handleLocalReset = () => {
@@ -64,7 +65,7 @@ export function DataDeletionScreen(_props: Props) {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.webLink}
-        onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+        onPress={() => void openExternalLink(DATA_DELETION_URL)}
         activeOpacity={0.85}
       >
         <Text style={styles.webLinkText}>Veri silme sayfasını aç (web)</Text>

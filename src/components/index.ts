@@ -34,6 +34,8 @@ export { LessonHeader } from './LessonHeader';
 export { LessonSegmentNavigator } from './LessonSegmentNavigator';
 export { LessonVocabularySection } from './LessonVocabularySection';
 export { VoiraLogo } from './VoiraLogo';
+export { VoiraFeedbackModal } from './VoiraFeedbackModal';
+export type { VoiraFeedbackModalProps, VoiraFeedbackType } from './VoiraFeedbackModal';
 export { SentenceCard } from './SentenceCard';
 export {
   AnimatedMic,

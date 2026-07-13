@@ -1,4 +1,4 @@
-# Voira Release Checklist — 1.0.9
+# Voira Release Checklist — 1.0.10
 
 ## Target build
 
@@ -6,9 +6,9 @@
 |---|---|
 | App display name | Voira |
 | Package / applicationId | `com.ethemsincar.echospeak` |
-| Version | `1.0.9` |
-| versionCode | `10` |
-| AAB | `releases/voira-1.0.9-10-internal.aab` |
+| Version | `1.0.10` |
+| versionCode | `11` |
+| AAB | `releases/voira-1.0.10-11-internal.aab` |
 
 ## Required production env vars (mobile)
 

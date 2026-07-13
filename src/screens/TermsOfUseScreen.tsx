@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import {
@@ -7,6 +7,7 @@ import {
   SUPPORT_EMAIL,
   TERMS_OF_USE_URL,
 } from '../constants/legalLinks';
+import { openExternalLink } from '../utils/openExternalLink';
 import { colors, spacing, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'TermsOfUse'>;
@@ -66,14 +67,14 @@ export function TermsOfUseScreen(_props: Props) {
         <>
           <TouchableOpacity
             style={styles.linkButton}
-            onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}
+            onPress={() => void openExternalLink(TERMS_OF_USE_URL)}
             activeOpacity={0.85}
           >
             <Text style={styles.linkButtonText}>Tam Kullanım Şartlarını aç</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryLink}
-            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+            onPress={() => void openExternalLink(PRIVACY_POLICY_URL)}
             activeOpacity={0.85}
           >
             <Text style={styles.secondaryLinkText}>Gizlilik Politikası (web)</Text>

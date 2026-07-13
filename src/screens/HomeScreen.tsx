@@ -15,7 +15,9 @@ import { useUser } from '../context/UserContext';
 import { usePremium } from '../context/PremiumContext';
 import { useAuth } from '../context/AuthContext';
 import { isRegisteredUser } from '../utils/authAccess';
+import { getHomeGreeting, getUserDisplayName } from '../utils/userDisplayName';
 import { useLearning } from '../context/LearningContext';
+import { useVocabulary } from '../hooks/useVocabulary';
 import {
   getContinueLessonEntry,
   getRecommendedLessons,
@@ -33,21 +35,29 @@ const VALUE_BULLETS = [
 ] as const;
 
 const SPEAKPLUS_BENEFITS = [
-  'İleri seviye dersler',
-  'Kelime bazlı geri bildirim',
+  'Premium derslere erişim',
+  'Daha fazla pratik yolu',
 ] as const;
 
 export function HomeScreen({ navigation }: Props) {
-  const { profile, pendingFirstLesson, clearPendingFirstLesson } = useUser();
+  const { pendingFirstLesson, clearPendingFirstLesson } = useUser();
   const { isPremium } = usePremium();
-  const { user } = useAuth();
+  const { user, isGuest } = useAuth();
   const registered = isRegisteredUser(user);
   const openedPendingLessonRef = useRef(false);
   const { learningProfile, getDailySession } = useLearning();
+  const { count: vocabularyCount } = useVocabulary();
   const session = getDailySession();
   const continueEntry = getContinueLessonEntry(learningProfile);
   const continueLesson = continueEntry.lesson;
   const recommended = getRecommendedLessons(learningProfile);
+
+  const displayName = getUserDisplayName({
+    user,
+    localName: learningProfile.name,
+    isGuest,
+  });
+  const greeting = getHomeGreeting(displayName);
 
   const dailyGoalLabel = session.focusSkill?.trim() || 'Daha akıcı konuşma';
 
@@ -74,7 +84,7 @@ export function HomeScreen({ navigation }: Props) {
       <View style={styles.greeting}>
         <View style={styles.greetingText}>
           <Text style={styles.brandLabel}>VOIRA</Text>
-          <Text style={typography.h1}>Merhaba, {profile.name}</Text>
+          <Text style={typography.h1}>{greeting}</Text>
           <Text style={styles.greetingSub}>
             Bugün kısa bir pratik yap, telaffuzunu analiz et ve zayıf kelimelerini gör.
           </Text>
@@ -161,6 +171,40 @@ export function HomeScreen({ navigation }: Props) {
         </LinearGradient>
       </View>
 
+      <TouchableOpacity
+        activeOpacity={0.88}
+        onPress={() => navigation.navigate('Vocabulary')}
+        style={styles.vocabCard}
+      >
+        <LinearGradient
+          colors={['rgba(139, 92, 246, 0.16)', 'rgba(26, 27, 46, 0.94)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.vocabCardInner}
+        >
+          <View style={styles.vocabLeft}>
+            <View style={styles.vocabIcon}>
+              <Ionicons name="bookmark" size={14} color={colors.secondary} />
+            </View>
+            <View style={styles.vocabTextWrap}>
+              <Text style={styles.vocabTitle}>Kelime Defterim</Text>
+              <Text style={styles.vocabSubtitle}>
+                Kaydettiğin kelime ve ifadeleri tekrar et.
+              </Text>
+              <Text style={styles.vocabCount}>
+                {vocabularyCount > 0
+                  ? `${vocabularyCount} kelime kayıtlı`
+                  : 'Henüz kelime eklemedin'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.vocabCta}>
+            <Text style={styles.vocabCtaText}>Defteri aç</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.secondary} />
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+
       {/* B. Continue Learning */}
       <AppCard style={styles.continueCard} elevated>
         <Text style={styles.continueLabel}>Kaldığın yerden devam et</Text>
@@ -209,12 +253,15 @@ export function HomeScreen({ navigation }: Props) {
         ))}
       </ScrollView>
 
-      <SectionHeader title="SpeakPlus araçları" subtitle="Kişisel pratik ve gelişmiş geri bildirim" />
+      <SectionHeader
+        title="SpeakPlus ile açılanlar"
+        subtitle="Premium dersler, gelişmiş analiz ve kelime bazlı geri bildirim"
+      />
       <FuturePracticeCard
-        title="AI ile kendi dersini oluştur"
-        subtitle="Sevdiğin bir cümleyi shadowing dersine çevir."
-        icon="sparkles"
-        benefits={['Kişisel cümle pratiği', 'Azure telaffuz analizi']}
+        title="Gelişmiş telaffuz analizi"
+        subtitle="Telaffuz, doğruluk, akıcılık ve tamamlama skorlarını detaylı gör."
+        icon="analytics-outline"
+        benefits={['Detaylı skorlar', 'Kelime bazlı geri bildirim']}
         onPress={() => navigation.navigate('Premium')}
       />
 
@@ -233,9 +280,9 @@ export function HomeScreen({ navigation }: Props) {
               <Ionicons name="diamond" size={16} color={colors.premium} />
             </View>
             <View style={styles.plusTextWrap}>
-              <Text style={styles.plusTitle}>SpeakPlus pratikleri</Text>
-              <Text style={styles.plusSubtitle} numberOfLines={1}>
-                İleri telaffuz, akıcılık ve profesyonel konuşma dersleri
+              <Text style={styles.plusTitle}>Premium ders paketleri</Text>
+              <Text style={styles.plusSubtitle} numberOfLines={2}>
+                Günlük konuşma, seyahat, iş ve telaffuz derslerinde daha fazla pratik yap.
               </Text>
               <View style={styles.plusBenefits}>
                 {SPEAKPLUS_BENEFITS.map((benefit) => (
@@ -426,6 +473,73 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: colors.textSecondary,
     flex: 1,
+  },
+  vocabCard: {
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.28)',
+  },
+  vocabCardInner: {
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.sm + 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  vocabLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minWidth: 0,
+  },
+  vocabIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vocabTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  vocabTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  vocabSubtitle: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.textSecondary,
+  },
+  vocabCount: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.secondary,
+    marginTop: 1,
+  },
+  vocabCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(139, 92, 246, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.28)',
+  },
+  vocabCtaText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.secondary,
   },
   continueCard: {
     marginBottom: spacing.md,

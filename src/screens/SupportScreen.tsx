@@ -1,5 +1,5 @@
 import React from 'react';
-import { Linking, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import {
@@ -8,13 +8,14 @@ import {
   SUPPORT_EMAIL,
   SUPPORT_MAILTO,
 } from '../constants/legalLinks';
+import { openExternalLink } from '../utils/openExternalLink';
 import { colors, spacing, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'Support'>;
 
 export function SupportScreen(_props: Props) {
   const openEmail = () => {
-    void Linking.openURL(`${SUPPORT_MAILTO}?subject=Voira%20Destek`);
+    void openExternalLink(`${SUPPORT_MAILTO}?subject=Voira%20Destek`);
   };
 
   return (
@@ -43,14 +44,14 @@ export function SupportScreen(_props: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryLink}
-            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+            onPress={() => void openExternalLink(PRIVACY_POLICY_URL)}
             activeOpacity={0.85}
           >
             <Text style={styles.secondaryLinkText}>Gizlilik Politikası</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryLink}
-            onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+            onPress={() => void openExternalLink(DATA_DELETION_URL)}
             activeOpacity={0.85}
           >
             <Text style={styles.secondaryLinkText}>Veri silme bilgisi</Text>
