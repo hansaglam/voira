@@ -74,7 +74,7 @@ export function DataDeletionScreen(_props: Props) {
 
   const requestSection = {
     title: 'Hesap ve veri silme talebi',
-    body: `Hesap ve veri silme talebi için Voira Destek’e (${SUPPORT_EMAIL}) yazabilirsin. Konu satırı: Voira Data Deletion Request. Doğrulama için uygulamada kullandığın e-posta adresini ekle. Bu otomatik tek dokunuşla silme değildir; talebin doğrulanarak işlenir.`,
+    body: `Hesap ve veri silme talebi için Voira Destek’e (${SUPPORT_EMAIL}) yazabilirsin. Uygulamada kullandığın e-posta adresini ekle. Konu: Voira Data Deletion Request. Bu otomatik tek dokunuşla silme değildir; talebin doğrulanarak işlenir.`,
   };
 
   if (isGuest) {

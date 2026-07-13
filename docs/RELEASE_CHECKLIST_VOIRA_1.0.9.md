@@ -46,5 +46,5 @@ npm run backend:build
 
 ## Support contact (user-facing)
 
-- Email: `voiraapp@gmail.com`
+- Email: `ethemsincarbusiness@gmail.com`
 - Label: Voira Destek
