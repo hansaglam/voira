@@ -13,7 +13,8 @@ import { ScreenContainer, AppCard, EmptyState } from '../components';
 import { goBackOrFallback } from '../navigation/safeGoBack';
 import { useVocabulary } from '../hooks/useVocabulary';
 import { lookupVocabularyMeaning } from '../utils/vocabularyMeanings';
-import { colors, spacing, typography } from '../theme';
+import { FREE_VOCABULARY_LIMIT } from '../constants/vocabularyLimits';
+import { colors, spacing, typography, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'Vocabulary'>;
 
@@ -27,7 +28,8 @@ function sourceLabel(item: {
 }
 
 export function VocabularyScreen({ navigation }: Props) {
-  const { items, isLoading, removeItem, count } = useVocabulary();
+  const { items, isLoading, removeItem, count, limit, limitReached, isPremium } =
+    useVocabulary();
 
   const handleDelete = useCallback(
     (id: string, word: string) => {
@@ -44,6 +46,14 @@ export function VocabularyScreen({ navigation }: Props) {
     },
     [removeItem],
   );
+
+  const limitHint = isPremium
+    ? 'Genişletilmiş Kelime Defteri'
+    : `${FREE_VOCABULARY_LIMIT} kelimeye kadar ücretsiz`;
+
+  const usageLabel = limitReached
+    ? 'Limit doldu'
+    : `${count} / ${limit} kelime`;
 
   return (
     <ScreenContainer>
@@ -63,9 +73,30 @@ export function VocabularyScreen({ navigation }: Props) {
       <Text style={styles.subtitle}>
         Kaydettiğin kelime ve ifadeleri burada tekrar et.
       </Text>
-      {count > 0 ? (
-        <Text style={styles.countLabel}>{count} kelime</Text>
-      ) : null}
+
+      <View style={[styles.limitCard, limitReached && styles.limitCardFull]}>
+        <View style={styles.limitTopRow}>
+          <Text style={styles.limitHint}>{limitHint}</Text>
+          {!isPremium && limitReached ? (
+            <View style={styles.limitBadge}>
+              <Text style={styles.limitBadgeText}>Limit doldu</Text>
+            </View>
+          ) : null}
+        </View>
+        <Text style={[styles.usageLabel, limitReached && styles.usageLabelFull]}>
+          {usageLabel}
+        </Text>
+        {!isPremium && limitReached ? (
+          <TouchableOpacity
+            style={styles.upgradeLink}
+            onPress={() => navigation.navigate('Premium')}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.upgradeLinkText}>SpeakPlus’ı gör</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.secondary} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
       {isLoading ? (
         <View style={styles.loadingWrap}>
@@ -138,13 +169,65 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...typography.screenSubtitle,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  countLabel: {
+  limitCard: {
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.22)',
+    gap: 4,
+  },
+  limitCardFull: {
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderColor: 'rgba(245, 158, 11, 0.28)',
+  },
+  limitTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  limitHint: {
+    flex: 1,
     fontSize: 12,
     fontWeight: '600',
-    color: colors.textMuted,
-    marginBottom: spacing.md,
+    color: colors.textSecondary,
+  },
+  usageLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  usageLabelFull: {
+    color: '#FBBF24',
+  },
+  limitBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  limitBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FBBF24',
+  },
+  upgradeLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 4,
+  },
+  upgradeLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.secondary,
   },
   loadingWrap: {
     paddingVertical: spacing.xl,

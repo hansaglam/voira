@@ -2,7 +2,7 @@
   "expo": {
     "name": "Voira",
     "slug": "echospeak",
-    "version": "1.0.10",
+    "version": "1.0.11",
     "orientation": "portrait",
     "scheme": "echospeak",
     "icon": "./assets/brand/voira-app-icon.png",
@@ -27,7 +27,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "package": "com.ethemsincar.echospeak",
-      "versionCode": 11,
+      "versionCode": 12,
       "intentFilters": [
         {
           "action": "VIEW",

@@ -41,13 +41,14 @@ const CTA_HEIGHT = 52;
 const BENEFIT_CHIPS = [
   { icon: 'library-outline' as const, label: 'Tüm premium dersler' },
   { icon: 'analytics-outline' as const, label: 'Gelişmiş analiz' },
-  { icon: 'text-outline' as const, label: 'Kelime geri bildirimi' },
+  { icon: 'bookmark-outline' as const, label: 'Kelime Defterini genişlet' },
 ];
 
 const SPEAKPLUS_VALUE_ITEMS = [
   'Premium ders paketlerine eriş',
   'Telaffuz, doğruluk ve akıcılık skorlarını detaylı gör',
-  'Zayıf kelimelerini kelime bazlı geri bildirimle takip et',
+  'Kelime Defterini genişlet',
+  'Zayıf kelimelerini daha düzenli takip et',
   'Gelişimini haftalık olarak izle',
 ];
 

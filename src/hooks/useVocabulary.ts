@@ -7,9 +7,23 @@ import {
   isVocabularySaved,
   removeVocabularyItem,
 } from '../storage/vocabularyStorage';
+import {
+  canAddVocabularyItem,
+  getVocabularyLimit,
+  isVocabularyLimitReached,
+} from '../constants/vocabularyLimits';
 import { normalizeVocabularyTerm } from '../utils/vocabularyMeanings';
+import { usePremium } from '../context/PremiumContext';
+
+export type AddVocabularyResult = {
+  item: VocabularyItem | null;
+  added: boolean;
+  /** Blocked because freemium / SpeakPlus cap was reached. */
+  blockedByLimit?: boolean;
+};
 
 export function useVocabulary() {
+  const { isPremium } = usePremium();
   const [items, setItems] = useState<VocabularyItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,6 +43,11 @@ export function useVocabulary() {
     }, [refresh]),
   );
 
+  const count = items.length;
+  const limit = getVocabularyLimit(isPremium);
+  const limitReached = isVocabularyLimitReached(count, isPremium);
+  const canAdd = canAddVocabularyItem(count, isPremium);
+
   const savedWordKeys = useMemo(
     () => new Set(items.map((item) => normalizeVocabularyTerm(item.word))),
     [items],
@@ -40,14 +59,19 @@ export function useVocabulary() {
   );
 
   const addItem = useCallback(
-    async (input: Omit<VocabularyItem, 'id' | 'createdAt'>) => {
+    async (input: Omit<VocabularyItem, 'id' | 'createdAt'>): Promise<AddVocabularyResult> => {
+      const current = await getVocabularyItems();
+      if (!canAddVocabularyItem(current.length, isPremium)) {
+        return { item: null, added: false, blockedByLimit: true };
+      }
+
       const result = await addVocabularyItem(input);
       if (result.added) {
         await refresh();
       }
       return result;
     },
-    [refresh],
+    [isPremium, refresh],
   );
 
   const removeItem = useCallback(
@@ -64,7 +88,11 @@ export function useVocabulary() {
   return {
     items,
     isLoading,
-    count: items.length,
+    count,
+    limit,
+    limitReached,
+    canAdd,
+    isPremium,
     addItem,
     removeItem,
     isSaved,

@@ -21,6 +21,8 @@ export type VoiraFeedbackModalProps = {
   message: string;
   primaryText?: string;
   onPrimaryPress: () => void;
+  secondaryText?: string;
+  onSecondaryPress?: () => void;
 };
 
 function iconForType(type: VoiraFeedbackType): keyof typeof Ionicons.glyphMap {
@@ -58,12 +60,15 @@ export function VoiraFeedbackModal({
   message,
   primaryText = 'Tamam',
   onPrimaryPress,
+  secondaryText,
+  onSecondaryPress,
 }: VoiraFeedbackModalProps) {
   const palette = iconColors(type);
+  const handleDismiss = onSecondaryPress ?? onPrimaryPress;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onPrimaryPress}>
-      <Pressable style={styles.overlay} onPress={onPrimaryPress}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleDismiss}>
+      <Pressable style={styles.overlay} onPress={handleDismiss}>
         <Pressable style={styles.card} onPress={(event) => event.stopPropagation()}>
           <View style={[styles.iconRing, { backgroundColor: palette.ring }]}>
             <View style={[styles.iconCircle, { backgroundColor: palette.fill }]}>
@@ -88,6 +93,16 @@ export function VoiraFeedbackModal({
               <Text style={styles.buttonText}>{primaryText}</Text>
             </LinearGradient>
           </TouchableOpacity>
+
+          {secondaryText && onSecondaryPress ? (
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={onSecondaryPress}
+              style={styles.secondaryButton}
+            >
+              <Text style={styles.secondaryButtonText}>{secondaryText}</Text>
+            </TouchableOpacity>
+          ) : null}
         </Pressable>
       </Pressable>
     </Modal>
@@ -166,5 +181,18 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  secondaryButton: {
+    alignSelf: 'stretch',
+    marginTop: spacing.sm,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });

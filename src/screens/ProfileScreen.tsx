@@ -45,7 +45,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const APP_VERSION = '1.0.10';
+const APP_VERSION = '1.0.11';
 
 type Props = TabScreenProps<'Profile'>;
 
@@ -188,7 +188,8 @@ export function ProfileScreen({ navigation, route }: Props) {
     clearError,
   } = useAuth();
   const { restorePurchases, isRevenueCatConfigured, isPremium, isRestoring } = usePremium();
-  const { count: vocabularyCount } = useVocabulary();
+  const { count: vocabularyCount, limit: vocabularyLimit, isPremium: isVocabPremium } =
+    useVocabulary();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -694,7 +695,9 @@ export function ProfileScreen({ navigation, route }: Props) {
               {item.route === 'Vocabulary' ? (
                 <Text style={styles.settingSubtitle}>
                   {vocabularyCount > 0
-                    ? `${vocabularyCount} kelime`
+                    ? isVocabPremium
+                      ? `${vocabularyCount} kelime`
+                      : `${vocabularyCount} / ${vocabularyLimit} kelime`
                     : item.subtitle ?? 'Kaydettiğin kelime ve ifadeler'}
                 </Text>
               ) : item.subtitle ? (

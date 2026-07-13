@@ -1,13 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Lesson } from '../types/lesson';
 import { CATEGORY_LABELS } from '../types/lesson';
 import type { LessonSegment } from '../types/segment';
 import type { VocabularyCandidate } from '../types/vocabulary';
+import type { RootStackParamList } from '../navigation/types';
 import { VoiraFeedbackModal } from './VoiraFeedbackModal';
 import { useVocabulary } from '../hooks/useVocabulary';
 import { getVocabularyCandidates } from '../utils/vocabularyCandidates';
+import { FREE_VOCABULARY_LIMIT } from '../constants/vocabularyLimits';
 import { colors, spacing, borderRadius } from '../theme';
 
 type Props = {
@@ -15,10 +19,14 @@ type Props = {
   segment: LessonSegment;
 };
 
+type LimitModalKind = 'free' | 'premium' | null;
+
 export function LessonVocabularySection({ lesson, segment }: Props) {
-  const { isSaved, addItem } = useVocabulary();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { isSaved, addItem, canAdd, isPremium } = useVocabulary();
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [alreadySavedVisible, setAlreadySavedVisible] = useState(false);
+  const [limitModal, setLimitModal] = useState<LimitModalKind>(null);
 
   const candidates = useMemo(() => getVocabularyCandidates(segment), [segment]);
   const categoryTitle = CATEGORY_LABELS[lesson.category];
@@ -27,6 +35,11 @@ export function LessonVocabularySection({ lesson, segment }: Props) {
 
   const handleAdd = async (entry: VocabularyCandidate) => {
     if (isSaved(entry.word) || pendingKey === entry.word) return;
+
+    if (!canAdd) {
+      setLimitModal(isPremium ? 'premium' : 'free');
+      return;
+    }
 
     setPendingKey(entry.word);
     try {
@@ -41,6 +54,10 @@ export function LessonVocabularySection({ lesson, segment }: Props) {
         categoryId: lesson.category,
         categoryTitle,
       });
+      if (result.blockedByLimit) {
+        setLimitModal(isPremium ? 'premium' : 'free');
+        return;
+      }
       if (!result.added && result.item) {
         setAlreadySavedVisible(true);
       }
@@ -108,6 +125,29 @@ export function LessonVocabularySection({ lesson, segment }: Props) {
         message="Bu kelime zaten defterinde"
         primaryText="Tamam"
         onPrimaryPress={() => setAlreadySavedVisible(false)}
+      />
+
+      <VoiraFeedbackModal
+        visible={limitModal === 'free'}
+        type="info"
+        title="Kelime Defteri limitine ulaştın"
+        message={`Ücretsiz planda ${FREE_VOCABULARY_LIMIT} kelime ve ifade kaydedebilirsin. Daha fazla kelime kaydetmek için SpeakPlus’a geçebilirsin.`}
+        primaryText="SpeakPlus’ı gör"
+        secondaryText="Şimdilik kal"
+        onPrimaryPress={() => {
+          setLimitModal(null);
+          navigation.navigate('Premium');
+        }}
+        onSecondaryPress={() => setLimitModal(null)}
+      />
+
+      <VoiraFeedbackModal
+        visible={limitModal === 'premium'}
+        type="info"
+        title="Kelime Defteri dolu"
+        message="Yeni kelime eklemek için defterinden bazı kelimeleri silebilirsin."
+        primaryText="Tamam"
+        onPrimaryPress={() => setLimitModal(null)}
       />
     </View>
   );

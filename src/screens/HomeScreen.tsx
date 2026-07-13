@@ -46,7 +46,8 @@ export function HomeScreen({ navigation }: Props) {
   const registered = isRegisteredUser(user);
   const openedPendingLessonRef = useRef(false);
   const { learningProfile, getDailySession } = useLearning();
-  const { count: vocabularyCount } = useVocabulary();
+  const { count: vocabularyCount, limit: vocabularyLimit, limitReached: vocabularyLimitReached } =
+    useVocabulary();
   const session = getDailySession();
   const continueEntry = getContinueLessonEntry(learningProfile);
   const continueLesson = continueEntry.lesson;
@@ -187,14 +188,23 @@ export function HomeScreen({ navigation }: Props) {
               <Ionicons name="bookmark" size={14} color={colors.secondary} />
             </View>
             <View style={styles.vocabTextWrap}>
-              <Text style={styles.vocabTitle}>Kelime Defterim</Text>
+              <View style={styles.vocabTitleRow}>
+                <Text style={styles.vocabTitle}>Kelime Defterim</Text>
+                {!isPremium && vocabularyLimitReached ? (
+                  <View style={styles.vocabLimitBadge}>
+                    <Text style={styles.vocabLimitBadgeText}>Limit doldu</Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={styles.vocabSubtitle}>
                 Kaydettiğin kelime ve ifadeleri tekrar et.
               </Text>
               <Text style={styles.vocabCount}>
-                {vocabularyCount > 0
-                  ? `${vocabularyCount} kelime kayıtlı`
-                  : 'Henüz kelime eklemedin'}
+                {vocabularyCount === 0
+                  ? 'Henüz kelime eklemedin'
+                  : isPremium
+                    ? `${vocabularyCount} kelime kayıtlı`
+                    : `${vocabularyCount} / ${vocabularyLimit} kelime kayıtlı`}
               </Text>
             </View>
           </View>
@@ -509,10 +519,29 @@ const styles = StyleSheet.create({
     minWidth: 0,
     gap: 2,
   },
+  vocabTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
   vocabTitle: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
+  },
+  vocabLimitBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  vocabLimitBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FBBF24',
   },
   vocabSubtitle: {
     fontSize: 11,
