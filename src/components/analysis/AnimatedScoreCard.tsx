@@ -7,14 +7,23 @@ import {
   Platform,
   AccessibilityInfo,
   Easing,
+  Pressable,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PremiumMetricBar } from './PremiumMetricBar';
 import { PremiumScoreRing } from './PremiumScoreRing';
 import { colors, spacing, borderRadius } from '../../theme';
 
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const CARD_ENTRANCE_MS = 420;
 const CARD_TRANSLATE_Y = 10;
+const ACCORDION_CHEVRON_MS = 240;
 
 export interface AnimatedScoreCardProps {
   nativeScore: number;
@@ -210,6 +219,32 @@ export function getScoreFeedback(
   };
 }
 
+type PremiumMetricToneLike = 'primary' | 'purple' | 'amber';
+
+const SUMMARY_CHIP_TONES: Record<PremiumMetricToneLike, string> = {
+  primary: colors.primary,
+  purple: colors.secondary,
+  amber: colors.warning,
+};
+
+function ScoreSummaryChip({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: PremiumMetricToneLike;
+}) {
+  const color = SUMMARY_CHIP_TONES[tone];
+  return (
+    <View style={[styles.summaryChip, { borderColor: `${color}33` }]}>
+      <Text style={styles.summaryChipLabel}>{label}</Text>
+      <Text style={[styles.summaryChipValue, { color }]}>{Math.round(value)}</Text>
+    </View>
+  );
+}
+
 export function AnimatedScoreCard({
   nativeScore,
   pronunciationScore,
@@ -225,8 +260,11 @@ export function AnimatedScoreCard({
 }: AnimatedScoreCardProps) {
   const [reduceMotion, setReduceMotion] = useState(false);
   const [motionPrefReady, setMotionPrefReady] = useState(false);
+  /** Defaults open on first analysis view; stays closed only for this screen session. */
+  const [detailsExpanded, setDetailsExpanded] = useState(true);
   const cardOpacity = useRef(new Animated.Value(0)).current;
   const cardTranslateY = useRef(new Animated.Value(CARD_TRANSLATE_Y)).current;
+  const chevronAnim = useRef(new Animated.Value(1)).current;
   const cardAnimatedRef = useRef(false);
 
   const shouldAnimate = motionPrefReady && !reduceMotion;
@@ -250,6 +288,7 @@ export function AnimatedScoreCard({
     rhythmScore,
     confidenceScore,
   };
+  const summaryRows = metricRows.slice(0, 3);
 
   useEffect(() => {
     let mounted = true;
@@ -310,6 +349,38 @@ export function AnimatedScoreCard({
     };
   }, [cardOpacity, cardTranslateY, motionPrefReady, shouldAnimate]);
 
+  useEffect(() => {
+    Animated.timing(chevronAnim, {
+      toValue: detailsExpanded ? 1 : 0,
+      duration: reduceMotion ? 0 : ACCORDION_CHEVRON_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [chevronAnim, detailsExpanded, reduceMotion]);
+
+  const chevronRotation = chevronAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const handleToggleDetails = () => {
+    if (!reduceMotion) {
+      LayoutAnimation.configureNext({
+        duration: 280,
+        create: {
+          type: LayoutAnimation.Types.easeInEaseOut,
+          property: LayoutAnimation.Properties.opacity,
+        },
+        update: { type: LayoutAnimation.Types.easeInEaseOut },
+        delete: {
+          type: LayoutAnimation.Types.easeInEaseOut,
+          property: LayoutAnimation.Properties.opacity,
+        },
+      });
+    }
+    setDetailsExpanded((prev) => !prev);
+  };
+
   return (
     <Animated.View
       style={[
@@ -341,17 +412,48 @@ export function AnimatedScoreCard({
 
         <View style={styles.divider} />
 
-        <View style={styles.metrics}>
-          {metricRows.map((metric) => (
-            <PremiumMetricBar
-              key={metric.label}
-              label={metric.label}
-              value={metricValues[metric.key]}
-              tone={metric.tone}
-              delay={shouldAnimate ? metric.delay : 0}
-              animate={shouldAnimate}
-            />
-          ))}
+        <View style={styles.detailsSection}>
+          <Pressable
+            onPress={handleToggleDetails}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: detailsExpanded }}
+            accessibilityLabel="Detaylı skorlar"
+            style={({ pressed }) => [
+              styles.detailsHeader,
+              pressed && styles.detailsHeaderPressed,
+            ]}
+          >
+            <Text style={styles.detailsTitle}>Detaylı skorlar</Text>
+            <Animated.View style={{ transform: [{ rotate: chevronRotation }] }}>
+              <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
+            </Animated.View>
+          </Pressable>
+
+          {detailsExpanded ? (
+            <View style={styles.metrics}>
+              {metricRows.map((metric) => (
+                <PremiumMetricBar
+                  key={metric.label}
+                  label={metric.label}
+                  value={metricValues[metric.key]}
+                  tone={metric.tone}
+                  delay={shouldAnimate ? metric.delay : 0}
+                  animate={shouldAnimate}
+                />
+              ))}
+            </View>
+          ) : (
+            <View style={styles.summaryRow}>
+              {summaryRows.map((metric) => (
+                <ScoreSummaryChip
+                  key={metric.label}
+                  label={metric.label}
+                  value={metricValues[metric.key]}
+                  tone={metric.tone}
+                />
+              ))}
+            </View>
+          )}
         </View>
       </LinearGradient>
     </Animated.View>
@@ -407,8 +509,58 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(139, 92, 246, 0.2)',
     marginVertical: spacing.md,
   },
+  detailsSection: {
+    gap: spacing.sm,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 36,
+    paddingVertical: 2,
+  },
+  detailsHeaderPressed: {
+    opacity: 0.75,
+  },
+  detailsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    letterSpacing: 0.1,
+  },
   metrics: {
     gap: 10,
+    paddingTop: spacing.xs,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs + 2,
     paddingTop: 2,
+  },
+  summaryChip: {
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 88,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+    borderRadius: borderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(26, 27, 46, 0.72)',
+  },
+  summaryChipLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    flexShrink: 1,
+  },
+  summaryChipValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
 });

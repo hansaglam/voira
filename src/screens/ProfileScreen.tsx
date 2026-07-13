@@ -18,7 +18,6 @@ import { PremiumDebugPanel } from '../components/PremiumDebugPanel';
 import { useUser } from '../context/UserContext';
 import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
-import { GUEST_PREMIUM_WARNING_COPY, navigateToProfileAuth } from '../utils/premiumAccountGate';
 import { useLearning } from '../context/LearningContext';
 import { useVocabulary } from '../hooks/useVocabulary';
 import { LEVEL_LABELS, GOAL_LABELS } from '../constants/options';
@@ -27,7 +26,7 @@ import { buildProgressSummary } from '../services/progress';
 import { lessons } from '../data/lessons';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 
 type Props = TabScreenProps<'Profile'>;
 
@@ -416,21 +415,6 @@ export function ProfileScreen({ navigation, route }: Props) {
         </LinearGradient>
       </TouchableOpacity>
 
-      {isGuest && isPremium ? (
-        <AppCard style={styles.guestPremiumWarning}>
-          <Text style={styles.guestPremiumWarningTitle}>{GUEST_PREMIUM_WARNING_COPY.title}</Text>
-          <Text style={styles.guestPremiumWarningBody}>{GUEST_PREMIUM_WARNING_COPY.body}</Text>
-          <TouchableOpacity
-            onPress={() => navigateToProfileAuth(navigation)}
-            style={styles.guestPremiumWarningCta}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.guestPremiumWarningCtaText}>Hesap oluştur veya giriş yap</Text>
-            <Ionicons name="arrow-forward" size={14} color={colors.primary} />
-          </TouchableOpacity>
-        </AppCard>
-      ) : null}
-
       <PremiumDebugPanel />
 
       <SectionHeader title="İstatistikler" />
@@ -449,69 +433,72 @@ export function ProfileScreen({ navigation, route }: Props) {
             }}
           >
             <AppCard style={styles.authCard}>
-            <Text style={styles.authTitle}>Hesabını oluştur</Text>
-            <Text style={styles.authSubtitle}>
-              Gelişimini, SpeakPlus erişimini ve pratik geçmişini güvenle sakla.
-            </Text>
-            <Text style={styles.authPremiumNote}>
-              SpeakPlus satın almak için hesap gereklidir.
-            </Text>
-
-            {isLoadingAuth ? (
-              <ActivityIndicator color={colors.primary} style={styles.authLoading} />
-            ) : !isAuthAvailable ? (
-              <Text style={styles.authUnavailable}>
-                Hesap girişi şu an yapılandırılmamış. Uygulamayı misafir olarak kullanmaya devam
-                edebilirsin.
-              </Text>
-            ) : (
-              <>
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="E-posta adresin"
-                  placeholderTextColor={colors.textMuted}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="emailAddress"
-                  style={styles.textInput}
-                />
-                <TextInput
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Şifren"
-                  placeholderTextColor={colors.textMuted}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  textContentType="password"
-                  style={styles.textInput}
-                />
-                <AppButton
-                  title="Giriş yap"
-                  onPress={() => void handleSignIn()}
-                  loading={isSigningIn}
-                  disabled={!isAuthFormValid || isSubmitting}
-                  style={styles.authButton}
-                />
-                <AppButton
-                  title="Hesap oluştur"
-                  variant="outline"
-                  onPress={() => void handleSignUp()}
-                  loading={isSigningUp}
-                  disabled={!isAuthFormValid || isSubmitting}
-                  style={styles.authButton}
-                />
-
-                {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
-
-                <Text style={styles.guestHint}>
-                  İstersen uygulamayı misafir olarak kullanmaya devam edebilirsin.
+              <View style={styles.authCopy}>
+                <Text style={styles.authTitle}>Erişimini kaybetmemek için hesap oluştur</Text>
+                <Text style={styles.authSubtitle}>
+                  Gelişimini, SpeakPlus erişimini ve pratik geçmişini güvenle saklamak için hesabını
+                  oluştur veya giriş yap.
                 </Text>
-              </>
-            )}
-          </AppCard>
+                <Text style={styles.authPremiumNote}>
+                  SpeakPlus satın almak için hesap gereklidir.
+                </Text>
+              </View>
+
+              {isLoadingAuth ? (
+                <ActivityIndicator color={colors.primary} style={styles.authLoading} />
+              ) : !isAuthAvailable ? (
+                <Text style={styles.authUnavailable}>
+                  Hesap girişi şu an yapılandırılmamış. Uygulamayı misafir olarak kullanmaya devam
+                  edebilirsin.
+                </Text>
+              ) : (
+                <View style={styles.authForm}>
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="E-posta adresin"
+                    placeholderTextColor={colors.textMuted}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="emailAddress"
+                    style={styles.textInput}
+                  />
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Şifren"
+                    placeholderTextColor={colors.textMuted}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    textContentType="password"
+                    style={styles.textInput}
+                  />
+                  <AppButton
+                    title="Hesap oluştur"
+                    onPress={() => void handleSignUp()}
+                    loading={isSigningUp}
+                    disabled={!isAuthFormValid || isSubmitting}
+                    style={styles.authButton}
+                  />
+                  <AppButton
+                    title="Giriş yap"
+                    variant="outline"
+                    onPress={() => void handleSignIn()}
+                    loading={isSigningIn}
+                    disabled={!isAuthFormValid || isSubmitting}
+                    style={styles.authButton}
+                  />
+
+                  {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
+
+                  <Text style={styles.guestHint}>
+                    İstersen uygulamayı misafir olarak kullanmaya devam edebilirsin.
+                  </Text>
+                </View>
+              )}
+            </AppCard>
           </View>
         </>
       ) : (
@@ -790,6 +777,9 @@ const styles = StyleSheet.create({
   },
   authCard: {
     marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  authCopy: {
     gap: spacing.sm,
   },
   authTitle: {
@@ -805,37 +795,10 @@ const styles = StyleSheet.create({
   authPremiumNote: {
     ...typography.caption,
     color: colors.textMuted,
-    marginTop: spacing.xs,
     lineHeight: 18,
   },
-  guestPremiumWarning: {
-    marginBottom: spacing.md,
-    borderColor: 'rgba(229, 184, 74, 0.35)',
-    borderWidth: 1,
-    backgroundColor: 'rgba(229, 184, 74, 0.08)',
-  },
-  guestPremiumWarningTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.premium,
-    marginBottom: spacing.xs,
-  },
-  guestPremiumWarningBody: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: spacing.sm,
-  },
-  guestPremiumWarningCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-  },
-  guestPremiumWarningCtaText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+  authForm: {
+    gap: spacing.sm,
   },
   authLoading: {
     marginVertical: spacing.sm,
@@ -845,7 +808,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   textInput: {
-    marginTop: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: borderRadius.lg,

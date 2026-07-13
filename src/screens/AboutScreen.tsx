@@ -7,7 +7,7 @@ import { colors, spacing, typography } from '../theme';
 
 type Props = RootScreenProps<'About'>;
 
-const APP_VERSION = '1.0.8';
+const APP_VERSION = '1.0.9';
 
 export function AboutScreen(_props: Props) {
   return (
