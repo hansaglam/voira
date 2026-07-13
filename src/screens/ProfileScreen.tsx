@@ -10,6 +10,9 @@ import {
   Platform,
   ScrollView,
   Linking,
+  Pressable,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -26,6 +29,10 @@ import { getAllPracticeResults } from '../data/learningSessionStore';
 import { buildProgressSummary } from '../services/progress';
 import { lessons } from '../data/lessons';
 import { colors, spacing, typography, borderRadius } from '../theme';
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const APP_VERSION = '1.0.9';
 
@@ -183,12 +190,15 @@ export function ProfileScreen({ navigation, route }: Props) {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isAuthCardExpanded, setIsAuthCardExpanded] = useState(false);
 
   const isAuthFormValid = email.trim().length > 0 && password.length >= 6;
   const isSubmitting = isSigningIn || isSigningUp;
 
   useEffect(() => {
     if (!route.params?.focusAuth || !isGuest) return;
+
+    setIsAuthCardExpanded(true);
 
     const timer = setTimeout(() => {
       scrollRef.current?.scrollTo({
@@ -200,6 +210,11 @@ export function ProfileScreen({ navigation, route }: Props) {
 
     return () => clearTimeout(timer);
   }, [isGuest, navigation, route.params?.focusAuth]);
+
+  const toggleAuthCard = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsAuthCardExpanded((prev) => !prev);
+  };
 
   const progressSummary = useMemo(() => {
     const results = getAllPracticeResults();
@@ -435,71 +450,96 @@ export function ProfileScreen({ navigation, route }: Props) {
             }}
           >
             <AppCard style={styles.authCard}>
-              <View style={styles.authCopy}>
-                <Text style={styles.authTitle}>Erişimini kaybetmemek için hesap oluştur</Text>
-                <Text style={styles.authSubtitle}>
-                  Gelişimini, SpeakPlus erişimini ve pratik geçmişini güvenle saklamak için hesabını
-                  oluştur veya giriş yap.
-                </Text>
-                <Text style={styles.authPremiumNote}>
-                  SpeakPlus satın almak için hesap gereklidir.
-                </Text>
-              </View>
-
-              {isLoadingAuth ? (
-                <ActivityIndicator color={colors.primary} style={styles.authLoading} />
-              ) : !isAuthAvailable ? (
-                <Text style={styles.authUnavailable}>
-                  Hesap girişi şu an yapılandırılmamış. Uygulamayı misafir olarak kullanmaya devam
-                  edebilirsin.
-                </Text>
-              ) : (
-                <View style={styles.authForm}>
-                  <TextInput
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="E-posta adresin"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    textContentType="emailAddress"
-                    style={styles.textInput}
-                  />
-                  <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="Şifren"
-                    placeholderTextColor={colors.textMuted}
-                    secureTextEntry
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    textContentType="password"
-                    style={styles.textInput}
-                  />
-                  <AppButton
-                    title="Hesap oluştur"
-                    onPress={() => void handleSignUp()}
-                    loading={isSigningUp}
-                    disabled={!isAuthFormValid || isSubmitting}
-                    style={styles.authButton}
-                  />
-                  <AppButton
-                    title="Giriş yap"
-                    variant="outline"
-                    onPress={() => void handleSignIn()}
-                    loading={isSigningIn}
-                    disabled={!isAuthFormValid || isSubmitting}
-                    style={styles.authButton}
-                  />
-
-                  {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
-
-                  <Text style={styles.guestHint}>
-                    İstersen uygulamayı misafir olarak kullanmaya devam edebilirsin.
-                  </Text>
+              <Pressable
+                onPress={toggleAuthCard}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: isAuthCardExpanded }}
+                accessibilityLabel="Hesabını güvene al"
+                style={({ pressed }) => [
+                  styles.authHeaderRow,
+                  pressed && styles.authHeaderPressed,
+                ]}
+              >
+                <View style={styles.authIconWrap}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
                 </View>
-              )}
+                <View style={styles.authCopy}>
+                  <Text style={styles.authTitle}>Hesabını güvene al</Text>
+                  <Text style={styles.authSubtitle}>
+                    Gelişimini, kelimelerini ve SpeakPlus erişimini kaybetmemek için hesap oluştur
+                    veya giriş yap.
+                  </Text>
+                  {!isAuthCardExpanded ? (
+                    <Text style={styles.authCollapsedNote}>Misafir olarak devam edebilirsin.</Text>
+                  ) : (
+                    <Text style={styles.authPremiumNote}>
+                      SpeakPlus satın almak için hesap gereklidir.
+                    </Text>
+                  )}
+                </View>
+                <Ionicons
+                  name={isAuthCardExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color={colors.textMuted}
+                />
+              </Pressable>
+
+              {isAuthCardExpanded ? (
+                isLoadingAuth ? (
+                  <ActivityIndicator color={colors.primary} style={styles.authLoading} />
+                ) : !isAuthAvailable ? (
+                  <Text style={styles.authUnavailable}>
+                    Hesap girişi şu an yapılandırılmamış. Uygulamayı misafir olarak kullanmaya devam
+                    edebilirsin.
+                  </Text>
+                ) : (
+                  <View style={styles.authForm}>
+                    <TextInput
+                      value={email}
+                      onChangeText={setEmail}
+                      placeholder="E-posta adresin"
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      textContentType="emailAddress"
+                      style={styles.textInput}
+                    />
+                    <TextInput
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="Şifren"
+                      placeholderTextColor={colors.textMuted}
+                      secureTextEntry
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      textContentType="password"
+                      style={styles.textInput}
+                    />
+                    <AppButton
+                      title="Hesap oluştur"
+                      onPress={() => void handleSignUp()}
+                      loading={isSigningUp}
+                      disabled={!isAuthFormValid || isSubmitting}
+                      style={styles.authButton}
+                    />
+                    <AppButton
+                      title="Giriş yap"
+                      variant="outline"
+                      onPress={() => void handleSignIn()}
+                      loading={isSigningIn}
+                      disabled={!isAuthFormValid || isSubmitting}
+                      style={styles.authButton}
+                    />
+
+                    {errorMessage ? <Text style={styles.authError}>{errorMessage}</Text> : null}
+
+                    <Text style={styles.guestHint}>
+                      İstersen uygulamayı misafir olarak kullanmaya devam edebilirsin.
+                    </Text>
+                  </View>
+                )
+              ) : null}
             </AppCard>
           </View>
         </>
@@ -781,23 +821,48 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     gap: spacing.md,
   },
-  authCopy: {
+  authHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: spacing.sm,
+  },
+  authHeaderPressed: {
+    opacity: 0.82,
+  },
+  authIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: borderRadius.sm,
+    backgroundColor: 'rgba(91, 95, 239, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  authCopy: {
+    flex: 1,
+    gap: 6,
+    minWidth: 0,
   },
   authTitle: {
     ...typography.h3,
-    fontSize: 17,
+    fontSize: 16,
   },
   authSubtitle: {
     ...typography.body,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.textSecondary,
   },
   authPremiumNote: {
     ...typography.caption,
     color: colors.textMuted,
-    lineHeight: 18,
+    lineHeight: 17,
+  },
+  authCollapsedNote: {
+    ...typography.caption,
+    color: colors.textMuted,
+    lineHeight: 16,
+    fontSize: 12,
   },
   authForm: {
     gap: spacing.sm,

@@ -1,4 +1,5 @@
 import type { PronunciationAssessmentDebug } from '../../types/analysis.js';
+import { analysisDebugLog } from '../../utils/analysisDebugLog.js';
 import { azurePronunciationProvider } from './azurePronunciationProvider.js';
 import { azurePronunciationRestProvider } from './azurePronunciationRestProvider.js';
 import { disabledPronunciationProvider } from './disabledPronunciationProvider.js';
@@ -82,7 +83,7 @@ function logSdkConnectionFailureHint(result: PronunciationAssessmentResult): voi
     result.errorCode === 'azure_canceled_connection_failure' &&
     details.includes('1006')
   ) {
-    console.log('[EchoSpeak Pronunciation] sdk_connection_failure_hint', {
+    analysisDebugLog('[EchoSpeak Pronunciation] sdk_connection_failure_hint', {
       hint: 'Azure Speech SDK WebSocket failed (StatusCode 1006). Use AZURE_PRONUNCIATION_TRANSPORT=rest on Render.',
       cancellationErrorDetails: details.slice(0, 200),
     });
@@ -171,7 +172,7 @@ export async function assessPronunciation(
   const alternateTransport: AzurePronunciationTransport =
     configuredTransport === 'rest' ? 'sdk' : 'rest';
 
-  console.log('[EchoSpeak Pronunciation] decision', {
+  analysisDebugLog('[EchoSpeak Pronunciation] decision', {
     enabled: decision.enabled,
     hasProvider: decision.hasProvider,
     willAttempt: decision.willAttempt,
@@ -185,7 +186,7 @@ export async function assessPronunciation(
 
   if (!decision.willAttempt) {
     const result = await disabledPronunciationProvider.assess(request);
-    console.log('[EchoSpeak Pronunciation] fallback', {
+    analysisDebugLog('[EchoSpeak Pronunciation] fallback', {
       reason: decision.reasonIfSkipped ?? result.errorCode ?? 'pronunciation_skipped',
       errorCode: result.errorCode ?? 'pronunciation_skipped',
       errorMessage: result.messageTr ?? 'Pronunciation assessment was not attempted.',
@@ -193,7 +194,7 @@ export async function assessPronunciation(
     return result;
   }
 
-  console.log('[EchoSpeak Pronunciation] start', { transport: configuredTransport });
+  analysisDebugLog('[EchoSpeak Pronunciation] start', { transport: configuredTransport });
 
   let lastResult: PronunciationAssessmentResult = {
     ok: false,
@@ -208,7 +209,7 @@ export async function assessPronunciation(
           configuredTransport === 'rest' &&
           !isAzureSdkFallbackAllowed()
         ) {
-          console.log('[EchoSpeak Pronunciation] sdk_fallback_skipped', {
+          analysisDebugLog('[EchoSpeak Pronunciation] sdk_fallback_skipped', {
             reason: 'production_rest_transport',
             previousErrorCode: lastResult.errorCode ?? null,
             hint: 'Set AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK=true to retry SDK after REST failure.',
@@ -216,7 +217,7 @@ export async function assessPronunciation(
         }
         break;
       }
-      console.log('[EchoSpeak Pronunciation] alternate_transport', {
+      analysisDebugLog('[EchoSpeak Pronunciation] alternate_transport', {
         from: configuredTransport,
         to: transport,
         previousErrorCode: lastResult.errorCode ?? null,
@@ -227,7 +228,7 @@ export async function assessPronunciation(
       const result = await getProviderForTransport(transport).assess(request);
 
       if (result.ok) {
-        console.log('[EchoSpeak Pronunciation] success', {
+        analysisDebugLog('[EchoSpeak Pronunciation] success', {
           transport,
           provider: result.provider ?? 'azure',
           pronunciationScore: result.pronunciationScore ?? null,
@@ -246,7 +247,7 @@ export async function assessPronunciation(
         logSdkConnectionFailureHint(result);
       }
 
-      console.log('[EchoSpeak Pronunciation] fallback', {
+      analysisDebugLog('[EchoSpeak Pronunciation] fallback', {
         transport,
         reason: result.errorCode ?? 'pronunciation_unavailable',
         errorCode: result.errorCode ?? 'pronunciation_unavailable',
@@ -261,7 +262,7 @@ export async function assessPronunciation(
         raw: errorMessage,
       };
 
-      console.log('[EchoSpeak Pronunciation] fallback', {
+      analysisDebugLog('[EchoSpeak Pronunciation] fallback', {
         transport,
         reason: 'pronunciation_provider_error',
         errorCode: 'pronunciation_provider_error',

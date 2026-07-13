@@ -53,6 +53,14 @@ app.use((req, _res, next) => {
 });
 
 app.get('/health', (_req, res) => {
+  if (!IS_DEV) {
+    res.json({
+      ok: true,
+      service: 'Voira backend',
+    });
+    return;
+  }
+
   res.json({
     ok: true,
     service: 'Voira backend',

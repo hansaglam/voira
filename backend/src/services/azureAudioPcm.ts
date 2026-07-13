@@ -4,6 +4,7 @@ import { access, unlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import ffmpegStaticImport from 'ffmpeg-static';
+import { analysisDebugLog, analysisErrorLog } from '../utils/analysisDebugLog.js';
 
 const ffmpegStaticPath = typeof ffmpegStaticImport === 'string'
   ? ffmpegStaticImport
@@ -220,7 +221,7 @@ async function convertToWavFile(
   const inputPath = path.join(tempDir, `echospeak-${randomUUID()}.${extension}`);
   const outputPath = path.join(tempDir, `echospeak-${randomUUID()}.wav`);
 
-  console.log('[EchoSpeak Azure Audio] input', {
+  analysisDebugLog('[EchoSpeak Azure Audio] input', {
     inputPath,
     inputExists: false,
     inputSize: input.length,
@@ -228,7 +229,7 @@ async function convertToWavFile(
     mimeType,
   });
 
-  console.log('[EchoSpeak Azure Audio] ffmpeg', {
+  analysisDebugLog('[EchoSpeak Azure Audio] ffmpeg', {
     ffmpegPath: ffmpegStaticPath,
     ffmpegExists: await fileExists(ffmpegStaticPath),
     commandSummary: summarizeFfmpegCommand([
@@ -250,7 +251,7 @@ async function convertToWavFile(
   try {
     await writeFile(inputPath, input);
 
-    console.log('[EchoSpeak Azure Audio] input', {
+    analysisDebugLog('[EchoSpeak Azure Audio] input', {
       inputPath,
       inputExists: await fileExists(inputPath),
       inputSize: input.length,
@@ -294,7 +295,7 @@ async function convertToWavFile(
     const wavBuffer = await readFile(outputPath);
     const validation = validateWavForAzure(wavBuffer);
 
-    console.log('[EchoSpeak Azure Audio] output', {
+    analysisDebugLog('[EchoSpeak Azure Audio] output', {
       outputPath,
       outputExists: await fileExists(outputPath),
       outputSize: wavBuffer.length,
@@ -321,9 +322,8 @@ async function convertToWavFile(
     };
   } catch (error) {
     const stderr = error instanceof Error ? error.message : 'unknown';
-    console.log('[EchoSpeak Azure Audio] ffmpeg_failed', {
+    analysisErrorLog('[EchoSpeak Azure Audio] ffmpeg_failed', {
       errorCode: 'audio_conversion_failed',
-      stderr: stderr.slice(-1200),
     });
     return {
       ok: false,
@@ -349,7 +349,7 @@ export async function prepareAzureWavAudio(
 
   if (parsedFormat?.valid) {
     const wavFilePath = await writeTempWavFile(audioBuffer);
-    console.log('[EchoSpeak Azure Audio] output', {
+    analysisDebugLog('[EchoSpeak Azure Audio] output', {
       outputPath: wavFilePath,
       outputExists: await fileExists(wavFilePath),
       outputSize: audioBuffer.length,

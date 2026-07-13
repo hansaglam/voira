@@ -38,7 +38,7 @@ export function AboutScreen(_props: Props) {
         },
         {
           title: 'İletişim ve yasal',
-          body: `Voira Destek: ${SUPPORT_EMAIL}\nGizlilik Politikası ve Kullanım Şartları uygulama içinden veya web sayfalarından okunabilir.`,
+          body: `Geliştirici: Ethem Sincar\nVoira Destek: ${SUPPORT_EMAIL}\nGizlilik Politikası ve Kullanım Şartları uygulama içinden veya web sayfalarından okunabilir.`,
         },
       ]}
       footer={

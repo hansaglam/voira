@@ -1,4 +1,5 @@
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
+import { analysisDebugLog } from '../utils/analysisDebugLog.js';
 import { clampScore } from '../utils/normalize.js';
 
 const WEAK_WORD_ACCURACY_THRESHOLD = 70;
@@ -197,7 +198,7 @@ export function logAzureScoringDecision(
   metrics: AzureScoreMetrics,
   selectedFeedbackType?: string,
 ): void {
-  console.log('[EchoSpeak Score] azure scoring decision', {
+  analysisDebugLog('[EchoSpeak Score] azure scoring decision', {
     rawWeightedScore: decision.rawWeightedScore,
     finalScore: decision.finalScore,
     accuracyScore: metrics.accuracyScore,

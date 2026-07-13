@@ -3,6 +3,7 @@ import { Linking, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import {
+  DATA_DELETION_URL,
   PRIVACY_POLICY_URL,
   SUPPORT_EMAIL,
   TERMS_OF_USE_URL,
@@ -30,12 +31,12 @@ export function PrivacyPolicyScreen(_props: Props) {
         {
           title: 'Ses kayıtları ve telaffuz analizi',
           body:
-            'Mikrofon izni yalnızca kayıt yapmak istediğinde istenir. Kayıt, analiz için Voira sunucusuna gönderilir. Telaffuz değerlendirmesi için Microsoft Azure Speech kullanılabilir; metne çeviri / koç geri bildirimi için OpenAI gibi hizmetler de kullanılabilir. Ses kayıtları telaffuz analizi üretmek için işlenir. Uygulamada açıkça belirtilmedikçe ses kayıtlarını herkese açık profil oluşturmak veya ses verisi satmak için kullanmayız.',
+            'Mikrofon izni yalnızca kayıt yapmak istediğinde istenir. Kayıt, analiz için Voira sunucusuna gönderilir. Telaffuz değerlendirmesi için Microsoft Azure Speech kullanılabilir. Backend etkinse OpenAI, kayıtlı sesini speech-to-text/transcription için işleyebilir ve AI koç geri bildirimi üretebilir. Ses kayıtlarını herkese açık profil oluşturmak veya ses verisi satmak için kullanmayız.',
         },
         {
           title: 'Üçüncü taraf hizmetler',
           body:
-            'Supabase (kimlik doğrulama / veri), RevenueCat (abonelik entitlement), Google Play (ödeme), Microsoft Azure Speech (telaffuz), OpenAI (STT / koç geri bildirimi gerektiğinde), Render (backend barındırma). Bu hizmetler yalnızca uygulama işlevi için gerekli ölçüde veri işler.',
+            'Supabase (kimlik doğrulama / veri), RevenueCat (abonelik entitlement), Google Play (ödeme), Microsoft Azure Speech (konuşma tanıma ve telaffuz değerlendirmesi), OpenAI (backend etkinse kayıtlı ses üzerinde speech-to-text/transcription ve AI koç geri bildirimi / açıklamalar / öğrenme rehberliği), Render (backend barındırma). Bu hizmetler yalnızca uygulama işlevi için gerekli ölçüde veri işler.',
         },
         {
           title: 'Ödemeler ve SpeakPlus',
@@ -50,7 +51,7 @@ export function PrivacyPolicyScreen(_props: Props) {
         {
           title: 'Saklama ve silme',
           body:
-            'Yerel veriler cihazında silinene veya uygulama kaldırılana kadar kalabilir. Hesap/ilerleme/satın alma kayıtları hizmeti sunmak, yasal yükümlülükler, kötüye kullanımın önlenmesi veya abonelik erişimi için gerekli olduğu sürece tutulabilir. Veri silme talebi için e-posta gönder; abonelik iptali ayrıdır (Google Play).',
+            'Yerel veriler cihazında silinene veya uygulama kaldırılana kadar kalabilir. Hesap/ilerleme/satın alma kayıtları hizmeti sunmak, yasal yükümlülükler, kötüye kullanımın önlenmesi veya abonelik erişimi için gerekli olduğu sürece tutulabilir. Hesap ve veri silme talebi için Voira Destek’e yaz; abonelik iptali ayrıdır (Google Play). Detaylar için Veri Silme sayfasını açabilirsin.',
         },
         {
           title: 'Çocukların gizliliği',
@@ -77,6 +78,13 @@ export function PrivacyPolicyScreen(_props: Props) {
             activeOpacity={0.85}
           >
             <Text style={styles.secondaryLinkText}>Kullanım Şartları (web)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryLink}
+            onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryLinkText}>Veri Silme sayfası (web)</Text>
           </TouchableOpacity>
         </>
       }

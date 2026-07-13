@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
+import path from 'node:path';
 import {
+  MAX_ANALYSIS_AUDIO_DURATION_MS,
   MAX_AUDIO_FILE_BYTES,
   MIN_RECORDING_DURATION_MS,
   IS_DEV,
@@ -33,6 +35,7 @@ import { transcribeAudio } from '../services/speechToTextService.js';
 import { compareTranscriptToTarget } from '../services/textComparisonService.js';
 import { detectWeakAreas } from '../services/weakAreaDetectionService.js';
 import type { AnalysisSuccessResponse } from '../types/analysis.js';
+import { analysisDebugLog } from '../utils/analysisDebugLog.js';
 import { debugLog } from '../utils/debugLog.js';
 import { failed, sendFailed, sendSuccess } from '../utils/response.js';
 
@@ -41,15 +44,58 @@ const upload = multer({
   limits: { fileSize: MAX_AUDIO_FILE_BYTES },
 });
 
+const ALLOWED_ANALYSIS_AUDIO_MIME_TYPES = new Set([
+  'audio/wav',
+  'audio/x-wav',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/mp4',
+  'audio/m4a',
+  'audio/aac',
+  'audio/webm',
+  'audio/ogg',
+  'audio/x-caf',
+  'audio/caf',
+]);
+
+const ALLOWED_ANALYSIS_AUDIO_EXTENSIONS = new Set([
+  '.wav',
+  '.mp3',
+  '.m4a',
+  '.mp4',
+  '.aac',
+  '.webm',
+  '.ogg',
+  '.caf',
+]);
+
+function isAllowedAnalysisAudio(originalName: string, mimeType: string): boolean {
+  const normalizedMime = mimeType.trim().toLowerCase();
+  if (ALLOWED_ANALYSIS_AUDIO_MIME_TYPES.has(normalizedMime)) {
+    return true;
+  }
+
+  const extension = path.extname(originalName).toLowerCase();
+  if (!ALLOWED_ANALYSIS_AUDIO_EXTENSIONS.has(extension)) {
+    return false;
+  }
+
+  // Some RN clients send octet-stream with a valid audio filename.
+  return normalizedMime === 'application/octet-stream' || normalizedMime === '';
+}
+
 export const analyzeSpeechRouter = Router();
 
 /**
  * POST /api/analyze-speech
  *
- * Future:
- * - save analysis result under users/{userId}/analysisResults
- * - delete audio after processing
-// TODO: Future — verify Supabase JWT on backend before trusting userId.
+ * Guest analysis remains supported (no JWT required yet).
+ * Cost controls: IP rate limit, MIME allowlist, file size, max duration.
+ *
+ * TODO(post-release): add per-user / per-device analysis limits once stable
+ * identity is available for both guests and signed-in users.
+ * TODO(future): optionally verify Supabase JWT before trusting userId.
+ * TODO(future): save analysis result; delete audio after processing.
  */
 analyzeSpeechRouter.post(
   '/analyze-speech',
@@ -81,6 +127,14 @@ analyzeSpeechRouter.post(
         ));
       }
 
+      const mimeType = (audioFile.mimetype || '').trim();
+      if (!isAllowedAnalysisAudio(audioFile.originalname || '', mimeType)) {
+        return sendFailed(res, 400, failed(
+          'unsupported_audio_format',
+          'Ses dosyası formatı desteklenmiyor. Lütfen tekrar kaydet.',
+        ));
+      }
+
       const target = typeof targetText === 'string' ? targetText.trim() : '';
       if (!target) {
         return sendFailed(res, 400, failed(
@@ -89,12 +143,36 @@ analyzeSpeechRouter.post(
         ));
       }
 
-      const durationMillis = Number(durationMillisRaw);
-      if (!Number.isFinite(durationMillis) || durationMillis < MIN_RECORDING_DURATION_MS) {
-        return sendFailed(res, 400, failed(
-          'too_short',
-          'Kayıt çok kısa. Lütfen cümleyi tekrar söyle.',
-        ));
+      const hasDuration =
+        durationMillisRaw !== undefined &&
+        durationMillisRaw !== null &&
+        String(durationMillisRaw).trim() !== '';
+
+      let durationMillis: number;
+      if (hasDuration) {
+        durationMillis = Number(durationMillisRaw);
+        if (!Number.isFinite(durationMillis) || durationMillis < MIN_RECORDING_DURATION_MS) {
+          return sendFailed(res, 400, failed(
+            'too_short',
+            'Kayıt çok kısa. Lütfen cümleyi tekrar söyle.',
+          ));
+        }
+        if (durationMillis > MAX_ANALYSIS_AUDIO_DURATION_MS) {
+          return sendFailed(res, 400, failed(
+            'audio_too_long',
+            'Kayıt süresi çok uzun. Lütfen daha kısa bir kayıtla tekrar dene.',
+          ));
+        }
+      } else {
+        analysisDebugLog('[EchoSpeak API] missing_durationMillis', {
+          audioBytes: audioFile.size,
+          mimeType,
+        });
+        // Old clients without duration: rely on file-size limit; use a neutral default for scoring.
+        durationMillis = Math.min(
+          MAX_ANALYSIS_AUDIO_DURATION_MS,
+          Math.max(MIN_RECORDING_DURATION_MS, 5_000),
+        );
       }
 
       debugLog('analyze_request', {
@@ -106,27 +184,23 @@ analyzeSpeechRouter.post(
         audioBytes: audioFile.size,
       });
 
-      if (IS_DEV || isAnalysisDebugEnabled()) {
-        console.log('[EchoSpeak API] before_transcription', {
-          lessonId,
-          segmentId,
-          durationMillis,
-          audioBytes: audioFile.buffer?.length,
-          hasTargetText: Boolean(target),
-          mimeType: audioFile.mimetype,
-          originalName: audioFile.originalname,
-        });
-      }
+      analysisDebugLog('[EchoSpeak API] before_transcription', {
+        lessonId,
+        segmentId,
+        durationMillis,
+        audioBytes: audioFile.buffer?.length,
+        hasTargetText: Boolean(target),
+        mimeType,
+        originalName: audioFile.originalname,
+      });
 
       const transcription = await transcribeAudio(audioFile);
 
-      if (IS_DEV || isAnalysisDebugEnabled()) {
-        console.log('[EchoSpeak API] transcription_result', {
-          ok: transcription.ok,
-          transcriptLength: transcription.transcript?.length ?? 0,
-          errorCode: transcription.errorCode,
-        });
-      }
+      analysisDebugLog('[EchoSpeak API] transcription_result', {
+        ok: transcription.ok,
+        transcriptLength: transcription.transcript?.length ?? 0,
+        errorCode: transcription.errorCode,
+      });
 
       if (!transcription.ok || !transcription.transcript?.trim()) {
         return res.status(200).json(
@@ -143,7 +217,7 @@ analyzeSpeechRouter.post(
 
       const resolvedLessonId = typeof lessonId === 'string' ? lessonId : undefined;
       const resolvedSegmentId = typeof segmentId === 'string' ? segmentId : undefined;
-      const audioMimeType = audioFile.mimetype || 'audio/mpeg';
+      const audioMimeType = mimeType || 'audio/mpeg';
 
       const pronunciationRequest = {
         audioBuffer: audioFile.buffer,
@@ -157,7 +231,7 @@ analyzeSpeechRouter.post(
       const pronunciationDecision = resolvePronunciationDecision(pronunciationRequest);
       const pronunciationAssessment = await assessPronunciation(pronunciationRequest);
 
-      console.log('[EchoSpeak API] pronunciation_result', {
+      analysisDebugLog('[EchoSpeak API] pronunciation_result', {
         ok: pronunciationAssessment.ok,
         provider: pronunciationAssessment.provider ?? null,
         errorCode: pronunciationAssessment.errorCode,
@@ -261,7 +335,7 @@ analyzeSpeechRouter.post(
           }
         : undefined;
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (IS_DEV || isAnalysisDebugEnabled()) {
         console.log('[EchoSpeak Comparison]', {
           targetWordCount: comparison.targetWordCount,
           transcriptWordCount: comparison.transcriptWordCount,

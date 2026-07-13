@@ -9,6 +9,7 @@ import {
   assessAzurePronunciation,
   isAzurePronunciationAssessmentConfigured,
 } from '../azurePronunciationAssessmentService.js';
+import { analysisDebugLog } from '../../utils/analysisDebugLog.js';
 
 function mapWords(
   words: Awaited<ReturnType<typeof assessAzurePronunciation>>['words'],
@@ -42,7 +43,7 @@ export const azurePronunciationProvider: PronunciationAssessmentProvider = {
     });
 
     if (!azureResult.available) {
-      console.log('[EchoSpeak Pronunciation] provider_fallback', {
+      analysisDebugLog('[EchoSpeak Pronunciation] provider_fallback', {
         errorCode: azureResult.errorCode ?? 'pronunciation_unavailable',
         messageTr: azureResult.messageTr ?? null,
         hasRawDetails: Boolean(azureResult.raw),

@@ -106,7 +106,10 @@ No secrets are exposed in this response.
 | `GET /admin/audio` | `ADMIN_SECRET` | Admin upload UI |
 | `POST /api/admin/audio/upload` | `ADMIN_SECRET` | Upload audio to Supabase |
 
-Admin auth: send `x-admin-secret: YOUR_SECRET` header, or open `/admin/audio?adminSecret=YOUR_SECRET`.
+Admin auth: send `x-admin-secret: YOUR_SECRET` header (required in production).
+In development only, you may also open `/admin/audio?adminSecret=YOUR_SECRET`.
+In production, query-string `adminSecret` is ignored — use the header (or Bearer token).
+
 
 In production, admin routes are **blocked** unless `ADMIN_SECRET` is set and matches.
 
@@ -142,7 +145,7 @@ Production should always use Supabase env vars.
 
 - [ ] `GET /health` returns `ok: true` and `hasSupabase: true`
 - [ ] `GET /api/audio/registry` returns Supabase public URLs
-- [ ] `/admin/audio?adminSecret=...` loads (with secret)
+- [ ] `/admin/audio` loads with `x-admin-secret` header (query `adminSecret` is dev-only)
 - [ ] Upload test via admin panel → `provider: "supabase"` in response
 - [ ] Update mobile `EXPO_PUBLIC_*` endpoints to HTTPS domain
 - [ ] Rebuild mobile app / AAB

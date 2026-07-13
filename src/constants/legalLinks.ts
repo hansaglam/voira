@@ -1,6 +1,6 @@
-export const PRIVACY_POLICY_URL = 'https://hansaglam.github.io/voira/privacy.html';
-export const TERMS_OF_USE_URL = 'https://hansaglam.github.io/voira/terms.html';
-export const DATA_DELETION_URL = 'https://hansaglam.github.io/voira/delete-data.html';
+export const PRIVACY_POLICY_URL = 'https://ethemsincar.github.io/voira/privacy.html';
+export const TERMS_OF_USE_URL = 'https://ethemsincar.github.io/voira/terms.html';
+export const DATA_DELETION_URL = 'https://ethemsincar.github.io/voira/delete-data.html';
 export const SUPPORT_EMAIL = 'voiraapp@gmail.com';
 
 export const SUPPORT_MAILTO = `mailto:${SUPPORT_EMAIL}`;

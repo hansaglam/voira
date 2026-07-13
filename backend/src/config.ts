@@ -34,6 +34,11 @@ export const ANALYZE_RATE_LIMIT_PER_MINUTE = Math.max(
 );
 
 export const MIN_RECORDING_DURATION_MS = 1200;
+/** Reject analyze requests with durationMillis above this (cost protection). Default 60s. */
+export const MAX_ANALYSIS_AUDIO_DURATION_MS = Math.max(
+  MIN_RECORDING_DURATION_MS,
+  Number(process.env.MAX_ANALYSIS_AUDIO_DURATION_MS ?? 60_000) || 60_000,
+);
 export const MAX_AUDIO_FILE_BYTES = 10 * 1024 * 1024;
 export const MAX_LESSON_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024;
 

@@ -5,6 +5,7 @@ import type {
   SpeechScores,
   TextComparisonResult,
 } from '../types/analysis.js';
+import { analysisDebugLog } from '../utils/analysisDebugLog.js';
 import { tokenize } from '../utils/normalize.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 import { wordsEquivalentForReconciliation } from './wordFeedbackReconciliationService.js';
@@ -419,7 +420,7 @@ function logCoachDecision(
   weakWordCountBeforeFilter: number,
   weakWordCountAfterFilter: number,
 ): void {
-  console.log('[EchoSpeak Coach] decision', {
+  analysisDebugLog('[EchoSpeak Coach] decision', {
     feedbackType: decision.feedbackType,
     nativeScore: decision.nativeScore,
     matchScore: decision.matchScore,

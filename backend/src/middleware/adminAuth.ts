@@ -20,6 +20,7 @@ const ADMIN_UNAUTHORIZED_HTML = `<!DOCTYPE html>
   <main>
     <h1>Yetkisiz erişim</h1>
     <p>Admin erişimi için yetki gerekli.</p>
+    <p style="margin-top:12px">Production: <code>x-admin-secret</code> header kullan. Query string (<code>?adminSecret=</code>) yalnızca development ortamında kabul edilir.</p>
   </main>
 </body>
 </html>`;
@@ -38,9 +39,12 @@ export function extractAdminSecret(req: Request): string | undefined {
     return headerSecret;
   }
 
-  const querySecret = req.query.adminSecret;
-  if (typeof querySecret === 'string' && querySecret.trim()) {
-    return querySecret.trim();
+  // Query-string secrets can leak via proxy/access logs — never allow in production.
+  if (process.env.NODE_ENV !== 'production') {
+    const querySecret = req.query.adminSecret;
+    if (typeof querySecret === 'string' && querySecret.trim()) {
+      return querySecret.trim();
+    }
   }
 
   const authorization = req.header('authorization');

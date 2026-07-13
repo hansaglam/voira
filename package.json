@@ -36,7 +36,7 @@
     "backend:dev": "npm run dev --prefix backend",
     "backend:build": "npm run build --prefix backend",
     "backend:typecheck": "npm run typecheck --prefix backend",
-    "legal:urls": "node -e \"console.log('Privacy: https://hansaglam.github.io/voira/privacy.html'); console.log('Terms:   https://hansaglam.github.io/voira/terms.html'); console.log('Delete:  https://hansaglam.github.io/voira/delete-data.html');\""
+    "legal:urls": "node -e \"console.log('Privacy: https://ethemsincar.github.io/voira/privacy.html'); console.log('Terms:   https://ethemsincar.github.io/voira/terms.html'); console.log('Delete:  https://ethemsincar.github.io/voira/delete-data.html');\""
   },
   "private": true
 }

@@ -20,7 +20,7 @@ export function TermsOfUseScreen(_props: Props) {
         {
           title: 'Kabul',
           body:
-            'Voira’yı indirerek veya kullanarak bu Kullanım Şartlarını kabul etmiş olursun. Kabul etmiyorsan uygulamayı kullanma.',
+            'Voira, Ethem Sincar tarafından geliştirilmiştir. Voira’yı indirerek veya kullanarak bu Kullanım Şartlarını kabul etmiş olursun. Kabul etmiyorsan uygulamayı kullanma.',
         },
         {
           title: 'Uygulamanın kullanımı',
@@ -50,7 +50,7 @@ export function TermsOfUseScreen(_props: Props) {
         {
           title: 'Fikri mülkiyet ve kullanıcı içeriği',
           body:
-            'Uygulama içeriği, tasarım, dersler ve marka Voira / geliştiriciye aittir. Kaydettiğin içerikten sen sorumlusun; analiz özellikleri için ses ve metnin yalnızca uygulama özelliklerini sunmak üzere işlenmesine sınırlı izin verirsin.',
+            'Uygulama içeriği, tasarım, dersler ve marka Voira ve geliştiricisi Ethem Sincar’a aittir (üçüncü taraf markalar hariç). Kaydettiğin içerikten sen sorumlusun; analiz özellikleri için ses ve metnin yalnızca uygulama özelliklerini sunmak üzere işlenmesine sınırlı izin verirsin.',
         },
         {
           title: 'Garanti yok / sorumluluk sınırı',
@@ -59,7 +59,7 @@ export function TermsOfUseScreen(_props: Props) {
         },
         {
           title: 'İletişim',
-          body: `Sorular için: ${SUPPORT_EMAIL}`,
+          body: `Geliştirici: Ethem Sincar\nSorular için: ${SUPPORT_EMAIL}`,
         },
       ]}
       footer={

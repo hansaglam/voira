@@ -1,6 +1,7 @@
 import OpenAI, { toFile } from 'openai';
 import { APIError } from 'openai';
 import { IS_DEV, OPENAI_API_KEY } from '../config.js';
+import { analysisErrorLog } from '../utils/analysisDebugLog.js';
 import { normalizeForComparison } from '../utils/normalize.js';
 
 export interface UploadedAudioFile {
@@ -68,11 +69,10 @@ function logTranscriptionError(error: unknown): void {
   const record =
     error && typeof error === 'object' ? (error as Record<string, unknown>) : {};
 
-  console.error('[EchoSpeak STT] transcription_error', {
+  analysisErrorLog('[EchoSpeak STT] transcription_error', {
     name: typeof record.name === 'string' ? record.name : undefined,
-    message: error instanceof Error ? error.message : undefined,
     status: typeof record.status === 'number' ? record.status : undefined,
-    code: typeof record.code === 'string' ? record.code : record.code ?? undefined,
+    code: typeof record.code === 'string' ? record.code : undefined,
     type: typeof record.type === 'string' ? record.type : undefined,
   });
 }

@@ -33,15 +33,38 @@ test('extractAdminSecret prefers x-admin-secret header', () => {
   assert.equal(extractAdminSecret(req), 'header-secret');
 });
 
-test('extractAdminSecret reads adminSecret query param', () => {
-  const req = mockRequest({
-    header() {
-      return undefined;
-    },
-    query: { adminSecret: 'query-secret' },
-  });
+test('extractAdminSecret reads adminSecret query param outside production', () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'test';
+  try {
+    const req = mockRequest({
+      header() {
+        return undefined;
+      },
+      query: { adminSecret: 'query-secret' },
+    });
 
-  assert.equal(extractAdminSecret(req), 'query-secret');
+    assert.equal(extractAdminSecret(req), 'query-secret');
+  } finally {
+    process.env.NODE_ENV = previous;
+  }
+});
+
+test('extractAdminSecret ignores adminSecret query param in production', () => {
+  const previous = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    const req = mockRequest({
+      header() {
+        return undefined;
+      },
+      query: { adminSecret: 'query-secret' },
+    });
+
+    assert.equal(extractAdminSecret(req), undefined);
+  } finally {
+    process.env.NODE_ENV = previous;
+  }
 });
 
 test('extractAdminSecret reads bearer authorization token', () => {

@@ -1,43 +1,30 @@
 # Voira Legal Pages (GitHub Pages)
 
-Public legal pages for Google Play are published from the **`docs/`** folder of this repo:
+Public legal pages for Google Play should be published so these URLs work:
 
-- https://hansaglam.github.io/voira/privacy.html
-- https://hansaglam.github.io/voira/terms.html
-- https://hansaglam.github.io/voira/delete-data.html
+- https://ethemsincar.github.io/voira/privacy.html
+- https://ethemsincar.github.io/voira/terms.html
+- https://ethemsincar.github.io/voira/delete-data.html
 
-Source copies also live in `legal/` for editing; deployable copies are in `docs/`.
+These match `src/constants/legalLinks.ts`.
 
-## Enable GitHub Pages (required once)
+Editable source: `legal/`  
+GitHub Pages deploy copies: `docs/` (when Pages is set to `/docs`)
 
-1. Open https://github.com/hansaglam/voira/settings/pages
-2. Under **Build and deployment**:
-   - **Source:** Deploy from a branch
-   - **Branch:** `master`
-   - **Folder:** `/docs`
-3. Click **Save**
-4. Wait 1–2 minutes, then open the Privacy URL in an incognito window
-5. Paste the Privacy Policy URL into Google Play Console → App content → Privacy policy
+## Enable GitHub Pages
 
-If you still see “There isn’t a GitHub Pages site here”, Pages is not enabled yet or the folder is still set to `/ (root)` without these files at the repo root.
+1. Open your Pages-hosting repo settings → **Pages**
+2. Source: **Deploy from a branch**
+3. Branch: `master` (or `main`)
+4. Folder: `/docs`
+5. Save, wait 1–2 minutes, verify the Privacy URL in an incognito window
+6. Paste the Privacy Policy URL into Google Play Console
+
+If the Pages site is under a different username/path, update only `src/constants/legalLinks.ts` and re-copy HTML into `docs/`.
 
 ## After editing legal HTML
 
-1. Update files in `legal/`
-2. Copy them to `docs/`:
-   - `privacy.html`
-   - `terms.html`
-   - `delete-data.html`
-   - `styles.css`
-3. Commit and push `master`
+1. Edit files in `legal/`
+2. Copy to `docs/`: `privacy.html`, `terms.html`, `delete-data.html`, `styles.css`
+3. Commit and push
 4. Wait for Pages to refresh
-
-## App constants
-
-`src/constants/legalLinks.ts` points at:
-
-```
-https://hansaglam.github.io/voira/privacy.html
-https://hansaglam.github.io/voira/terms.html
-https://hansaglam.github.io/voira/delete-data.html
-```

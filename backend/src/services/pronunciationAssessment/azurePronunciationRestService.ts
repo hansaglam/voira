@@ -18,6 +18,7 @@ import {
   logAzureRestResponseSummary,
   parseAzurePronunciationPayload,
 } from './azurePronunciationResultParser.js';
+import { analysisDebugLog } from '../../utils/analysisDebugLog.js';
 
 const REST_TIMEOUT_MS = 30_000;
 
@@ -171,7 +172,7 @@ export async function assessAzurePronunciationRest(
 
   const wavFilePath = preparedAudio.wavFilePath;
 
-  console.log('[EchoSpeak Pronunciation REST] request', {
+  analysisDebugLog('[EchoSpeak Pronunciation REST] request', {
     endpoint,
     region: AZURE_SPEECH_REGION,
     wavSize: preparedAudio.wavBuffer.length,
@@ -210,7 +211,7 @@ export async function assessAzurePronunciationRest(
 
       if (!response.ok) {
         const errorCode = mapHttpStatusToErrorCode(response.status);
-        console.log('[EchoSpeak Pronunciation REST] fallback', {
+        analysisDebugLog('[EchoSpeak Pronunciation REST] fallback', {
           status: response.status,
           errorCode,
           errorMessage: `Azure REST pronunciation request failed with HTTP ${response.status}.`,
@@ -224,7 +225,7 @@ export async function assessAzurePronunciationRest(
       }
 
       if (lastRecognitionStatus === 'NoMatch') {
-        console.log('[EchoSpeak Pronunciation REST] fallback', {
+        analysisDebugLog('[EchoSpeak Pronunciation REST] fallback', {
           status: response.status,
           errorCode: 'azure_rest_no_match',
           errorMessage: 'Azure REST recognition status: NoMatch',
@@ -238,7 +239,7 @@ export async function assessAzurePronunciationRest(
       }
 
       if (lastRecognitionStatus && lastRecognitionStatus !== 'Success') {
-        console.log('[EchoSpeak Pronunciation REST] fallback', {
+        analysisDebugLog('[EchoSpeak Pronunciation REST] fallback', {
           status: response.status,
           errorCode: 'azure_rest_recognition_failed',
           errorMessage: `Azure REST recognition status: ${lastRecognitionStatus}`,
@@ -253,7 +254,7 @@ export async function assessAzurePronunciationRest(
 
       const parsed = parseAzurePronunciationPayload(payload);
       if (hasPronunciationScores(parsed)) {
-        console.log('[EchoSpeak Pronunciation REST] success', {
+        analysisDebugLog('[EchoSpeak Pronunciation REST] success', {
           pronunciationScore: parsed.pronunciationScore,
           accuracyScore: parsed.accuracyScore,
           fluencyScore: parsed.fluencyScore,
@@ -273,7 +274,7 @@ export async function assessAzurePronunciationRest(
 
       if (index === 0 && attempt.enableProsodyAssessment) {
         if (isAnalysisDebugEnabled()) {
-          console.log('[EchoSpeak Pronunciation REST] retry_without_prosody', {
+          analysisDebugLog('[EchoSpeak Pronunciation REST] retry_without_prosody', {
             reason: 'no_pronunciation_scores_with_prosody',
             firstNBestKeys: summary.firstNBestKeys,
           });
@@ -286,7 +287,7 @@ export async function assessAzurePronunciationRest(
       ? 'azure_rest_no_pronunciation_assessment'
       : 'azure_rest_no_pronunciation_scores';
 
-    console.log('[EchoSpeak Pronunciation REST] fallback', {
+    analysisDebugLog('[EchoSpeak Pronunciation REST] fallback', {
       status: lastSummary?.status ?? 200,
       errorCode,
       errorMessage: lastRecognitionStatus === 'Success'
@@ -313,7 +314,7 @@ export async function assessAzurePronunciationRest(
     const errorCode = isAbort ? 'azure_rest_timeout' : 'azure_rest_network_error';
     const errorMessage = error instanceof Error ? error.message : 'unknown';
 
-    console.log('[EchoSpeak Pronunciation REST] fallback', {
+    analysisDebugLog('[EchoSpeak Pronunciation REST] fallback', {
       status: null,
       errorCode,
       errorMessage: errorMessage.slice(0, 500),

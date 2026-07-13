@@ -84,15 +84,17 @@
         <h2>Voice Recordings and Pronunciation Analysis</h2>
         <p>
           Microphone access is requested only when you choose to record.
-          Recorded audio is sent to the Voira backend for analysis. Voira may
-          use Microsoft Azure Speech services to process pronunciation
-          assessment, and may use other speech or AI processing services needed
-          to generate transcription and feedback.
+          Recorded audio is sent to the Voira backend for analysis. Voira may use
+          Microsoft Azure Speech for speech recognition and pronunciation
+          assessment. Where enabled by the backend, OpenAI may process your
+          recorded audio for speech-to-text/transcription and may also provide
+          AI-generated coaching feedback.
         </p>
         <p>
           Audio recordings are processed for the purpose of generating
-          pronunciation analysis. Unless explicitly stated in the App, we do not
-          use voice recordings to create a public profile or sell voice data.
+          pronunciation analysis and related feedback. Unless explicitly stated
+          in the App, we do not use voice recordings to create a public profile
+          or sell voice data.
         </p>
         <p>
           Analysis results (such as scores and word-level feedback) may be shown
@@ -122,8 +124,10 @@
             pronunciation assessment.
           </li>
           <li>
-            <strong>OpenAI:</strong> speech-to-text and/or AI coaching feedback
-            where enabled by the backend.
+            <strong>OpenAI:</strong> may process recorded audio for
+            speech-to-text/transcription and may provide AI-generated coaching
+            feedback, explanations, or learning guidance where enabled by the
+            backend.
           </li>
           <li>
             <strong>Render:</strong> backend hosting for analysis and related
@@ -181,7 +185,7 @@
         </p>
         <p>
           For more details, see our
-          <a href="./delete-data.html">Data Deletion</a> page.
+          <a href="delete-data.html">Data Deletion page</a>.
         </p>
 
         <h2>Security</h2>

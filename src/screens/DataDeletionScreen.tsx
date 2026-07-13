@@ -25,7 +25,7 @@ export function DataDeletionScreen(_props: Props) {
   const handleLocalReset = () => {
     Alert.alert(
       'Yerel verileri sıfırla',
-      'Bu işlem cihazındaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Profil tercihlerin korunur. Geri alınamaz. Aktif bir Google Play aboneliğini iptal etmez.',
+      'Bu işlem yalnızca bu cihazdaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Hesap silme talebi değildir. Profil tercihlerin korunur. Aktif bir Google Play aboneliğini iptal etmez.',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -48,9 +48,7 @@ export function DataDeletionScreen(_props: Props) {
   const sharedFooter = (
     <>
       <TouchableOpacity style={styles.supportButton} onPress={openSupportEmail} activeOpacity={0.85}>
-        <Text style={styles.supportButtonText}>
-          {isGuest ? 'Destek ile iletişime geç' : 'Veri silme talebi gönder'}
-        </Text>
+        <Text style={styles.supportButtonText}>Veri silme talebi e-postası gönder</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.resetButton}
@@ -61,7 +59,7 @@ export function DataDeletionScreen(_props: Props) {
         {isResetting ? (
           <ActivityIndicator color={colors.error} />
         ) : (
-          <Text style={styles.resetButtonText}>Yerel pratik verilerini sıfırla</Text>
+          <Text style={styles.resetButtonText}>Yalnızca yerel pratik verilerini sıfırla</Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -73,6 +71,11 @@ export function DataDeletionScreen(_props: Props) {
       </TouchableOpacity>
     </>
   );
+
+  const requestSection = {
+    title: 'Hesap ve veri silme talebi',
+    body: `Hesap ve veri silme talebi için Voira Destek’e (${SUPPORT_EMAIL}) yazabilirsin. Konu satırı: Voira Data Deletion Request. Doğrulama için uygulamada kullandığın e-posta adresini ekle. Bu otomatik tek dokunuşla silme değildir; talebin doğrulanarak işlenir.`,
+  };
 
   if (isGuest) {
     return (
@@ -88,11 +91,13 @@ export function DataDeletionScreen(_props: Props) {
           {
             title: 'Yerel sıfırlama',
             body:
-              'Aşağıdaki düğme ile yerel pratik verilerini sıfırlayabilirsin. Bu işlem profil tercihlerini silmez ve Google Play aboneliğini iptal etmez.',
+              'Aşağıdaki düğme yalnızca bu cihazdaki yerel pratik verilerini sıfırlar. Hesap silme değildir ve Google Play aboneliğini iptal etmez.',
           },
+          requestSection,
           {
-            title: 'Hesap / bulut silme talebi',
-            body: `Hesap oluşturduysan veya ek silme talebin varsa ${SUPPORT_EMAIL} adresine “Voira Data Deletion Request” konusuyla yaz. Hesap e-postanı ekle.`,
+            title: 'Abonelik notu',
+            body:
+              'Uygulama hesabını veya uygulama verilerini silmek, aktif Google Play aboneliğini iptal etmez. SpeakPlus faturalandırmasını durdurmak için Google Play üzerinden iptal et.',
           },
         ]}
         footer={sharedFooter}
@@ -105,24 +110,21 @@ export function DataDeletionScreen(_props: Props) {
       title="Veri silme"
       subtitle="Hesap ve veriler — Voira"
       sections={[
+        requestSection,
         {
-          title: 'Nasıl talep edilir?',
-          body: `1) ${SUPPORT_EMAIL} adresine e-posta gönder\n2) Konu: Voira Data Deletion Request\n3) Uygulamada kullandığın hesap e-postasını yaz`,
-        },
-        {
-          title: 'Silinebilecekler',
+          title: 'Doğrulama sonrası',
           body:
-            'Hesapla ilişkili veriler; saklanıyorsa ilerleme, kaydedilen kelimeler ve analiz geçmişi. Yerel pratik verilerini aşağıdaki düğmeyle de sıfırlayabilirsin.',
+            'Doğrulanmış bir silme talebinden sonra, yasal / güvenlik / dolandırıcılık önleme / işlem kaydı zorunlulukları saklı kalmak üzere hesabınla ilişkili veriler silinir veya kimlikten arındırılır. Buna hesap verileri; saklanıyorsa ilerleme, kelime defteri ve analiz geçmişi dahil olabilir.',
         },
         {
           title: 'Kalabilecekler',
           body:
-            'Google Play / RevenueCat işlem veya entitlement kayıtları (yasal / muhasebe / güvenlik), kimliği belli olmayan günlükler ve yalnızca cihazında kalan veriler (uygulama verisi temizlenene veya uygulama kaldırılana kadar).',
+            'Google Play / RevenueCat işlem veya entitlement kayıtları, kimliği belli olmayan günlükler ve yalnızca cihazında kalan veriler (uygulama verisi temizlenene veya uygulama kaldırılana kadar).',
         },
         {
           title: 'Abonelik notu',
           body:
-            'Veri silme, Google Play aboneliğini iptal etmez. SpeakPlus’ı durdurmak için Google Play → Ödemeler ve abonelikler üzerinden iptal et.',
+            'Uygulama hesabını veya uygulama verilerini silmek, aktif Google Play aboneliğini iptal etmez. SpeakPlus’ı durdurmak için Google Play → Ödemeler ve abonelikler üzerinden iptal et.',
         },
       ]}
       footer={sharedFooter}

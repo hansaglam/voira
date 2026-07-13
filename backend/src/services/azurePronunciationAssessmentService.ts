@@ -15,6 +15,7 @@ import {
   type AzurePhonemeFeedback,
   type AzureWordPronunciationFeedback,
 } from './pronunciationAssessment/azurePronunciationResultParser.js';
+import { analysisDebugLog } from '../utils/analysisDebugLog.js';
 
 export type { AzurePhonemeFeedback, AzureWordPronunciationFeedback };
 
@@ -91,7 +92,7 @@ function logAzureResultDetails(result: sdk.SpeechRecognitionResult): void {
     const cancellationErrorCode =
       sdk.CancellationErrorCode[cancellation.ErrorCode] ?? cancellation.ErrorCode;
 
-    console.log('[EchoSpeak Pronunciation] azure_canceled', {
+    analysisDebugLog('[EchoSpeak Pronunciation] azure_canceled', {
       reason: reasonName,
       cancellationReason: sdk.CancellationReason[cancellation.reason] ?? cancellation.reason,
       cancellationErrorCode,
@@ -102,7 +103,7 @@ function logAzureResultDetails(result: sdk.SpeechRecognitionResult): void {
       cancellation.ErrorCode === sdk.CancellationErrorCode.ConnectionFailure &&
       cancellation.errorDetails?.includes('1006')
     ) {
-      console.log('[EchoSpeak Pronunciation] sdk_connection_failure_hint', {
+      analysisDebugLog('[EchoSpeak Pronunciation] sdk_connection_failure_hint', {
         hint: 'Azure Speech SDK WebSocket failed (StatusCode 1006). Use AZURE_PRONUNCIATION_TRANSPORT=rest on Render.',
         cancellationErrorDetails,
       });
@@ -111,7 +112,7 @@ function logAzureResultDetails(result: sdk.SpeechRecognitionResult): void {
   }
 
   if (result.reason === sdk.ResultReason.NoMatch) {
-    console.log('[EchoSpeak Pronunciation] azure_no_match', {
+    analysisDebugLog('[EchoSpeak Pronunciation] azure_no_match', {
       reason: reasonName,
       errorDetails: result.errorDetails?.slice(0, 500) ?? null,
       durationMs: result.duration,
@@ -120,7 +121,7 @@ function logAzureResultDetails(result: sdk.SpeechRecognitionResult): void {
   }
 
   if (result.reason === sdk.ResultReason.RecognizedSpeech) {
-    console.log('[EchoSpeak Pronunciation] azure_recognized', {
+    analysisDebugLog('[EchoSpeak Pronunciation] azure_recognized', {
       reason: reasonName,
       durationMs: result.duration,
       textLength: result.text?.length ?? 0,
@@ -128,7 +129,7 @@ function logAzureResultDetails(result: sdk.SpeechRecognitionResult): void {
     return;
   }
 
-  console.log('[EchoSpeak Pronunciation] azure_result_reason', {
+  analysisDebugLog('[EchoSpeak Pronunciation] azure_result_reason', {
     reason: reasonName,
     errorDetails: result.errorDetails?.slice(0, 500) ?? null,
     durationMs: result.duration,
@@ -191,7 +192,7 @@ export async function assessAzurePronunciation(
   const referenceText = input.referenceText?.trim() ?? '';
   const language = input.language ?? AZURE_SPEECH_LANGUAGE;
 
-  console.log('[EchoSpeak Pronunciation] reference', {
+  analysisDebugLog('[EchoSpeak Pronunciation] reference', {
     referenceTextLength: referenceText.length,
     language,
     ...(isAnalysisDebugEnabled() ? { referenceText } : {}),
@@ -206,7 +207,7 @@ export async function assessAzurePronunciation(
 
   const preparedAudio = await prepareAzureWavAudio(input.audioBuffer, input.mimeType);
   if (!preparedAudio.ok) {
-    console.log('[EchoSpeak Pronunciation] fallback', {
+    analysisDebugLog('[EchoSpeak Pronunciation] fallback', {
       reason: preparedAudio.errorCode,
       errorCode: preparedAudio.errorCode,
       errorMessage: preparedAudio.message ?? preparedAudio.stderr ?? 'Audio conversion failed.',
@@ -277,7 +278,7 @@ export async function assessAzurePronunciation(
               }
 
               logAzureResultDetails(result);
-              console.log('[EchoSpeak Pronunciation] azure_result', {
+              analysisDebugLog('[EchoSpeak Pronunciation] azure_result', {
                 pronunciationScore: parsed.pronunciationScore,
                 accuracyScore: parsed.accuracyScore,
                 fluencyScore: parsed.fluencyScore,
@@ -306,7 +307,7 @@ export async function assessAzurePronunciation(
           finish(resolveFailureFromResult(result));
         },
         (error) => {
-          console.log('[EchoSpeak Pronunciation] fallback', {
+          analysisDebugLog('[EchoSpeak Pronunciation] fallback', {
             reason: 'pronunciation_provider_error',
             errorCode: 'pronunciation_provider_error',
             errorMessage: error?.slice?.(0, 500) ?? String(error),
