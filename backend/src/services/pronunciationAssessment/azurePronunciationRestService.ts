@@ -112,7 +112,7 @@ async function postAzurePronunciationRequest(
           enableProsodyAssessment,
         }),
       },
-      body: wavBuffer,
+      body: new Uint8Array(wavBuffer),
       signal: controller.signal,
     });
 

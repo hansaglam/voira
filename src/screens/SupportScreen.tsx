@@ -2,20 +2,24 @@ import React from 'react';
 import { Linking, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
+import {
+  DATA_DELETION_URL,
+  PRIVACY_POLICY_URL,
+  SUPPORT_EMAIL,
+  SUPPORT_MAILTO,
+} from '../constants/legalLinks';
 import { colors, spacing, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'Support'>;
 
-const SUPPORT_EMAIL = 'support@echospeak.app';
-
 export function SupportScreen(_props: Props) {
   const openEmail = () => {
-    void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=Voira%20Destek`);
+    void Linking.openURL(`${SUPPORT_MAILTO}?subject=Voira%20Destek`);
   };
 
   return (
     <InfoScreenLayout
-      title="Destek"
+      title="Voira Destek"
       subtitle="Yardıma mı ihtiyacın var?"
       sections={[
         {
@@ -29,13 +33,29 @@ export function SupportScreen(_props: Props) {
         },
         {
           title: 'Yanıt süresi',
-          body: 'MVP döneminde destek yanıtları birkaç iş günü içinde verilmeye çalışılır.',
+          body: 'Destek yanıtları birkaç iş günü içinde verilmeye çalışılır.',
         },
       ]}
       footer={
-        <TouchableOpacity style={styles.emailButton} onPress={openEmail} activeOpacity={0.85}>
-          <Text style={styles.emailButtonText}>E-posta gönder</Text>
-        </TouchableOpacity>
+        <>
+          <TouchableOpacity style={styles.emailButton} onPress={openEmail} activeOpacity={0.85}>
+            <Text style={styles.emailButtonText}>E-posta gönder</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryLink}
+            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryLinkText}>Gizlilik Politikası</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryLink}
+            onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryLinkText}>Veri silme bilgisi</Text>
+          </TouchableOpacity>
+        </>
       }
     />
   );
@@ -55,5 +75,15 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.primary,
+  },
+  secondaryLink: {
+    marginTop: spacing.sm,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  secondaryLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
   },
 });

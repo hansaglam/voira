@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -272,12 +273,13 @@ export function ProfileScreen({ navigation, route }: Props) {
 
   const handleSettingsPress = (item: SettingsItem) => {
     if (item.label === 'Aboneliği yönet') {
-      Alert.alert(
-        'Aboneliği yönet',
-        Platform.OS === 'android'
-          ? 'Aboneliğini Google Play üzerinden yönetebilirsin.'
-          : 'Aboneliğini App Store üzerinden yönetebilirsin.',
-      );
+      void (async () => {
+        try {
+          await Linking.openURL('https://play.google.com/store/account/subscriptions');
+        } catch {
+          Alert.alert('Aboneliğini Google Play üzerinden yönetebilirsin.');
+        }
+      })();
       return;
     }
 

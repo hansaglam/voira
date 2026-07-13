@@ -37,7 +37,7 @@ export const ANALYSIS_TOO_SHORT_TR =
   'Kayıt çok kısa. Lütfen cümleyi tekrar söyle.';
 
 export const ANALYSIS_REAL_DISABLED_TR =
-  'Gerçek analiz altyapısı yakında aktif olacak. Şimdilik kaydını alıp tekrar dinleyebilirsin.';
+  'Analiz servisine şu anda ulaşılamıyor. Lütfen internet bağlantını kontrol edip tekrar dene.';
 
 export const ANALYSIS_PROCESSING_FAILED_TR =
   'Analiz hazırlanırken bir sorun oluştu. Lütfen tekrar dene.';

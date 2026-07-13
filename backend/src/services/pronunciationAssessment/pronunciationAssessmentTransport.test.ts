@@ -22,25 +22,25 @@ const originalAnalysisDebug = process.env.ENABLE_ANALYSIS_DEBUG;
 
 afterEach(() => {
   if (originalTransport === undefined) {
-    delete process.env.AZURE_PRONUNCIATION_TRANSPORT;
+    Reflect.deleteProperty(process.env, 'AZURE_PRONUNCIATION_TRANSPORT');
   } else {
     process.env.AZURE_PRONUNCIATION_TRANSPORT = originalTransport;
   }
 
   if (originalNodeEnv === undefined) {
-    delete process.env.NODE_ENV;
+    Reflect.deleteProperty(process.env, 'NODE_ENV');
   } else {
     process.env.NODE_ENV = originalNodeEnv;
   }
 
   if (originalSdkFallback === undefined) {
-    delete process.env.AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK;
+    Reflect.deleteProperty(process.env, 'AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK');
   } else {
     process.env.AZURE_PRONUNCIATION_ALLOW_SDK_FALLBACK = originalSdkFallback;
   }
 
   if (originalAnalysisDebug === undefined) {
-    delete process.env.ENABLE_ANALYSIS_DEBUG;
+    Reflect.deleteProperty(process.env, 'ENABLE_ANALYSIS_DEBUG');
   } else {
     process.env.ENABLE_ANALYSIS_DEBUG = originalAnalysisDebug;
   }

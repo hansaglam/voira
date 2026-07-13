@@ -12,7 +12,7 @@ import type {
 import { getAudioMimeType } from './prepareAudioUpload';
 
 const BACKEND_NOT_CONFIGURED_TR =
-  'Gerçek analiz altyapısı yakında aktif olacak. Şimdilik kaydını alıp tekrar dinleyebilirsin.';
+  'Analiz servisine şu anda ulaşılamıyor. Lütfen internet bağlantını kontrol edip tekrar dene.';
 
 const NETWORK_ERROR_TR =
   'Analiz sunucusuna bağlanılamadı. İnternet bağlantını kontrol edip tekrar dene.';

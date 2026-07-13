@@ -2,7 +2,7 @@ import { ENABLE_REAL_ANALYSIS } from '../../config/analysisConfig';
 import type { SpeechToTextInput, SpeechToTextResult } from './speechToTextTypes';
 
 const NOT_CONFIGURED_MESSAGE_TR =
-  'Gerçek analiz altyapısı yakında aktif olacak. Şimdilik kaydını alıp tekrar dinleyebilirsin.';
+  'Analiz servisine şu anda ulaşılamıyor. Lütfen internet bağlantını kontrol edip tekrar dene.';
 
 /**
  * Placeholder for a future speech-to-text provider.

@@ -3,6 +3,7 @@ import multer from 'multer';
 import {
   MAX_AUDIO_FILE_BYTES,
   MIN_RECORDING_DURATION_MS,
+  IS_DEV,
 } from '../config.js';
 import { analyzeRateLimit } from '../middleware/analyzeRateLimit.js';
 import { buildCoachFeedbackTr, logCoachDecision, resolveCoachFeedbackDecision } from '../services/coachFeedbackService.js';
@@ -105,23 +106,27 @@ analyzeSpeechRouter.post(
         audioBytes: audioFile.size,
       });
 
-      console.log('[EchoSpeak API] before_transcription', {
-        lessonId,
-        segmentId,
-        durationMillis,
-        audioBytes: audioFile.buffer?.length,
-        hasTargetText: Boolean(target),
-        mimeType: audioFile.mimetype,
-        originalName: audioFile.originalname,
-      });
+      if (IS_DEV || isAnalysisDebugEnabled()) {
+        console.log('[EchoSpeak API] before_transcription', {
+          lessonId,
+          segmentId,
+          durationMillis,
+          audioBytes: audioFile.buffer?.length,
+          hasTargetText: Boolean(target),
+          mimeType: audioFile.mimetype,
+          originalName: audioFile.originalname,
+        });
+      }
 
       const transcription = await transcribeAudio(audioFile);
 
-      console.log('[EchoSpeak API] transcription_result', {
-        ok: transcription.ok,
-        transcriptLength: transcription.transcript?.length ?? 0,
-        errorCode: transcription.errorCode,
-      });
+      if (IS_DEV || isAnalysisDebugEnabled()) {
+        console.log('[EchoSpeak API] transcription_result', {
+          ok: transcription.ok,
+          transcriptLength: transcription.transcript?.length ?? 0,
+          errorCode: transcription.errorCode,
+        });
+      }
 
       if (!transcription.ok || !transcription.transcript?.trim()) {
         return res.status(200).json(

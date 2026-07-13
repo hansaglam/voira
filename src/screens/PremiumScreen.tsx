@@ -36,7 +36,7 @@ const CTA_RADIUS = 17;
 const CTA_HEIGHT = 49;
 
 const PREMIUM_UNLOCKS = [
-  'Sınırsız pratik',
+  'Tüm pratiklere erişim',
   'Tüm ders paketleri',
   'Gelişmiş geri bildirimler',
   'Azure telaffuz analizi ve kelime bazlı geri bildirim',
@@ -45,7 +45,7 @@ const PREMIUM_UNLOCKS = [
 ];
 
 const BENEFIT_PILLS = [
-  { icon: 'infinite-outline' as const, label: 'Sınırsız Pratik' },
+  { icon: 'infinite-outline' as const, label: 'Ders kütüphanesine tam erişim' },
   { icon: 'analytics-outline' as const, label: 'Gelişmiş Geri Bildirim' },
   { icon: 'library-outline' as const, label: 'Tüm Dersler' },
 ];
@@ -421,7 +421,7 @@ export function PremiumScreen({ navigation }: Props) {
           </>
         ) : (
           <>
-            <Text style={styles.title}>SpeakPlus ile sınırsız konuşma pratiği</Text>
+            <Text style={styles.title}>SpeakPlus ile daha fazla pratik ve gelişmiş geri bildirim</Text>
             <Text style={styles.subtitle}>
               Daha fazla pratik, gelişmiş telaffuz analizi ve zayıf kelime geri bildirimi.
             </Text>

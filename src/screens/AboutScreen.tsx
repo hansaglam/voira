@@ -1,9 +1,14 @@
 import React from 'react';
-import { Text, StyleSheet } from 'react-native';
+import { Linking, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import { VoiraLogo } from '../components/VoiraLogo';
-import { colors, spacing, typography } from '../theme';
+import {
+  PRIVACY_POLICY_URL,
+  SUPPORT_EMAIL,
+  TERMS_OF_USE_URL,
+} from '../constants/legalLinks';
+import { colors, spacing, typography, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'About'>;
 
@@ -22,26 +27,58 @@ export function AboutScreen(_props: Props) {
             'Voira, İngilizce konuşmanı analiz eden, telaffuzunu ölçen ve zayıf kelimelerini Türkçe açıklamalarla geliştirmene yardımcı olan AI konuşma koçudur.',
         },
         {
-          title: 'MVP sürümü',
+          title: 'Bu sürüm',
           body:
-            'Bu sürüm erken erişim (MVP) niteliğindedir. Konuşma analizi kelime eşleşmesi, Azure telaffuz değerlendirmesi ve akıcılık ölçümlerine dayanır.',
+            'Konuşma analizi kelime eşleşmesi, Azure telaffuz değerlendirmesi ve akıcılık ölçümlerine dayanır. Skorlar rehber niteliğindedir; resmi dil sertifikası yerine geçmez.',
         },
         {
           title: 'SpeakPlus',
           body:
-            'SpeakPlus, uygulama içi abonelik ile sunulan premium ders paketleri ve gelişmiş geri bildirimlerdir. Satın alımları Profil veya paywall ekranından geri yükleyebilirsin.',
+            'SpeakPlus, uygulama içi abonelik ile sunulan premium ders paketleri ve gelişmiş geri bildirimlerdir. Ödemeler Google Play üzerinden yapılır; satın alımları Profil veya paywall ekranından geri yükleyebilirsin.',
         },
         {
-          title: 'İletişim',
-          body: 'Destek: support@echospeak.app',
+          title: 'İletişim ve yasal',
+          body: `Voira Destek: ${SUPPORT_EMAIL}\nGizlilik Politikası ve Kullanım Şartları uygulama içinden veya web sayfalarından okunabilir.`,
         },
       ]}
-      footer={<Text style={styles.footerVersion}>Voira v{APP_VERSION}</Text>}
+      footer={
+        <>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.linkButtonText}>Gizlilik Politikası</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.linkButtonText}>Kullanım Şartları</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerVersion}>Voira v{APP_VERSION}</Text>
+        </>
+      }
     />
   );
 }
 
 const styles = StyleSheet.create({
+  linkButton: {
+    marginTop: spacing.sm,
+    backgroundColor: 'rgba(91, 95, 239, 0.1)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(91, 95, 239, 0.22)',
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+  },
+  linkButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
   footerVersion: {
     ...typography.caption,
     textAlign: 'center',

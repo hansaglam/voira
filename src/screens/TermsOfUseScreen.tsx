@@ -1,6 +1,13 @@
 import React from 'react';
+import { Linking, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
+import {
+  PRIVACY_POLICY_URL,
+  SUPPORT_EMAIL,
+  TERMS_OF_USE_URL,
+} from '../constants/legalLinks';
+import { colors, spacing, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'TermsOfUse'>;
 
@@ -8,34 +15,98 @@ export function TermsOfUseScreen(_props: Props) {
   return (
     <InfoScreenLayout
       title="Kullanım Şartları"
-      subtitle="Voira dil pratiği uygulaması"
+      subtitle="Voira dil pratiği uygulaması — Last Updated: July 2026"
       sections={[
         {
-          title: 'Amaç',
+          title: 'Kabul',
           body:
-            'Voira, İngilizce konuşma pratiği ve shadowing çalışması için tasarlanmış bir dil öğrenme uygulamasıdır.',
+            'Voira’yı indirerek veya kullanarak bu Kullanım Şartlarını kabul etmiş olursun. Kabul etmiyorsan uygulamayı kullanma.',
+        },
+        {
+          title: 'Uygulamanın kullanımı',
+          body:
+            'Voira; İngilizce konuşma / shadowing pratiği, telaffuz geri bildirimi, kelime araçları ve ilerleme takibi sunar. Uygulamayı yalnızca yasal ve kişisel öğrenme amaçlı kullanmayı kabul edersin.',
+        },
+        {
+          title: 'Hesap sorumluluğu',
+          body:
+            'Hesap oluşturursan giriş bilgilerinin gizliliğinden ve hesabındaki etkinliklerden sen sorumlusun. Misafir kullanım sınırlı kalıcılık sunabilir; hesap, ilerleme ve SpeakPlus erişimini korumaya yardımcı olur.',
         },
         {
           title: 'Skorlar ve geri bildirim',
           body:
-            'Uygulamadaki skorlar ve koç yorumları öğrenme geri bildirimi amaçlıdır. Resmi bir dil yeterlilik belgesi veya sertifikasyon yerine geçmez.',
+            'Voira pratik ve geri bildirim sağlar; dil sertifikası, tıbbi tavsiye veya resmi akreditasyon garantisi vermez. Skorlar tahmindir; mikrofon kalitesi, aksan, arka plan gürültüsü, internet ve konuşma netliğine göre değişebilir.',
         },
         {
-          title: 'Yapay zeka ve STT',
+          title: 'SpeakPlus abonelikleri',
           body:
-            'Konuşmadan metne ve otomatik geri bildirim sistemleri hata yapabilir. Analiz sonuçları rehber niteliğindedir; mükemmel telaffuz veya resmi değerlendirme garantisi verilmez.',
+            'Android’de SpeakPlus Google Play üzerinden faturalandırılır. Fiyat ve yenileme koşulları satın almadan önce gösterilir. İptal ve iadeler Google Play politikalarına tabidir. Uygulamayı silmek veya veri silme talebi aboneliği iptal etmez; iptal Google Play abonelik ayarlarından yapılır.',
         },
         {
-          title: 'SpeakPlus',
+          title: 'Kabul edilebilir kullanım',
           body:
-            'SpeakPlus premium içeriklere erişim, aktif satın alma veya geri yüklenmiş abonelik (entitlement) gerektirir. Abonelik ücretleri App Store veya Google Play hesabın üzerinden tahsil edilir; otomatik yenilenir ve mağaza ayarlarından yönetilebilir.',
+            'Uygulamayı kötüye kullanma, tersine mühendislik (yasal sınırlar dışında), backend’i otomatik isteklerle zorlama, limit/paywall aşma, yasa dışı veya taciz içerik gönderme yasaktır.',
         },
         {
-          title: 'Kullanım',
+          title: 'Fikri mülkiyet ve kullanıcı içeriği',
           body:
-            'Uygulamayı yalnızca yasal ve kişisel öğrenme amaçlı kullanmayı kabul edersin. Hizmet MVP aşamasında olduğu için özellikler önceden bildirilmeksizin değişebilir.',
+            'Uygulama içeriği, tasarım, dersler ve marka Voira / geliştiriciye aittir. Kaydettiğin içerikten sen sorumlusun; analiz özellikleri için ses ve metnin yalnızca uygulama özelliklerini sunmak üzere işlenmesine sınırlı izin verirsin.',
+        },
+        {
+          title: 'Garanti yok / sorumluluk sınırı',
+          body:
+            'Voira “olduğu gibi” sunulur. Yasaların izin verdiği ölçüde dolaylı zararlar ve öğrenme sonuçları için sorumluluk kabul edilmez. Uyuşmazlıklarda Türkiye Cumhuriyeti hukukuna başvurulur (zorunlu tüketici koruma kuralları saklıdır).',
+        },
+        {
+          title: 'İletişim',
+          body: `Sorular için: ${SUPPORT_EMAIL}`,
         },
       ]}
+      footer={
+        <>
+          <TouchableOpacity
+            style={styles.linkButton}
+            onPress={() => void Linking.openURL(TERMS_OF_USE_URL)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.linkButtonText}>Tam Kullanım Şartlarını aç</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.secondaryLink}
+            onPress={() => void Linking.openURL(PRIVACY_POLICY_URL)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.secondaryLinkText}>Gizlilik Politikası (web)</Text>
+          </TouchableOpacity>
+        </>
+      }
     />
   );
 }
+
+const styles = StyleSheet.create({
+  linkButton: {
+    marginTop: spacing.xs,
+    backgroundColor: 'rgba(91, 95, 239, 0.14)',
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(91, 95, 239, 0.28)',
+    paddingVertical: spacing.sm + 4,
+    alignItems: 'center',
+  },
+  linkButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  secondaryLink: {
+    marginTop: spacing.sm,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  secondaryLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+});

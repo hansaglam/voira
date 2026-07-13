@@ -4,11 +4,14 @@ import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import { useLearning } from '../context/LearningContext';
 import { useAuth } from '../context/AuthContext';
+import {
+  DATA_DELETION_MAILTO,
+  DATA_DELETION_URL,
+  SUPPORT_EMAIL,
+} from '../constants/legalLinks';
 import { colors, spacing, borderRadius } from '../theme';
 
 type Props = RootScreenProps<'DataDeletion'>;
-
-const SUPPORT_EMAIL = 'support@echospeak.app';
 
 export function DataDeletionScreen(_props: Props) {
   const { resetLocalPracticeData } = useLearning();
@@ -16,15 +19,13 @@ export function DataDeletionScreen(_props: Props) {
   const [isResetting, setIsResetting] = useState(false);
 
   const openSupportEmail = () => {
-    void Linking.openURL(
-      `mailto:${SUPPORT_EMAIL}?subject=Voira%20Veri%20Silme%20Talebi`,
-    );
+    void Linking.openURL(DATA_DELETION_MAILTO);
   };
 
   const handleLocalReset = () => {
     Alert.alert(
       'Yerel verileri sıfırla',
-      'Bu işlem cihazındaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Profil tercihlerin korunur. Geri alınamaz.',
+      'Bu işlem cihazındaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Profil tercihlerin korunur. Geri alınamaz. Aktif bir Google Play aboneliğini iptal etmez.',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -44,93 +45,94 @@ export function DataDeletionScreen(_props: Props) {
     );
   };
 
+  const sharedFooter = (
+    <>
+      <TouchableOpacity style={styles.supportButton} onPress={openSupportEmail} activeOpacity={0.85}>
+        <Text style={styles.supportButtonText}>
+          {isGuest ? 'Destek ile iletişime geç' : 'Veri silme talebi gönder'}
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.resetButton}
+        onPress={handleLocalReset}
+        disabled={isResetting}
+        activeOpacity={0.85}
+      >
+        {isResetting ? (
+          <ActivityIndicator color={colors.error} />
+        ) : (
+          <Text style={styles.resetButtonText}>Yerel pratik verilerini sıfırla</Text>
+        )}
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.webLink}
+        onPress={() => void Linking.openURL(DATA_DELETION_URL)}
+        activeOpacity={0.85}
+      >
+        <Text style={styles.webLinkText}>Veri silme sayfasını aç (web)</Text>
+      </TouchableOpacity>
+    </>
+  );
+
   if (isGuest) {
     return (
       <InfoScreenLayout
-        title="Veri silme bilgisi"
-        subtitle="Misafir modu"
+        title="Veri silme"
+        subtitle="Misafir modu — Voira"
         sections={[
           {
             title: 'Misafir verileri',
             body:
-              'Misafir modunda veriler bu cihazda tutulur. Hesap oluşturmadan pratik geçmişin, skorların ve oturum kayıtların yalnızca bu cihazda saklanır.',
+              'Misafir modunda pratik geçmişi, skorlar ve oturum kayıtları bu cihazda tutulur. Hesap oluşturmadan bulut hesabı verisi oluşmayabilir.',
           },
           {
             title: 'Yerel sıfırlama',
             body:
-              'Aşağıdaki düğme ile yerel pratik verilerini sıfırlayabilirsin. Bu işlem profil tercihlerini silmez.',
+              'Aşağıdaki düğme ile yerel pratik verilerini sıfırlayabilirsin. Bu işlem profil tercihlerini silmez ve Google Play aboneliğini iptal etmez.',
+          },
+          {
+            title: 'Hesap / bulut silme talebi',
+            body: `Hesap oluşturduysan veya ek silme talebin varsa ${SUPPORT_EMAIL} adresine “Voira Data Deletion Request” konusuyla yaz. Hesap e-postanı ekle.`,
           },
         ]}
-        footer={
-          <>
-            <TouchableOpacity
-              style={styles.resetButton}
-              onPress={handleLocalReset}
-              disabled={isResetting}
-              activeOpacity={0.85}
-            >
-              {isResetting ? (
-                <ActivityIndicator color={colors.error} />
-              ) : (
-                <Text style={styles.resetButtonText}>Yerel pratik verilerini sıfırla</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.supportButton} onPress={openSupportEmail} activeOpacity={0.85}>
-              <Text style={styles.supportButtonText}>Destek ile iletişime geç</Text>
-            </TouchableOpacity>
-          </>
-        }
+        footer={sharedFooter}
       />
     );
   }
 
   return (
     <InfoScreenLayout
-      title="Veri silme bilgisi"
-      subtitle="Hesap ve veriler"
+      title="Veri silme"
+      subtitle="Hesap ve veriler — Voira"
       sections={[
         {
-          title: 'Hesap silme',
-          body:
-            'Veri silme talebi için destek ekibiyle iletişime geçebilirsin. Tam self-service hesap silme yakında eklenecek.',
+          title: 'Nasıl talep edilir?',
+          body: `1) ${SUPPORT_EMAIL} adresine e-posta gönder\n2) Konu: Voira Data Deletion Request\n3) Uygulamada kullandığın hesap e-postasını yaz`,
         },
         {
-          title: 'Yerel veriler',
+          title: 'Silinebilecekler',
           body:
-            'Pratik geçmişi ve skorların bir kısmı cihazında da tutulabilir. Aşağıdaki düğme yalnızca yerel pratik verilerini sıfırlar.',
+            'Hesapla ilişkili veriler; saklanıyorsa ilerleme, kaydedilen kelimeler ve analiz geçmişi. Yerel pratik verilerini aşağıdaki düğmeyle de sıfırlayabilirsin.',
         },
         {
-          title: 'Destek',
+          title: 'Kalabilecekler',
           body:
-            'Gizlilik veya veri silme konusunda yardım için destek ekibine yazabilirsin.',
+            'Google Play / RevenueCat işlem veya entitlement kayıtları (yasal / muhasebe / güvenlik), kimliği belli olmayan günlükler ve yalnızca cihazında kalan veriler (uygulama verisi temizlenene veya uygulama kaldırılana kadar).',
+        },
+        {
+          title: 'Abonelik notu',
+          body:
+            'Veri silme, Google Play aboneliğini iptal etmez. SpeakPlus’ı durdurmak için Google Play → Ödemeler ve abonelikler üzerinden iptal et.',
         },
       ]}
-      footer={
-        <>
-          <TouchableOpacity style={styles.supportButton} onPress={openSupportEmail} activeOpacity={0.85}>
-            <Text style={styles.supportButtonText}>Veri silme talebi gönder</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.resetButton}
-            onPress={handleLocalReset}
-            disabled={isResetting}
-            activeOpacity={0.85}
-          >
-            {isResetting ? (
-              <ActivityIndicator color={colors.error} />
-            ) : (
-              <Text style={styles.resetButtonText}>Yerel pratik verilerini sıfırla</Text>
-            )}
-          </TouchableOpacity>
-        </>
-      }
+      footer={sharedFooter}
     />
   );
 }
 
 const styles = StyleSheet.create({
   resetButton: {
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     backgroundColor: 'rgba(239, 68, 68, 0.08)',
     borderRadius: borderRadius.lg,
     borderWidth: 1,
@@ -146,7 +148,7 @@ const styles = StyleSheet.create({
     color: colors.error,
   },
   supportButton: {
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
     backgroundColor: 'rgba(91, 95, 239, 0.1)',
     borderRadius: borderRadius.lg,
     borderWidth: 1,
@@ -158,5 +160,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  webLink: {
+    marginTop: spacing.sm,
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  webLinkText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textMuted,
   },
 });

@@ -90,7 +90,7 @@ export const PRACTICE_DURATION_OPTIONS = [
 ];
 
 export const PREMIUM_FEATURES = [
-  'Sınırsız shadowing pratiği',
+  'Daha fazla shadowing pratiği',
   'Detaylı AI telaffuz analizi',
   'Kişisel hata raporu',
   'Zayıf seslerine özel egzersizler',
