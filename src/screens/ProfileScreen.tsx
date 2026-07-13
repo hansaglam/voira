@@ -45,7 +45,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const APP_VERSION = '1.0.11';
+const APP_VERSION = '1.0.12';
 
 type Props = TabScreenProps<'Profile'>;
 
