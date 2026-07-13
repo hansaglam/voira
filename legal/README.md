@@ -2,9 +2,9 @@
 
 Public legal pages for Google Play should be published so these URLs work:
 
-- https://ethemsincar.github.io/voira/privacy.html
-- https://ethemsincar.github.io/voira/terms.html
-- https://ethemsincar.github.io/voira/delete-data.html
+- https://hansaglam.github.io/voira/privacy.html
+- https://hansaglam.github.io/voira/terms.html
+- https://hansaglam.github.io/voira/delete-data.html
 
 These match `src/constants/legalLinks.ts`.
 
