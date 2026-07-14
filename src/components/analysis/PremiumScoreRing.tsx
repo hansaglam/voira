@@ -15,7 +15,8 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const RING_DURATION_MS = 900;
 const PULSE_DURATION_MS = 360;
-const DEFAULT_SIZE = 104;
+/** Large enough for stacked score + /100 on iOS without clipping. */
+const DEFAULT_SIZE = 116;
 const DEFAULT_STROKE = 8;
 
 export interface PremiumScoreRingProps {
@@ -37,6 +38,13 @@ function resolveScoreLabel(
   if (label) return label;
   if (pronunciationAssessmentAvailable) return 'Gerçek Telaffuz Skoru';
   return 'Konuşma Skoru';
+}
+
+function resolveScoreFontSize(size: number): number {
+  if (size >= 116) return 34;
+  if (size >= 104) return 32;
+  if (size >= 96) return 30;
+  return 28;
 }
 
 export function PremiumScoreRing({
@@ -69,8 +77,10 @@ export function PremiumScoreRing({
   const radius = (size - strokeWidth * 2) / 2;
   const circumference = 2 * Math.PI * radius;
   const center = size / 2;
-  const innerSize = Math.max(radius * 1.35, size * 0.52);
-  const scoreFontSize = size >= 104 ? 34 : size >= 96 ? 30 : 26;
+  // Keep a roomy inner disc so the score never clips on iOS.
+  const innerSize = Math.round(size * 0.72);
+  const scoreFontSize = resolveScoreFontSize(size);
+  const shellPad = 6;
 
   useEffect(() => {
     let mounted = true;
@@ -201,8 +211,12 @@ export function PremiumScoreRing({
   });
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.ringShell, { width: size + 12, height: size + 12 }]}>
+    <View
+      style={styles.container}
+      accessibilityRole="text"
+      accessibilityLabel={`Skor ${clampedScore} üzerinden 100`}
+    >
+      <View style={[styles.ringShell, { width: size + shellPad * 2, height: size + shellPad * 2 }]}>
         <Animated.View
           style={[
             styles.glow,
@@ -215,7 +229,7 @@ export function PremiumScoreRing({
             },
           ]}
         />
-        <Svg width={size} height={size} style={styles.svg}>
+        <Svg width={size} height={size} style={[styles.svg, { top: shellPad, left: shellPad }]}>
           <Defs>
             <SvgLinearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
               <Stop offset="0%" stopColor={colors.gradientStart} />
@@ -259,22 +273,28 @@ export function PremiumScoreRing({
             {
               width: innerSize,
               height: innerSize,
-              top: 6 + (size - innerSize) / 2,
-              left: 6 + (size - innerSize) / 2,
+              top: shellPad + (size - innerSize) / 2,
+              left: shellPad + (size - innerSize) / 2,
             },
           ]}
           pointerEvents="none"
         >
-          <View style={styles.scoreRow}>
+          <View style={styles.scoreStack}>
             <Text
-              style={[styles.scoreValue, { fontSize: scoreFontSize, lineHeight: scoreFontSize + 2 }]}
-              adjustsFontSizeToFit
-              numberOfLines={1}
-              minimumFontScale={0.75}
+              style={[
+                styles.scoreValue,
+                {
+                  fontSize: scoreFontSize,
+                  lineHeight: scoreFontSize + 2,
+                },
+              ]}
+              allowFontScaling={false}
             >
               {displayScore}
             </Text>
-            <Text style={styles.scoreMax}>/100</Text>
+            <Text style={styles.scoreMax} allowFontScaling={false}>
+              /100
+            </Text>
           </View>
         </View>
       </View>
@@ -312,41 +332,48 @@ const styles = StyleSheet.create({
   },
   svg: {
     position: 'absolute',
-    top: 6,
-    left: 6,
   },
   center: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+  scoreStack: {
+    alignItems: 'center',
     justifyContent: 'center',
   },
   scoreValue: {
     fontWeight: '700',
     color: colors.textPrimary,
-    letterSpacing: -1,
+    letterSpacing: -0.8,
     fontVariant: ['tabular-nums'],
     includeFontPadding: false,
+    textAlign: 'center',
+    ...Platform.select({
+      ios: {
+        // Prevents iOS from clipping descenders / tight AbsoluteFill centers.
+        marginBottom: -1,
+      },
+      default: {},
+    }),
   },
   scoreMax: {
-    fontSize: 12,
+    marginTop: 1,
+    fontSize: 13,
+    lineHeight: 16,
     fontWeight: '600',
     color: colors.textMuted,
-    marginBottom: Platform.OS === 'android' ? 5 : 4,
-    marginLeft: 2,
     includeFontPadding: false,
+    textAlign: 'center',
   },
   scoreLabel: {
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
     textAlign: 'center',
     letterSpacing: 0.1,
-    maxWidth: 140,
+    maxWidth: 160,
   },
 });

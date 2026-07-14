@@ -3,10 +3,14 @@ import { Platform, View, Text, StyleSheet } from 'react-native';
 import { usePremium } from '../context/PremiumContext';
 import { colors, spacing, typography } from '../theme';
 
+/**
+ * Dev-only panel. Never shown in TestFlight / App Store / EAS release builds
+ * because `__DEV__` is false outside Metro debug / development clients.
+ */
 export function PremiumDebugPanel() {
-  if (!__DEV__) return null;
-
   const { debugPremiumStatus } = usePremium();
+
+  if (!__DEV__) return null;
   if (!debugPremiumStatus) return null;
 
   const entitlementsLabel =
@@ -15,7 +19,7 @@ export function PremiumDebugPanel() {
       : 'none';
 
   return (
-    <View style={styles.panel}>
+    <View style={styles.panel} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Text style={styles.title}>Premium debug</Text>
       <Text style={styles.line}>RC user: {debugPremiumStatus.revenueCatAppUserIdShort}</Text>
       <Text style={styles.line}>Entitlements: {entitlementsLabel}</Text>

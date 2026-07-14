@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Alert, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
+import { showAppConfirm, showAppFeedback } from '../components/dialog';
 import { useLearning } from '../context/LearningContext';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -24,26 +25,27 @@ export function DataDeletionScreen(_props: Props) {
   };
 
   const handleLocalReset = () => {
-    Alert.alert(
-      'Yerel verileri sıfırla',
-      'Bu işlem yalnızca bu cihazdaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Hesap silme talebi değildir. Profil tercihlerin korunur. Aktif bir App Store veya Google Play aboneliğini iptal etmez.',
-      [
-        { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Sıfırla',
-          style: 'destructive',
-          onPress: () => {
-            setIsResetting(true);
-            try {
-              resetLocalPracticeData();
-              Alert.alert('Tamamlandı', 'Yerel pratik verilerin sıfırlandı.');
-            } finally {
-              setIsResetting(false);
-            }
-          },
-        },
-      ],
-    );
+    showAppConfirm({
+      title: 'Yerel verileri sıfırla',
+      message:
+        'Bu işlem yalnızca bu cihazdaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Hesap silme talebi değildir. Profil tercihlerin korunur. Aktif bir App Store veya Google Play aboneliğini iptal etmez.',
+      destructive: true,
+      confirmLabel: 'Sıfırla',
+      cancelLabel: 'Vazgeç',
+      onConfirm: () => {
+        setIsResetting(true);
+        try {
+          resetLocalPracticeData();
+          showAppFeedback({
+            title: 'Tamamlandı',
+            message: 'Yerel pratik verilerin sıfırlandı.',
+            variant: 'success',
+          });
+        } finally {
+          setIsResetting(false);
+        }
+      },
+    });
   };
 
   const sharedFooter = (

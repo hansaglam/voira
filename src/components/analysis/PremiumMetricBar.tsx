@@ -66,9 +66,17 @@ export function PremiumMetricBar({
     outputRange: ['0%', '100%'],
   });
 
+  const isTwoLineLabel = label.includes('/');
+
   return (
     <View style={styles.metricRow}>
-      <Text style={styles.metricLabel}>{label}</Text>
+      <Text
+        style={[styles.metricLabel, isTwoLineLabel && styles.metricLabelTwoLine]}
+        numberOfLines={isTwoLineLabel ? 2 : 1}
+        ellipsizeMode="tail"
+      >
+        {label}
+      </Text>
       <View style={styles.metricBarTrack}>
         <Animated.View
           style={[
@@ -90,14 +98,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    minHeight: 22,
+    minHeight: 24,
   },
   metricLabel: {
-    width: 68,
-    fontSize: 12,
+    width: 76,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.textSecondary,
-    lineHeight: 16,
+    lineHeight: 15,
+    flexShrink: 0,
+  },
+  metricLabelTwoLine: {
+    fontSize: 10,
+    lineHeight: 13,
   },
   metricBarTrack: {
     flex: 1,
@@ -111,11 +124,12 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   metricValue: {
-    width: 30,
+    width: 32,
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'right',
     fontVariant: ['tabular-nums'],
     includeFontPadding: false,
+    flexShrink: 0,
   },
 });

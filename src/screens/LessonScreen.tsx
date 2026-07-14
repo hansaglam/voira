@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { showAppFeedback } from '../components/dialog';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -512,10 +513,11 @@ function QuickLessonScreenContent({
       });
 
     if (!validation.isValid || !audioUri || !validation.hasSpeech) {
-      Alert.alert(
-        'Analiz henüz hazır değil',
-        validation.messageTr ?? 'Analiz için önce geçerli bir kayıt almalısın.',
-      );
+      showAppFeedback({
+        title: 'Analiz henüz hazır değil',
+        message: validation.messageTr ?? 'Analiz için önce geçerli bir kayıt almalısın.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -958,10 +960,11 @@ function GuidedLessonScreenContent({
       });
 
     if (!validation.isValid || !audioUri || !validation.hasSpeech) {
-      Alert.alert(
-        'Analiz henüz hazır değil',
-        validation.messageTr ?? 'Analiz için önce geçerli bir kayıt almalısın.',
-      );
+      showAppFeedback({
+        title: 'Analiz henüz hazır değil',
+        message: validation.messageTr ?? 'Analiz için önce geçerli bir kayıt almalısın.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -1018,18 +1021,21 @@ function GuidedLessonScreenContent({
         return;
       }
 
-      Alert.alert(
-        'Dinleme sesi hazır değil',
-        'Bu dersin dinleme sesi henüz hazır değil. Shadowing için ses dosyası eklendiğinde buradan dinleyebileceksin.',
-      );
+      showAppFeedback({
+        title: 'Dinleme sesi hazır değil',
+        message:
+          'Bu dersin dinleme sesi henüz hazır değil. Shadowing için ses dosyası eklendiğinde buradan dinleyebileceksin.',
+        variant: 'info',
+      });
       return;
     }
 
     if (!hasCompletedLessonListen && !isLessonAudioPlaying) {
-      Alert.alert(
-        'Önce dinle',
-        'Devam etmek için önce cümleyi dinlemelisin.',
-      );
+      showAppFeedback({
+        title: 'Önce dinle',
+        message: 'Devam etmek için önce cümleyi dinlemelisin.',
+        variant: 'info',
+      });
       return;
     }
 

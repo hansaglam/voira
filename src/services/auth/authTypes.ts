@@ -18,6 +18,8 @@ export interface AuthActionResult {
   errorMessage?: string;
   successMessage?: string;
   requiresEmailConfirmation?: boolean;
+  /** Present after successful mutations that return a fresh auth user. */
+  user?: AuthUser;
 }
 
 export interface AuthFeatures {

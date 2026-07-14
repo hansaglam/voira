@@ -1,22 +1,23 @@
 import Purchases, {
   LOG_LEVEL,
-  PACKAGE_TYPE,
   type CustomerInfo,
-  type PurchasesOfferings,
-  type PurchasesOffering,
   type PurchasesPackage,
 } from 'react-native-purchases';
 import {
   getRevenueCatApiKey,
   isPremiumNativePlatform,
   isRevenueCatConfigured,
-  PREMIUM_ENTITLEMENT_ID,
   resolveStableAppUserId,
   warnIfRevenueCatKeyMissingForPlatform,
 } from './premiumConfig';
 import { hasActivePremiumEntitlement } from './premiumEntitlementService';
+import {
+  buildPackageOptions,
+  logOfferingsDiagnostics,
+  resolveCurrentOffering,
+  resolveMonthlyAndYearlyPackages,
+} from './offeringPackageResolve';
 import type {
-  PremiumPackageOption,
   PremiumPurchaseResult,
   PremiumRestoreResult,
   FetchOfferingsResult,
@@ -190,23 +191,31 @@ export async function fetchCustomerInfo(): Promise<CustomerInfo | null> {
 
 export async function fetchOfferings(): Promise<FetchOfferingsResult> {
   if (!isRevenueCatConfigured()) {
+    if (__DEV__) {
+      console.warn(`${LOG_PREFIX} fetchOfferings skipped — API key missing for platform`);
+    }
     return { offerings: null, errorMessage: OFFERINGS_SAFE_ERROR_MESSAGE };
   }
 
   try {
     const offerings = await Purchases.getOfferings();
     const currentOffering = resolveCurrentOffering(offerings);
-    const packageCount = buildPackageOptions(currentOffering).length;
+    const { monthly, yearly } = resolveMonthlyAndYearlyPackages(currentOffering);
+    const packageOptions = buildPackageOptions(currentOffering);
+
+    logOfferingsDiagnostics(currentOffering, monthly, yearly);
 
     if (__DEV__) {
       console.log(`${LOG_PREFIX} offerings fetched`, {
-        hasCurrent: Boolean(offerings.current),
-        packageCount,
-        entitlementId: PREMIUM_ENTITLEMENT_ID,
+        hasCurrentShortcut: Boolean(offerings.current),
+        resolvedOfferingId: currentOffering?.identifier ?? null,
+        packageCount: packageOptions.length,
+        hasMonthly: Boolean(monthly),
+        hasYearly: Boolean(yearly),
       });
     }
 
-    if (!currentOffering || packageCount === 0) {
+    if (!currentOffering || packageOptions.length === 0) {
       return { offerings, errorMessage: OFFERINGS_SAFE_ERROR_MESSAGE };
     }
 
@@ -218,70 +227,6 @@ export async function fetchOfferings(): Promise<FetchOfferingsResult> {
     }
     return { offerings: null, errorMessage: OFFERINGS_SAFE_ERROR_MESSAGE };
   }
-}
-
-export function resolveCurrentOffering(
-  offerings: PurchasesOfferings | null,
-): PurchasesOffering | null {
-  return offerings?.current ?? null;
-}
-
-function subscriptionPeriodLabelTr(packageType: string): string {
-  if (packageType === PACKAGE_TYPE.ANNUAL) return 'Yıllık abonelik';
-  if (packageType === PACKAGE_TYPE.MONTHLY) return 'Aylık abonelik';
-  if (packageType === PACKAGE_TYPE.WEEKLY) return 'Haftalık abonelik';
-  return 'Abonelik';
-}
-
-function packagePeriodLabelTr(packageType: string): string {
-  if (packageType === PACKAGE_TYPE.ANNUAL) return 'Yıllık';
-  if (packageType === PACKAGE_TYPE.MONTHLY) return 'Aylık';
-  if (packageType === PACKAGE_TYPE.WEEKLY) return 'Haftalık';
-  return 'Abonelik';
-}
-
-export function buildPackageOptions(offering: PurchasesOffering | null): PremiumPackageOption[] {
-  if (!offering) return [];
-
-  const options: PremiumPackageOption[] = [];
-  const monthly = offering.monthly ?? offering.availablePackages.find(
-    (pkg) => pkg.packageType === PACKAGE_TYPE.MONTHLY,
-  );
-  const yearly = offering.annual ?? offering.availablePackages.find(
-    (pkg) => pkg.packageType === PACKAGE_TYPE.ANNUAL,
-  );
-
-  if (monthly) {
-    options.push({
-      period: 'monthly',
-      labelTr: 'Aylık',
-      package: monthly,
-      priceString: monthly.product.priceString,
-      subscriptionPeriodLabel: subscriptionPeriodLabelTr(monthly.packageType),
-    });
-  }
-
-  if (yearly) {
-    options.push({
-      period: 'yearly',
-      labelTr: 'Yıllık',
-      package: yearly,
-      priceString: yearly.product.priceString,
-      subscriptionPeriodLabel: subscriptionPeriodLabelTr(yearly.packageType),
-    });
-  }
-
-  if (options.length === 0) {
-    return offering.availablePackages.map((pkg) => ({
-      period: pkg.packageType === PACKAGE_TYPE.ANNUAL ? 'yearly' : 'monthly',
-      labelTr: packagePeriodLabelTr(pkg.packageType),
-      package: pkg,
-      priceString: pkg.product.priceString,
-      subscriptionPeriodLabel: subscriptionPeriodLabelTr(pkg.packageType),
-    }));
-  }
-
-  return options;
 }
 
 export async function purchaseRevenueCatPackage(

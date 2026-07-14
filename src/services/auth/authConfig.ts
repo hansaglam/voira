@@ -3,6 +3,8 @@ import type { AuthFeatures } from './authTypes';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim() ?? '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? '';
 
+const LOG_PREFIX = '[EchoSpeak Auth]';
+
 export const AUTH_REDIRECT_SCHEME = 'echospeak';
 export const AUTH_REDIRECT_PATH = 'auth/callback';
 export const AUTH_MOBILE_REDIRECT_URL = 'echospeak://auth/callback';
@@ -43,6 +45,50 @@ export function isSupabaseConfigured(): boolean {
     isValidSupabaseAnonKeyFormat() &&
     getSupabaseUrl().startsWith('https://')
   );
+}
+
+/**
+ * Env var names that must be present (and valid) for account login.
+ * Same checklist on iOS and Android — no platform-specific auth gate.
+ */
+export function getMissingAuthEnvVarNames(): string[] {
+  const missing: string[] = [];
+
+  if (!hasSupabaseUrl()) {
+    missing.push('EXPO_PUBLIC_SUPABASE_URL');
+  } else if (!SUPABASE_URL.startsWith('https://')) {
+    missing.push('EXPO_PUBLIC_SUPABASE_URL (must start with https://)');
+  }
+
+  if (!hasSupabaseAnonKey()) {
+    missing.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+  } else if (!isValidSupabaseAnonKeyFormat()) {
+    missing.push(
+      'EXPO_PUBLIC_SUPABASE_ANON_KEY (expected eyJ... or sb_publishable_...)',
+    );
+  }
+
+  return missing;
+}
+
+/** __DEV__ only — presence flags, never secret values. */
+export function logAuthConfigDiagnostics(): void {
+  if (!__DEV__) return;
+
+  const urlPresent = hasSupabaseUrl();
+  const anonKeyPresent = hasSupabaseAnonKey();
+  const missing = getMissingAuthEnvVarNames();
+
+  console.log(`${LOG_PREFIX} Supabase URL present: ${urlPresent}`);
+  console.log(`${LOG_PREFIX} Supabase anon key present: ${anonKeyPresent}`);
+  console.log(`${LOG_PREFIX} Supabase anon key format valid: ${isValidSupabaseAnonKeyFormat()}`);
+  console.log(`${LOG_PREFIX} Auth configured: ${isSupabaseConfigured()}`);
+
+  if (missing.length > 0) {
+    console.warn(
+      `${LOG_PREFIX} Account login disabled — missing or invalid: ${missing.join(', ')}`,
+    );
+  }
 }
 
 export function getAuthFeatures(): AuthFeatures {

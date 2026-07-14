@@ -699,6 +699,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
           onRetry={handleRetry}
           onNext={handleNext}
           primaryLabel={primaryLabel}
+          emphasizeRetry={result.nativeScore < 40 || isWrongSentenceFeedback}
         />
       }
     >

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   View,
   Text,
   StyleSheet,
@@ -30,6 +29,7 @@ import {
 import type { PremiumPackageOption } from '../services/premium';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legalLinks';
 import { openExternalLink } from '../utils/openExternalLink';
+import { showAppDialog, showAppFeedback } from '../components/dialog';
 import { VoiraFeedbackModal, type VoiraFeedbackType } from '../components/VoiraFeedbackModal';
 import { getStoreAccountLabel } from '../utils/storeSubscriptions';
 import { colors, spacing, borderRadius, layout } from '../theme';
@@ -356,14 +356,26 @@ export function PremiumScreen({ navigation }: Props) {
       return;
     }
     if (result === 'already_subscribed') {
-      Alert.alert(
-        'Aktif abonelik var',
-        `Bu ${getStoreAccountLabel()} hesabında aktif abonelik görünüyor. Satın alımları geri yüklemeyi dene.`,
-        [
-          { text: 'İptal', style: 'cancel' },
-          { text: 'Satın alımları geri yükle', onPress: () => void handleRestore() },
-        ],
-      );
+      showAppDialog({
+        title: 'Aktif abonelik var',
+        message: `Bu ${getStoreAccountLabel()} hesabında aktif abonelik görünüyor. Satın alımları geri yüklemeyi dene.`,
+        variant: 'info',
+        primaryButton: {
+          id: 'restore',
+          label: 'Satın alımları geri yükle',
+          variant: 'primary',
+        },
+        tertiaryButton: {
+          id: 'cancel',
+          label: 'Vazgeç',
+          variant: 'tertiary',
+        },
+        onAction: (id) => {
+          if (id === 'restore') {
+            void handleRestore();
+          }
+        },
+      });
     }
   };
 
@@ -382,13 +394,18 @@ export function PremiumScreen({ navigation }: Props) {
       return;
     }
     if (result === 'not_found') {
-      Alert.alert(
-        'Abonelik bulunamadı',
-        `Bu ${getStoreAccountLabel()} hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.`,
-      );
+      showAppFeedback({
+        title: 'Abonelik bulunamadı',
+        message: `Bu ${getStoreAccountLabel()} hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.`,
+        variant: 'warning',
+      });
     }
     if (result === 'error') {
-      Alert.alert('Geri yükleme başarısız', 'Satın alımlar geri yüklenemedi. Lütfen tekrar dene.');
+      showAppFeedback({
+        title: 'Geri yükleme başarısız',
+        message: 'Satın alımlar geri yüklenemedi. Lütfen tekrar dene.',
+        variant: 'error',
+      });
     }
   };
 
@@ -400,6 +417,14 @@ export function PremiumScreen({ navigation }: Props) {
   const isPackagesLoading = isLoadingPremium || isOfferingsLoading;
   const showOfferingsFallback =
     registered && !isPackagesLoading && !isPremium && packageOptions.length === 0;
+  const hasMonthlyOption = packageOptions.some((option) => option.period === 'monthly');
+  const hasYearlyOption = packageOptions.some((option) => option.period === 'yearly');
+  const showPartialYearlyHint =
+    registered &&
+    !isPackagesLoading &&
+    !isPremium &&
+    hasMonthlyOption &&
+    !hasYearlyOption;
   const showGuestAccountGate = !registered && !isPremium;
   const footerClearance = showGuestAccountGate
     ? CTA_HEIGHT + 10 + 22 + 34 + insets.bottom + spacing.lg + 48
@@ -505,38 +530,41 @@ export function PremiumScreen({ navigation }: Props) {
           </View>
 
           {isPackagesLoading ? (
-            <View style={styles.packageRow}>
-              <View style={[styles.packageCard, styles.packageCardPlaceholder]}>
-                <Text style={styles.packageLabel}>Aylık</Text>
-                <Text style={styles.packagePrice}>Yükleniyor...</Text>
-                <Text style={styles.packagePeriod}>/ ay</Text>
-              </View>
-              <View style={[styles.packageCard, styles.packageCardSelected, styles.packageCardPlaceholder]}>
-                <Text style={[styles.packageLabel, styles.packageLabelSelected]}>Yıllık</Text>
-                <Text style={[styles.packagePrice, styles.packagePriceSelected]}>Yükleniyor...</Text>
-                <Text style={styles.packagePeriod}>/ yıl</Text>
-              </View>
-            </View>
+            <AppCard style={styles.loadingCard}>
+              <ActivityIndicator color={colors.primary} style={styles.loadingSpinner} />
+              <Text style={styles.loadingTitle}>SpeakPlus seçenekleri hazırlanıyor...</Text>
+              <Text style={styles.loadingBody}>
+                Aylık ve yıllık paketler mağazadan alınıyor.
+              </Text>
+            </AppCard>
           ) : null}
 
           {!isPackagesLoading && packageOptions.length > 0 ? (
-            <View style={styles.packageRow}>
-              {packageOptions.map((option) => (
-                <PackageCard
-                  key={option.package.identifier}
-                  option={option}
-                  selected={selectedPeriod === option.period}
-                  onSelect={() => setSelectedPackage(option.package)}
-                />
-              ))}
-            </View>
+            <>
+              <View style={styles.packageRow}>
+                {packageOptions.map((option) => (
+                  <PackageCard
+                    key={option.package.identifier}
+                    option={option}
+                    selected={selectedPeriod === option.period}
+                    onSelect={() => setSelectedPackage(option.package)}
+                  />
+                ))}
+              </View>
+              {showPartialYearlyHint ? (
+                <Text style={styles.partialHint}>
+                  Yıllık paket şu anda kullanılamıyor. Aylık SpeakPlus ile devam edebilirsin.
+                </Text>
+              ) : null}
+            </>
           ) : null}
 
           {showOfferingsFallback ? (
             <AppCard style={styles.fallbackCard}>
               <Text style={styles.fallbackTitle}>Paketler yüklenemedi</Text>
               <Text style={styles.fallbackBody}>
-                SpeakPlus seçenekleri şu anda alınamıyor. Bağlantını kontrol edip tekrar dene.
+                SpeakPlus seçenekleri şu anda alınamıyor. Lütfen bağlantını kontrol edip tekrar
+                dene.
               </Text>
               <TouchableOpacity
                 onPress={() => void refreshOfferings()}
@@ -810,6 +838,37 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: spacing.sm,
+  },
+  loadingCard: {
+    marginBottom: spacing.sm,
+    alignItems: 'center',
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.06)',
+    paddingVertical: spacing.md,
+  },
+  loadingSpinner: {
+    marginBottom: spacing.sm,
+  },
+  loadingTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  loadingBody: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  partialHint: {
+    marginTop: -spacing.xs,
+    marginBottom: spacing.sm,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
   errorCard: {
     marginBottom: spacing.sm,

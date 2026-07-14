@@ -69,11 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applySignedInIdentity = useCallback(
     async (nextUser: AuthUser) => {
+      // mapSupabaseUser already strips email-derived names.
       setUser(nextUser);
       setUserId(nextUser.id);
       if (nextUser.displayName?.trim()) {
         setName(nextUser.displayName.trim());
       }
+      // Do not clear local name when metadata is briefly empty — UI also
+      // ignores email-prefix local names via sanitizeDisplayName.
       if (__DEV__) {
         console.log('[EchoSpeak Auth] signed in');
       }
@@ -256,22 +259,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setErrorMessage(null);
       const result = await updateDisplayNameRequest(displayName);
       if (!result.ok) {
-        setErrorMessage(result.errorMessage ?? 'İsim kaydedilemedi.');
+        setErrorMessage(result.errorMessage ?? 'İsim güncellenemedi. Lütfen tekrar dene.');
         return result;
       }
 
-      const nextUser = await getCurrentAuthUser();
+      const trimmed = displayName.trim();
+      const nextUser =
+        result.user ??
+        (await getCurrentAuthUser()) ??
+        (user
+          ? { ...user, displayName: trimmed }
+          : null);
+
       if (nextUser) {
-        await applySignedInIdentity(nextUser);
+        // Always apply the saved name so Profile/Home update without restart,
+        // even if a cached session briefly omits user_metadata.
+        await applySignedInIdentity({
+          ...nextUser,
+          displayName: nextUser.displayName?.trim() || trimmed,
+        });
       } else {
-        const trimmed = displayName.trim();
         setUser((prev) => (prev ? { ...prev, displayName: trimmed } : prev));
         setName(trimmed);
       }
 
       return result;
     },
-    [applySignedInIdentity, setName],
+    [applySignedInIdentity, setName, user],
   );
 
   const clearError = useCallback(() => {

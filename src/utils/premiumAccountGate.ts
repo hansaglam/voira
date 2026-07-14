@@ -1,5 +1,5 @@
-import { Alert } from 'react-native';
 import type { RootStackParamList } from '../navigation/types';
+import { showAppDialog } from '../components/dialog';
 
 export const ACCOUNT_REQUIRED_COPY = {
   title: 'SpeakPlus için hesap gerekli',
@@ -37,29 +37,58 @@ export function showPremiumLockedAccountAlert(
   navigation: PremiumGateNavigation,
   options?: { onDismiss?: () => void },
 ): void {
-  Alert.alert(PREMIUM_LOCKED_COPY.title, PREMIUM_LOCKED_COPY.body, [
-    {
-      text: 'Vazgeç',
-      style: 'cancel',
-      onPress: options?.onDismiss,
+  showAppDialog({
+    title: PREMIUM_LOCKED_COPY.title,
+    message: PREMIUM_LOCKED_COPY.body,
+    variant: 'info',
+    icon: 'person-circle',
+    dismissible: true,
+    primaryButton: {
+      id: 'sign_in',
+      label: 'Giriş yap',
+      variant: 'primary',
     },
-    {
-      text: 'Giriş yap',
-      onPress: () => navigateToProfileAuth(navigation),
+    secondaryButton: {
+      id: 'sign_up',
+      label: 'Hesap oluştur',
+      variant: 'secondary',
     },
-    {
-      text: 'Hesap oluştur',
-      onPress: () => navigateToProfileAuth(navigation),
+    tertiaryButton: {
+      id: 'cancel',
+      label: 'Vazgeç',
+      variant: 'tertiary',
     },
-  ]);
+    onAction: (id) => {
+      if (id === 'sign_in' || id === 'sign_up') {
+        navigateToProfileAuth(navigation);
+        return;
+      }
+      options?.onDismiss?.();
+    },
+  });
 }
 
 export function showRestoreRequiresSignInAlert(navigation: PremiumGateNavigation): void {
-  Alert.alert(RESTORE_REQUIRES_SIGN_IN_COPY.title, RESTORE_REQUIRES_SIGN_IN_COPY.body, [
-    { text: 'Vazgeç', style: 'cancel' },
-    {
-      text: 'Giriş yap',
-      onPress: () => navigateToProfileAuth(navigation),
+  showAppDialog({
+    title: RESTORE_REQUIRES_SIGN_IN_COPY.title,
+    message: RESTORE_REQUIRES_SIGN_IN_COPY.body,
+    variant: 'info',
+    icon: 'log-in-outline',
+    dismissible: true,
+    primaryButton: {
+      id: 'sign_in',
+      label: 'Giriş yap',
+      variant: 'primary',
     },
-  ]);
+    tertiaryButton: {
+      id: 'cancel',
+      label: 'Vazgeç',
+      variant: 'tertiary',
+    },
+    onAction: (id) => {
+      if (id === 'sign_in') {
+        navigateToProfileAuth(navigation);
+      }
+    },
+  });
 }

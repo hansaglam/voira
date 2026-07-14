@@ -61,15 +61,12 @@ export function ScreenContainer({
     : withPersistentTabBar
       ? persistentTabBarHeight + spacing.md
       : insets.bottom + spacing.lg + spacing.md;
-  const footerTopPad = footerBorderless
-    ? spacing.sm
-    : footerCompact
-      ? spacing.xs
-      : spacing.sm;
+  const footerTopPad = spacing.sm;
+  // Keep CTA above the persistent tab bar (tab bar owns the home-indicator inset).
   const footerBottomPad = withPersistentTabBar
-    ? spacing.sm
-    : insets.bottom + spacing.sm;
-  const footerBarHeight = footerTopPad + 46 + footerBottomPad;
+    ? spacing.md
+    : Math.max(insets.bottom, spacing.sm) + spacing.sm;
+  const footerBarHeight = footerTopPad + 48 + footerBottomPad;
   const defaultFooterClearance =
     footerBarHeight + (withPersistentTabBar ? persistentTabBarHeight : 0) + spacing.md;
   const scrollFooterPadding =
@@ -168,7 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   footerCompact: {
-    paddingTop: spacing.xs,
+    paddingTop: spacing.sm,
     borderTopColor: 'rgba(46, 47, 69, 0.65)',
   },
   footerBorderless: {

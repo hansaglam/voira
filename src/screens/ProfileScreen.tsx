@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   TextInput,
   ActivityIndicator,
   Platform,
@@ -12,12 +11,13 @@ import {
   Pressable,
   LayoutAnimation,
   UIManager,
-  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TabScreenProps } from '../navigation/types';
 import { ScreenContainer, AppCard, SectionHeader, AppButton } from '../components';
+import { VoiraDialog } from '../components/dialog';
+import { showAppConfirm, showAppFeedback } from '../components/dialog';
 import { VoiraFeedbackModal, type VoiraFeedbackType } from '../components/VoiraFeedbackModal';
 import { PremiumDebugPanel } from '../components/PremiumDebugPanel';
 import { useUser } from '../context/UserContext';
@@ -38,6 +38,8 @@ import {
 import { openExternalLink } from '../utils/openExternalLink';
 import { getStoreAccountLabel, openManageSubscriptions } from '../utils/storeSubscriptions';
 import {
+  DEFAULT_SIGNED_IN_DISPLAY_NAME,
+  getEditableDisplayName,
   getUserDisplayName,
   validateDisplayName,
 } from '../utils/userDisplayName';
@@ -215,14 +217,15 @@ export function ProfileScreen({ navigation, route }: Props) {
     primaryText: 'Tamam',
   });
 
-  const showSuccessFeedback = (
+  const showFeedback = (
+    type: VoiraFeedbackType,
     title: string,
     message: string,
     primaryText = 'Tamam',
   ) => {
     setFeedbackModal({
       visible: true,
-      type: 'success',
+      type,
       title,
       message,
       primaryText,
@@ -269,17 +272,18 @@ export function ProfileScreen({ navigation, route }: Props) {
       user,
       localName: learningProfile.name,
       isGuest,
-    }) ?? (isGuest ? 'Misafir' : 'User');
+    }) ?? (isGuest ? 'Misafir' : DEFAULT_SIGNED_IN_DISPLAY_NAME);
   const avatarLetter = displayName.charAt(0).toUpperCase();
   const levelGoalLabel = `${LEVEL_LABELS[profile.level]} • ${GOAL_LABELS[profile.goal]}`;
 
   const openNameEditor = () => {
+    // Only prefill a real saved name — never the email local-part.
     setDraftDisplayName(
-      getUserDisplayName({
+      getEditableDisplayName({
         user,
         localName: learningProfile.name,
         isGuest: false,
-      }) ?? '',
+      }),
     );
     setIsNameEditorVisible(true);
   };
@@ -290,9 +294,13 @@ export function ProfileScreen({ navigation, route }: Props) {
   };
 
   const handleSaveDisplayName = async () => {
-    const validated = validateDisplayName(draftDisplayName);
+    const validated = validateDisplayName(draftDisplayName, user?.email);
     if (!validated.ok) {
-      Alert.alert('Lütfen en az 2 karakter gir.');
+      showFeedback(
+        'error',
+        'Geçersiz isim',
+        'Lütfen geçerli bir isim gir. E-posta adresi veya kullanıcı adı kullanma.',
+      );
       return;
     }
 
@@ -301,9 +309,17 @@ export function ProfileScreen({ navigation, route }: Props) {
       const result = await updateDisplayName(validated.value);
       if (result.ok) {
         setIsNameEditorVisible(false);
-        showSuccessFeedback('Kaydedildi', result.successMessage ?? 'İsim güncellendi.');
+        showFeedback(
+          'success',
+          'Kaydedildi',
+          result.successMessage ?? 'İsmin güncellendi.',
+        );
       } else {
-        Alert.alert('Kaydedilemedi', result.errorMessage ?? 'Lütfen tekrar dene.');
+        showFeedback(
+          'error',
+          'Kaydedilemedi',
+          result.errorMessage ?? 'İsim güncellenemedi. Lütfen tekrar dene.',
+        );
       }
     } finally {
       setIsSavingName(false);
@@ -348,23 +364,29 @@ export function ProfileScreen({ navigation, route }: Props) {
 
   const handleRestorePurchases = async () => {
     if (!isRevenueCatConfigured) {
-      Alert.alert('RevenueCat yapılandırılmamış.');
+      showAppFeedback({
+        title: 'Yapılandırılmamış',
+        message: 'RevenueCat yapılandırılmamış.',
+        variant: 'warning',
+      });
       return;
     }
 
     const result = await restorePurchases();
     if (result === 'restored') {
-      showSuccessFeedback(
+      showFeedback(
+        'success',
         'Satın almalar geri yüklendi',
         'SpeakPlus erişimin hesabınla eşleştirildi.',
       );
       return;
     }
     if (result === 'not_found') {
-      Alert.alert(
-        'Abonelik bulunamadı',
-        `Bu ${getStoreAccountLabel()} hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.`,
-      );
+      showAppFeedback({
+        title: 'Abonelik bulunamadı',
+        message: `Bu ${getStoreAccountLabel()} hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.`,
+        variant: 'warning',
+      });
     }
   };
 
@@ -390,7 +412,8 @@ export function ProfileScreen({ navigation, route }: Props) {
     try {
       const result = await signInWithEmailPassword(email, password);
       if (result.ok) {
-        showSuccessFeedback(
+        showFeedback(
+          'success',
           'Giriş başarılı',
           'Tekrar hoş geldin. Pratiklerine kaldığın yerden devam edebilirsin.',
           'Devam et',
@@ -407,7 +430,8 @@ export function ProfileScreen({ navigation, route }: Props) {
     try {
       const result = await signUpWithEmailPassword(email, password);
       if (result.ok) {
-        showSuccessFeedback(
+        showFeedback(
+          'success',
           'Hesap oluşturuldu',
           'Hesabın başarıyla oluşturuldu. Gelişimin, kelimelerin ve SpeakPlus erişimin artık güvenle saklanacak.',
           'Devam et',
@@ -419,26 +443,30 @@ export function ProfileScreen({ navigation, route }: Props) {
   };
 
   const handleSignOut = () => {
-    Alert.alert('Çıkış yap', 'Hesabından çıkış yapmak istediğine emin misin?', [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Çıkış yap',
-        style: 'destructive',
-        onPress: () => {
-          setIsSigningOut(true);
-          void (async () => {
-            try {
-              const ok = await signOut();
-              if (!ok && errorMessage) {
-                Alert.alert('Çıkış yapılamadı', errorMessage);
-              }
-            } finally {
-              setIsSigningOut(false);
+    showAppConfirm({
+      title: 'Çıkış yap',
+      message: 'Hesabından çıkış yapmak istediğine emin misin?',
+      destructive: true,
+      confirmLabel: 'Çıkış yap',
+      cancelLabel: 'Vazgeç',
+      onConfirm: () => {
+        setIsSigningOut(true);
+        void (async () => {
+          try {
+            const ok = await signOut();
+            if (!ok) {
+              showAppFeedback({
+                title: 'Çıkış yapılamadı',
+                message: errorMessage ?? 'Lütfen tekrar dene.',
+                variant: 'error',
+              });
             }
-          })();
-        },
+          } finally {
+            setIsSigningOut(false);
+          }
+        })();
       },
-    ]);
+    });
   };
 
   return (
@@ -712,53 +740,40 @@ export function ProfileScreen({ navigation, route }: Props) {
 
       <Text style={styles.versionText}>Voira v{APP_VERSION}</Text>
 
-      <Modal
+      <VoiraDialog
         visible={isNameEditorVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeNameEditor}
+        variant="neutral"
+        icon="create-outline"
+        title="İsmini düzenle"
+        dismissible={!isSavingName}
+        onDismiss={closeNameEditor}
+        primaryButton={{
+          label: 'Kaydet',
+          variant: 'primary',
+          loading: isSavingName,
+          onPress: () => void handleSaveDisplayName(),
+        }}
+        tertiaryButton={{
+          label: 'Vazgeç',
+          variant: 'tertiary',
+          disabled: isSavingName,
+          onPress: closeNameEditor,
+        }}
       >
-        <Pressable style={styles.nameModalBackdrop} onPress={closeNameEditor}>
-          <Pressable style={styles.nameModalCard} onPress={(event) => event.stopPropagation()}>
-            <Text style={styles.nameModalTitle}>İsmini düzenle</Text>
-            <TextInput
-              value={draftDisplayName}
-              onChangeText={setDraftDisplayName}
-              placeholder="Adın"
-              placeholderTextColor={colors.textMuted}
-              style={styles.nameModalInput}
-              autoCapitalize="words"
-              autoCorrect={false}
-              maxLength={30}
-              editable={!isSavingName}
-              returnKeyType="done"
-              onSubmitEditing={() => void handleSaveDisplayName()}
-            />
-            <View style={styles.nameModalActions}>
-              <TouchableOpacity
-                style={styles.nameModalCancel}
-                onPress={closeNameEditor}
-                disabled={isSavingName}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.nameModalCancelText}>İptal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.nameModalSave}
-                onPress={() => void handleSaveDisplayName()}
-                disabled={isSavingName}
-                activeOpacity={0.8}
-              >
-                {isSavingName ? (
-                  <ActivityIndicator color={colors.textPrimary} />
-                ) : (
-                  <Text style={styles.nameModalSaveText}>Kaydet</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        <TextInput
+          value={draftDisplayName}
+          onChangeText={setDraftDisplayName}
+          placeholder="Adını yaz"
+          placeholderTextColor={colors.textMuted}
+          style={styles.nameModalInput}
+          autoCapitalize="words"
+          autoCorrect={false}
+          maxLength={30}
+          editable={!isSavingName}
+          returnKeyType="done"
+          onSubmitEditing={() => void handleSaveDisplayName()}
+        />
+      </VoiraDialog>
 
       <VoiraFeedbackModal
         visible={feedbackModal.visible}
@@ -1138,63 +1153,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     color: colors.textMuted,
   },
-  nameModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(4, 8, 28, 0.72)',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
-  },
-  nameModalCard: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
-  },
-  nameModalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
   nameModalInput: {
-    marginTop: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(139, 92, 246, 0.22)',
     borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: Platform.OS === 'ios' ? spacing.sm + 2 : spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === 'ios' ? spacing.sm + 4 : spacing.sm + 2,
     color: colors.textPrimary,
     fontSize: 15,
-    backgroundColor: colors.cardElevated,
-  },
-  nameModalActions: {
-    marginTop: spacing.sm,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: spacing.sm,
-  },
-  nameModalCancel: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  nameModalCancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textMuted,
-  },
-  nameModalSave: {
-    minWidth: 88,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.primary,
-  },
-  nameModalSaveText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    backgroundColor: 'rgba(22, 24, 42, 0.96)',
   },
 });

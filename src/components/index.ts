@@ -36,6 +36,22 @@ export { LessonVocabularySection } from './LessonVocabularySection';
 export { VoiraLogo } from './VoiraLogo';
 export { VoiraFeedbackModal } from './VoiraFeedbackModal';
 export type { VoiraFeedbackModalProps, VoiraFeedbackType } from './VoiraFeedbackModal';
+export {
+  VoiraDialog,
+  DialogProvider,
+  useAppDialog,
+  showAppDialog,
+  hideAppDialog,
+  showAppFeedback,
+  showAppConfirm,
+} from './dialog';
+export type {
+  VoiraDialogProps,
+  VoiraDialogVariant,
+  VoiraDialogButton,
+  AppDialogConfig,
+  AppDialogButton,
+} from './dialog';
 export { SentenceCard } from './SentenceCard';
 export {
   AnimatedMic,

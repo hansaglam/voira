@@ -94,15 +94,12 @@ export type ScoreVisualTone = 'retry' | 'building' | 'growing' | 'good' | 'excel
 
 export function resolveScoreVisualTone(
   score: number,
-  accuracyScore?: number,
+  _accuracyScore?: number,
 ): ScoreVisualTone {
-  const canShowExcellent =
-    score >= 85 && (accuracyScore === undefined || accuracyScore >= 70);
-
   if (score <= 39) return 'retry';
   if (score <= 59) return 'building';
-  if (score <= 74) return 'growing';
-  if (score <= 84 || !canShowExcellent) return 'good';
+  if (score <= 79) return 'growing';
+  if (score <= 89) return 'good';
   return 'excellent';
 }
 
@@ -159,63 +156,36 @@ const SCORE_TONE_STYLES: Record<
 
 export function getScoreFeedback(
   score: number,
-  options?: {
+  _options?: {
     analysisMode?: 'text_match_only' | 'pronunciation_assessment';
     pronunciationAssessmentAvailable?: boolean;
     accuracyScore?: number;
   },
 ): { title: string; subtitle: string } {
-  const { pronunciationAssessmentAvailable, accuracyScore } = options ?? {};
-  const isTextMatchOnly = pronunciationAssessmentAvailable !== true;
-  const canShowExcellent =
-    score >= 85 && (accuracyScore === undefined || accuracyScore >= 70);
-
   if (score <= 39) {
     return {
-      title: 'Tekrar dene',
-      subtitle: isTextMatchOnly
-        ? 'Cümleyi daha yavaş ve parça parça tekrar etmeyi dene.'
-        : 'Önce cümleyi daha net ve yavaş tekrar etmeyi dene.',
+      title: 'Tekrar denemeye değer',
+      subtitle: 'Cümleyi daha yavaş ve net söyleyerek tekrar dene.',
     };
   }
 
   if (score <= 59) {
     return {
       title: 'Temel cümleyi kurdun',
-      subtitle: isTextMatchOnly
-        ? 'Her deneme kelime eşleşmeni biraz daha güçlendirir.'
-        : 'Önce cümleyi daha net ve yavaş tekrar etmeyi dene.',
+      subtitle: 'Daha net telaffuz ve akıcılık için bir kez daha dene.',
     };
   }
 
-  if (score <= 74) {
+  if (score <= 79) {
     return {
-      title: 'Gelişiyor',
-      subtitle: isTextMatchOnly
-        ? 'Cümleyi büyük ölçüde tamamladın.'
-        : 'Cümleyi kurdun; şimdi telaffuz netliğini güçlendir.',
-    };
-  }
-
-  if (score <= 84 || !canShowExcellent) {
-    return {
-      title: 'İyi deneme',
-      subtitle: isTextMatchOnly
-        ? 'Kelime eşleşmen iyi yönde; küçük dokunuşlarla daha akıcı olacak.'
-        : 'İyi deneme; birkaç kelimede netlik çalışması gerekiyor.',
-    };
-  }
-
-  if (isTextMatchOnly) {
-    return {
-      title: 'Harika iş',
-      subtitle: 'Kelime eşleşmen çok iyi görünüyor.',
+      title: 'İyi gidiyorsun',
+      subtitle: 'Telaffuzunu biraz daha netleştirerek daha yüksek skor alabilirsin.',
     };
   }
 
   return {
-    title: 'Harika iş',
-    subtitle: 'Konuşman güçlü ve akıcı görünüyor.',
+    title: 'Harika konuşma',
+    subtitle: 'Telaffuzun ve akıcılığın oldukça iyi görünüyor.',
   };
 }
 
@@ -477,27 +447,30 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: borderRadius.xl,
     borderWidth: 1,
-    paddingVertical: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md + 2,
     paddingHorizontal: spacing.md,
     overflow: 'hidden',
   },
   hero: {
     alignItems: 'center',
-    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingBottom: spacing.sm,
   },
   resultTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: colors.textPrimary,
     lineHeight: 26,
-    marginTop: spacing.sm,
-    marginBottom: 4,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs + 2,
     letterSpacing: -0.3,
     textAlign: 'center',
+    paddingHorizontal: spacing.sm,
   },
   resultSubtitle: {
     fontSize: 13,
-    lineHeight: 19,
+    lineHeight: 20,
     color: colors.textSecondary,
     fontWeight: '400',
     textAlign: 'center',
@@ -507,10 +480,12 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: 'rgba(139, 92, 246, 0.2)',
-    marginVertical: spacing.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
   },
   detailsSection: {
     gap: spacing.sm,
+    paddingTop: 2,
   },
   detailsHeader: {
     flexDirection: 'row',

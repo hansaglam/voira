@@ -5,11 +5,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { RootScreenProps } from '../navigation/types';
 import { ScreenContainer, AppCard, EmptyState } from '../components';
+import { showAppConfirm } from '../components/dialog';
 import { goBackOrFallback } from '../navigation/safeGoBack';
 import { useVocabulary } from '../hooks/useVocabulary';
 import { lookupVocabularyMeaning } from '../utils/vocabularyMeanings';
@@ -33,16 +33,16 @@ export function VocabularyScreen({ navigation }: Props) {
 
   const handleDelete = useCallback(
     (id: string, word: string) => {
-      Alert.alert('Kelimeyi sil', `"${word}" kelime defterinden kaldırılsın mı?`, [
-        { text: 'Vazgeç', style: 'cancel' },
-        {
-          text: 'Sil',
-          style: 'destructive',
-          onPress: () => {
-            void removeItem(id);
-          },
+      showAppConfirm({
+        title: 'Kelimeyi sil',
+        message: `"${word}" kelime defterinden kaldırılsın mı?`,
+        destructive: true,
+        confirmLabel: 'Sil',
+        cancelLabel: 'Vazgeç',
+        onConfirm: () => {
+          void removeItem(id);
         },
-      ]);
+      });
     },
     [removeItem],
   );

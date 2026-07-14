@@ -28,7 +28,7 @@ export interface PremiumPackageOption {
 }
 
 export const OFFERINGS_SAFE_ERROR_MESSAGE =
-  'SpeakPlus paketleri şu anda yüklenemedi. Mağaza ürünleri henüz yapılandırılmamış olabilir.';
+  'SpeakPlus seçenekleri şu anda alınamıyor. Lütfen bağlantını kontrol edip tekrar dene.';
 
 export interface FetchOfferingsResult {
   offerings: PurchasesOfferings | null;

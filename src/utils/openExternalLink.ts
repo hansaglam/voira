@@ -1,14 +1,23 @@
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
+import { showAppFeedback } from '../components/dialog';
 
 export async function openExternalLink(url: string): Promise<void> {
   try {
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
-      Alert.alert('Bağlantı açılamadı', 'Lütfen daha sonra tekrar deneyin.');
+      showAppFeedback({
+        title: 'Bağlantı açılamadı',
+        message: 'Lütfen daha sonra tekrar deneyin.',
+        variant: 'error',
+      });
       return;
     }
     await Linking.openURL(url);
   } catch {
-    Alert.alert('Bağlantı açılamadı', 'Lütfen daha sonra tekrar deneyin.');
+    showAppFeedback({
+      title: 'Bağlantı açılamadı',
+      message: 'Lütfen daha sonra tekrar deneyin.',
+      variant: 'error',
+    });
   }
 }

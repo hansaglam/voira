@@ -1,15 +1,16 @@
 import { Platform } from 'react-native';
 import {
   AUTH_MOBILE_REDIRECT_URL,
+  getMissingAuthEnvVarNames,
   getSupabaseUrl,
   hasSupabaseAnonKey,
   hasSupabaseUrl,
   isSupabaseConfigured,
   isValidSupabaseAnonKeyFormat,
+  logAuthConfigDiagnostics,
 } from '../services/auth/authConfig';
 import { getSupabaseClient } from '../services/auth/supabaseClient';
 import {
-  getRevenueCatApiKey,
   hasRevenueCatAndroidKey,
   hasRevenueCatIosKey,
   isPremiumNativePlatform,
@@ -51,18 +52,8 @@ export function getServicesConfigStatus(): ServicesConfigStatus {
   const supabaseUrl = getSupabaseUrl();
   const warnings: string[] = [];
 
-  if (!hasSupabaseUrl()) {
-    warnings.push('EXPO_PUBLIC_SUPABASE_URL eksik.');
-  } else if (!supabaseUrl.startsWith('https://')) {
-    warnings.push('EXPO_PUBLIC_SUPABASE_URL https:// ile başlamalı.');
-  }
-
-  if (!hasSupabaseAnonKey()) {
-    warnings.push('EXPO_PUBLIC_SUPABASE_ANON_KEY eksik.');
-  } else if (!isValidSupabaseAnonKeyFormat()) {
-    warnings.push(
-      'EXPO_PUBLIC_SUPABASE_ANON_KEY geçersiz görünüyor (eyJ... veya sb_publishable_... beklenir).',
-    );
+  for (const name of getMissingAuthEnvVarNames()) {
+    warnings.push(`${name} eksik veya geçersiz — hesap girişi kapalı.`);
   }
 
   if (isSupabaseConfigured()) {
@@ -114,11 +105,22 @@ export function getServicesConfigStatus(): ServicesConfigStatus {
 export function logServicesConfigStatus(): void {
   if (!__DEV__) return;
 
+  logAuthConfigDiagnostics();
+
   const status = getServicesConfigStatus();
   console.log(`${LOG_PREFIX} config`, {
     platform: status.platform,
-    supabase: status.supabase,
-    revenueCat: status.revenueCat,
+    supabase: {
+      ...status.supabase,
+      // Host only — never log URL path or keys.
+    },
+    revenueCat: {
+      configuredForPlatform: status.revenueCat.configuredForPlatform,
+      hasAndroidKey: status.revenueCat.hasAndroidKey,
+      hasIosKey: status.revenueCat.hasIosKey,
+      entitlementId: status.revenueCat.entitlementId,
+      nativePlatform: status.revenueCat.nativePlatform,
+    },
   });
 
   for (const warning of status.warnings) {

@@ -9,21 +9,27 @@ import {
 import { isAuthCallbackUrl } from './authRedirect';
 import type { AuthActionResult, AuthUser } from './authTypes';
 import { getSupabaseClient } from './supabaseClient';
+import { isEmailDerivedDisplayName, sanitizeDisplayName } from '../../utils/userDisplayName';
 
 const LOG_PREFIX = '[EchoSpeak Auth]';
 
 function mapSupabaseUser(user: User): AuthUser {
   const metadata = user.user_metadata as Record<string, unknown> | undefined;
-  const displayName =
+  // Priority: display_name → name → full_name. Never invent from email here.
+  const rawDisplayName =
     (typeof metadata?.display_name === 'string' && metadata.display_name) ||
-    (typeof metadata?.full_name === 'string' && metadata.full_name) ||
     (typeof metadata?.name === 'string' && metadata.name) ||
+    (typeof metadata?.full_name === 'string' && metadata.full_name) ||
     undefined;
+
+  const email = user.email ?? undefined;
+  // Ignore previously saved email-prefix "names" so Profile can set a real one.
+  const displayName = sanitizeDisplayName(rawDisplayName, email);
 
   return {
     id: user.id,
-    email: user.email ?? undefined,
-    displayName: displayName?.trim() || undefined,
+    email,
+    displayName,
     provider: user.app_metadata?.provider ?? undefined,
     createdAt: user.created_at ?? undefined,
   };
@@ -65,6 +71,16 @@ export async function getCurrentSession(): Promise<Session | null> {
 }
 
 export async function getCurrentAuthUser(): Promise<AuthUser | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  // Prefer getUser() so metadata updates (e.g. display_name) are not stale
+  // relative to a cached local session from getSession().
+  const { data, error } = await client.auth.getUser();
+  if (!error && data.user) {
+    return mapSupabaseUser(data.user);
+  }
+
   const session = await getCurrentSession();
   if (!session?.user) return null;
   return mapSupabaseUser(session.user);
@@ -410,7 +426,7 @@ export async function refreshSession(): Promise<AuthUser | null> {
 export async function updateDisplayName(displayName: string): Promise<AuthActionResult> {
   const trimmed = displayName.trim();
   if (trimmed.length < 2 || trimmed.length > 30) {
-    return { ok: false, errorMessage: 'Lütfen en az 2 karakter gir.' };
+    return { ok: false, errorMessage: 'Lütfen geçerli bir isim gir.' };
   }
 
   const client = getSupabaseClient();
@@ -418,26 +434,53 @@ export async function updateDisplayName(displayName: string): Promise<AuthAction
     return { ok: false, errorMessage: 'Kimlik doğrulama yapılandırılmamış.' };
   }
 
+  const current = await getCurrentAuthUser();
+  if (isEmailDerivedDisplayName(trimmed, current?.email)) {
+    return {
+      ok: false,
+      errorMessage: 'Lütfen geçerli bir isim gir. E-posta adresi veya kullanıcı adı kullanma.',
+    };
+  }
+
   const { data, error } = await client.auth.updateUser({
     data: {
       display_name: trimmed,
       name: trimmed,
-      full_name: trimmed,
     },
   });
 
   if (error || !data.user) {
     if (__DEV__) {
-      console.warn(`${LOG_PREFIX} updateDisplayName failed`);
+      console.warn(`${LOG_PREFIX} updateDisplayName failed`, {
+        message: error?.message,
+      });
     }
-    return { ok: false, errorMessage: 'İsim kaydedilemedi. Lütfen tekrar dene.' };
+    return { ok: false, errorMessage: 'İsim güncellenemedi. Lütfen tekrar dene.' };
+  }
+
+  // Use the mutation response first (authoritative), then refresh from server.
+  let nextUser = mapSupabaseUser(data.user);
+  if (!nextUser.displayName?.trim()) {
+    const refreshed = await getCurrentAuthUser();
+    if (refreshed) {
+      nextUser = {
+        ...refreshed,
+        displayName: refreshed.displayName?.trim() || trimmed,
+      };
+    } else {
+      nextUser = { ...nextUser, displayName: trimmed };
+    }
   }
 
   if (__DEV__) {
     console.log(`${LOG_PREFIX} display name updated`);
   }
 
-  return { ok: true, successMessage: 'İsim güncellendi.' };
+  return {
+    ok: true,
+    successMessage: 'İsmin güncellendi.',
+    user: nextUser,
+  };
 }
 
 export function subscribeToAuthChanges(
