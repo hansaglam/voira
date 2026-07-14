@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import {
   LOW_VOLUME_AVERAGE_THRESHOLD_DB,
   MIN_RECORDING_DURATION_MS,
@@ -76,6 +77,9 @@ const VALID_RECORDING_MESSAGE_TR =
 /** Minimum acceptable recorded file size (approx. ~0.2s of AAC). */
 const MIN_AUDIO_FILE_BYTES = 256;
 
+/** expo-audio floor is typically near -160; values at/below this are not useful signal metrics. */
+const METERING_FLOOR_DB = -120;
+
 export interface MeteringStats {
   averageMetering?: number;
   peakMetering?: number;
@@ -84,15 +88,16 @@ export interface MeteringStats {
 }
 
 export function computeMeteringStats(samples: number[]): MeteringStats {
-  if (samples.length === 0) {
+  const usable = samples.filter((sample) => Number.isFinite(sample));
+  if (usable.length === 0) {
     return { speechFrames: 0, meteringAvailable: false };
   }
 
-  let peak = samples[0];
+  let peak = usable[0];
   let sum = 0;
   let speechFrames = 0;
 
-  for (const sample of samples) {
+  for (const sample of usable) {
     if (sample > peak) peak = sample;
     sum += sample;
     if (sample > SILENCE_PEAK_THRESHOLD_DB) {
@@ -100,8 +105,18 @@ export function computeMeteringStats(samples: number[]): MeteringStats {
     }
   }
 
+  // iOS often emits a stream of near-floor values that look "available" but are useless.
+  if (peak <= METERING_FLOOR_DB) {
+    return {
+      averageMetering: sum / usable.length,
+      peakMetering: peak,
+      speechFrames: 0,
+      meteringAvailable: false,
+    };
+  }
+
   return {
-    averageMetering: sum / samples.length,
+    averageMetering: sum / usable.length,
     peakMetering: peak,
     speechFrames,
     meteringAvailable: true,
@@ -118,6 +133,17 @@ function buildInvalidResult(
     hasSpeech: false,
     reason,
     messageTr,
+    ...extras,
+  };
+}
+
+function buildAcceptedResult(
+  extras: Partial<RecordingValidationResult> = {},
+): RecordingValidationResult {
+  return {
+    isValid: true,
+    hasSpeech: true,
+    messageTr: VALID_RECORDING_MESSAGE_TR,
     ...extras,
   };
 }
@@ -180,7 +206,8 @@ export function validateRecordedAudio(
 
   const meteringStats = computeMeteringStats(recording.meteringSamples ?? []);
   const meteringAvailable =
-    recording.meteringAvailable === true || meteringStats.meteringAvailable;
+    (recording.meteringAvailable === true || meteringStats.meteringAvailable) &&
+    (meteringStats.peakMetering == null || meteringStats.peakMetering > METERING_FLOOR_DB);
 
   const baseMetrics = {
     durationMillis: duration,
@@ -192,23 +219,26 @@ export function validateRecordedAudio(
   };
 
   /**
-   * iOS / expo-audio often provides no metering samples even when speech was recorded.
-   * Treating "no metering" as silence causes false "Sesini algılayamadım" failures.
-   * When metering is unavailable, accept a long-enough file and let the backend decide.
+   * Client metering is unreliable on iOS (missing samples, floor values, wrong scale).
+   * Do not block practice with false "Sesini algılayamadım" — backend STT is the source of truth.
    */
+  if (Platform.OS === 'ios') {
+    logAudioDebug('validation_ios_metering_bypass', {
+      durationMillis: duration,
+      fileSizeBytes,
+      peakMetering: meteringStats.peakMetering,
+      meteringAvailable,
+    });
+    return buildAcceptedResult(baseMetrics);
+  }
+
   if (!meteringAvailable) {
     logAudioDebug('validation_metering_unavailable_passthrough', {
       durationMillis: duration,
       fileSizeBytes,
       uriExtension: uri.includes('.') ? uri.slice(uri.lastIndexOf('.')) : null,
     });
-    return {
-      isValid: true,
-      hasSpeech: true,
-      messageTr: VALID_RECORDING_MESSAGE_TR,
-      ...baseMetrics,
-      meteringAvailable: false,
-    };
+    return buildAcceptedResult({ ...baseMetrics, meteringAvailable: false });
   }
 
   const peak = meteringStats.peakMetering ?? -160;
@@ -226,12 +256,7 @@ export function validateRecordedAudio(
     });
   }
 
-  return {
-    isValid: true,
-    hasSpeech: true,
-    messageTr: VALID_RECORDING_MESSAGE_TR,
-    ...baseMetrics,
-  };
+  return buildAcceptedResult(baseMetrics);
 }
 
 export function logRecordingValidation(
@@ -239,6 +264,7 @@ export function logRecordingValidation(
   audioUri?: string | null,
 ): void {
   logAudioDebug('recording_validation', {
+    platform: Platform.OS,
     duration: result.durationMillis,
     audioUriExists: Boolean(audioUri?.trim()),
     averageMetering: result.averageMetering,

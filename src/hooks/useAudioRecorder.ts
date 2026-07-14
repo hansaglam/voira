@@ -204,8 +204,15 @@ export function useAudioRecorder() {
     if (!isRecording) return;
 
     const metering = recorderState.metering;
-    if (typeof metering === 'number' && Number.isFinite(metering)) {
+    // Ignore useless floor/sentinel values so iOS "always -160" streams don't look real.
+    if (
+      typeof metering === 'number' &&
+      Number.isFinite(metering) &&
+      metering > -120
+    ) {
       meteringAvailableRef.current = true;
+      meteringSamplesRef.current.push(metering);
+    } else if (typeof metering === 'number' && Number.isFinite(metering)) {
       meteringSamplesRef.current.push(metering);
     }
   }, [isRecording, recorderState.metering, recorderState.durationMillis]);
@@ -331,6 +338,7 @@ export function useAudioRecorder() {
     await setAudioModeAsync({
       playsInSilentMode: true,
       allowsRecording: true,
+      shouldPlayInBackground: false,
     });
     audioModeReadyRef.current = true;
   }, []);
