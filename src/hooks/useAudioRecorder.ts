@@ -390,6 +390,14 @@ export function useAudioRecorder() {
         return;
       }
 
+      // Keep a scheme-prefixed URI for playback / upload on iOS.
+      const normalizedUri =
+        uri.startsWith('file://') || uri.startsWith('content://')
+          ? uri
+          : uri.startsWith('/')
+            ? `file://${uri}`
+            : uri;
+
       const status = expoRecorder.getStatus();
       const durationMillis = Math.max(
         status.durationMillis ?? 0,
@@ -400,12 +408,12 @@ export function useAudioRecorder() {
       );
 
       safeSetState(setRecordedAudio, {
-        uri,
+        uri: normalizedUri,
         durationMillis,
         createdAt: endedIso,
       });
 
-      const validation = runRecordingValidation(uri, durationMillis, 'recorded');
+      const validation = runRecordingValidation(normalizedUri, durationMillis, 'recorded');
       safeSetState(setRecordingValidation, validation);
 
       if (!validation.isValid && !permissionDenied) {

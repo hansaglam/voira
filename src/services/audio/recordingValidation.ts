@@ -112,6 +112,19 @@ function buildInvalidResult(
   };
 }
 
+function normalizeRecordingUri(uri: string): string {
+  const trimmed = uri.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) {
+    return trimmed;
+  }
+  // expo-audio on iOS can return absolute paths without a scheme.
+  if (trimmed.startsWith('/')) {
+    return `file://${trimmed}`;
+  }
+  return trimmed;
+}
+
 export function validateRecordedAudio(
   recording: RecordedAudioValidationInput,
 ): RecordingValidationResult {
@@ -119,11 +132,12 @@ export function validateRecordedAudio(
     return buildInvalidResult('permission_denied', MICROPHONE_PERMISSION_DENIED_TR);
   }
 
-  const uri = recording.audioUri?.trim();
-  if (!uri) {
+  const rawUri = recording.audioUri?.trim();
+  if (!rawUri) {
     return buildInvalidResult('missing_uri', MISSING_URI_MESSAGE_TR);
   }
 
+  const uri = normalizeRecordingUri(rawUri);
   const duration = recording.durationMillis ?? 0;
 
   if (duration < MIN_RECORDING_DURATION_MS) {
@@ -154,8 +168,18 @@ export function validateRecordedAudio(
     meteringAvailable,
   };
 
+  /**
+   * iOS / expo-audio often provides no metering samples even when speech was recorded.
+   * Treating "no metering" as silence causes false "Sesini algılayamadım" failures.
+   * When metering is unavailable, accept a long-enough file and let the backend decide.
+   */
   if (!meteringAvailable) {
-    return buildInvalidResult('silent_recording', SILENT_RECORDING_MESSAGE_TR, baseMetrics);
+    return {
+      isValid: true,
+      hasSpeech: true,
+      messageTr: VALID_RECORDING_MESSAGE_TR,
+      ...baseMetrics,
+    };
   }
 
   const peak = meteringStats.peakMetering ?? -160;
