@@ -27,7 +27,7 @@ export function PrivacyPolicyScreen(_props: Props) {
         {
           title: 'Topladığımız / işlediğimiz bilgiler',
           body:
-            'Hesap bilgileri (e-posta, kimlik doğrulama/kullanıcı ID), profil ve ilerleme (ders ilerlemesi, streak, pratik istatistikleri, kaydedilen kelimeler), yalnızca sen kayıt aldığında ses kayıtları, telaffuz analizi sonuçları (skorlar, kelimeler, akıcılık/doğruluk/tamamlama vb.), SpeakPlus abonelik/entitlement durumu (Google Play / RevenueCat) ve uygulama sürümü ile temel tanı/hata bilgileri.',
+            'Hesap bilgileri (e-posta, kimlik doğrulama/kullanıcı ID), profil ve ilerleme (ders ilerlemesi, streak, pratik istatistikleri, kaydedilen kelimeler), yalnızca sen kayıt aldığında ses kayıtları, telaffuz analizi sonuçları (skorlar, kelimeler, akıcılık/doğruluk/tamamlama vb.), SpeakPlus abonelik/entitlement durumu (Apple App Store / Google Play / RevenueCat) ve uygulama sürümü ile temel tanı/hata bilgileri.',
         },
         {
           title: 'Ses kayıtları ve telaffuz analizi',
@@ -37,12 +37,12 @@ export function PrivacyPolicyScreen(_props: Props) {
         {
           title: 'Üçüncü taraf hizmetler',
           body:
-            'Supabase (kimlik doğrulama / veri), RevenueCat (abonelik entitlement), Google Play (ödeme), Microsoft Azure Speech (konuşma tanıma ve telaffuz değerlendirmesi), OpenAI (backend etkinse kayıtlı ses üzerinde speech-to-text/transcription ve AI koç geri bildirimi / açıklamalar / öğrenme rehberliği), Render (backend barındırma). Bu hizmetler yalnızca uygulama işlevi için gerekli ölçüde veri işler.',
+            'Supabase (kimlik doğrulama / veri), RevenueCat (abonelik entitlement), Apple App Store (iOS ödemeleri), Google Play (Android ödemeleri), Microsoft Azure Speech (konuşma tanıma ve telaffuz değerlendirmesi), OpenAI (backend etkinse kayıtlı ses üzerinde speech-to-text/transcription ve AI koç geri bildirimi / açıklamalar / öğrenme rehberliği), Render (backend barındırma). Bu hizmetler yalnızca uygulama işlevi için gerekli ölçüde veri işler.',
         },
         {
           title: 'Ödemeler ve SpeakPlus',
           body:
-            'Ödemeler Google Play üzerinden yapılır. Voira kredi/banka kartı numaralarını almaz veya saklamaz. Abonelik iptali Google Play hesap ayarlarından yapılır. SpeakPlus erişimi RevenueCat / Google Play entitlement durumuna göre yönetilir.',
+            'Abonelik ödemeleri, kullandığın platforma göre Apple App Store veya Google Play hesabın üzerinden yönetilir. Voira kredi/banka kartı numaralarını almaz veya saklamaz. Aboneliğini App Store veya Google Play hesap ayarlarından yönetebilir ya da iptal edebilirsin. SpeakPlus erişimi RevenueCat ve ilgili mağaza entitlement durumuna göre yönetilir.',
         },
         {
           title: 'Veri paylaşımı ve satış',
@@ -52,7 +52,7 @@ export function PrivacyPolicyScreen(_props: Props) {
         {
           title: 'Saklama ve silme',
           body:
-            'Yerel veriler cihazında silinene veya uygulama kaldırılana kadar kalabilir. Hesap/ilerleme/satın alma kayıtları hizmeti sunmak, yasal yükümlülükler, kötüye kullanımın önlenmesi veya abonelik erişimi için gerekli olduğu sürece tutulabilir. Hesap ve veri silme talebi için Voira Destek’e yaz; abonelik iptali ayrıdır (Google Play). Detaylar için Veri Silme sayfasını açabilirsin.',
+            'Yerel veriler cihazında silinene veya uygulama kaldırılana kadar kalabilir. Hesap/ilerleme/satın alma kayıtları hizmeti sunmak, yasal yükümlülükler, kötüye kullanımın önlenmesi veya abonelik erişimi için gerekli olduğu sürece tutulabilir. Hesap ve veri silme talebi için Voira Destek’e yaz; abonelik iptali ayrıdır (App Store veya Google Play). Detaylar için Veri Silme sayfasını açabilirsin.',
         },
         {
           title: 'Çocukların gizliliği',

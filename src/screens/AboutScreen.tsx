@@ -35,7 +35,7 @@ export function AboutScreen(_props: Props) {
         {
           title: 'SpeakPlus',
           body:
-            'SpeakPlus, uygulama içi abonelik ile sunulan premium ders paketleri ve gelişmiş geri bildirimlerdir. Ödemeler Google Play üzerinden yapılır; satın alımları Profil veya paywall ekranından geri yükleyebilirsin.',
+            'SpeakPlus, uygulama içi abonelik ile sunulan premium ders paketleri ve gelişmiş geri bildirimlerdir. Abonelik ödemeleri, kullandığın platforma göre Apple App Store veya Google Play hesabın üzerinden yönetilir. Satın alımları Profil veya paywall ekranından geri yükleyebilirsin.',
         },
         {
           title: 'İletişim ve yasal',

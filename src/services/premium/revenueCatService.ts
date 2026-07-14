@@ -12,6 +12,7 @@ import {
   isRevenueCatConfigured,
   PREMIUM_ENTITLEMENT_ID,
   resolveStableAppUserId,
+  warnIfRevenueCatKeyMissingForPlatform,
 } from './premiumConfig';
 import { hasActivePremiumEntitlement } from './premiumEntitlementService';
 import type {
@@ -61,6 +62,8 @@ export function isAlreadySubscribedPurchaseError(error: unknown): boolean {
 }
 
 export async function configureRevenueCat(appUserId?: string): Promise<boolean> {
+  warnIfRevenueCatKeyMissingForPlatform();
+
   if (!isRevenueCatConfigured() || !isPremiumNativePlatform()) {
     if (__DEV__) {
       console.log(`${LOG_PREFIX} RevenueCat not configured for this platform`);

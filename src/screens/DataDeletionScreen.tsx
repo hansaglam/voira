@@ -26,7 +26,7 @@ export function DataDeletionScreen(_props: Props) {
   const handleLocalReset = () => {
     Alert.alert(
       'Yerel verileri sıfırla',
-      'Bu işlem yalnızca bu cihazdaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Hesap silme talebi değildir. Profil tercihlerin korunur. Aktif bir Google Play aboneliğini iptal etmez.',
+      'Bu işlem yalnızca bu cihazdaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Hesap silme talebi değildir. Profil tercihlerin korunur. Aktif bir App Store veya Google Play aboneliğini iptal etmez.',
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -92,13 +92,13 @@ export function DataDeletionScreen(_props: Props) {
           {
             title: 'Yerel sıfırlama',
             body:
-              'Aşağıdaki düğme yalnızca bu cihazdaki yerel pratik verilerini sıfırlar. Hesap silme değildir ve Google Play aboneliğini iptal etmez.',
+              'Aşağıdaki düğme yalnızca bu cihazdaki yerel pratik verilerini sıfırlar. Hesap silme değildir ve mağaza aboneliğini iptal etmez.',
           },
           requestSection,
           {
             title: 'Abonelik notu',
             body:
-              'Uygulama hesabını veya uygulama verilerini silmek, aktif Google Play aboneliğini iptal etmez. SpeakPlus faturalandırmasını durdurmak için Google Play üzerinden iptal et.',
+              'Uygulama hesabını veya uygulama verilerini silmek, aktif SpeakPlus aboneliğini iptal etmez. Faturalandırmayı durdurmak için aboneliğini App Store veya Google Play hesap ayarlarından iptal et.',
           },
         ]}
         footer={sharedFooter}
@@ -120,12 +120,12 @@ export function DataDeletionScreen(_props: Props) {
         {
           title: 'Kalabilecekler',
           body:
-            'Google Play / RevenueCat işlem veya entitlement kayıtları, kimliği belli olmayan günlükler ve yalnızca cihazında kalan veriler (uygulama verisi temizlenene veya uygulama kaldırılana kadar).',
+            'App Store / Google Play / RevenueCat işlem veya entitlement kayıtları, kimliği belli olmayan günlükler ve yalnızca cihazında kalan veriler (uygulama verisi temizlenene veya uygulama kaldırılana kadar).',
         },
         {
           title: 'Abonelik notu',
           body:
-            'Uygulama hesabını veya uygulama verilerini silmek, aktif Google Play aboneliğini iptal etmez. SpeakPlus’ı durdurmak için Google Play → Ödemeler ve abonelikler üzerinden iptal et.',
+            'Uygulama hesabını veya uygulama verilerini silmek, aktif SpeakPlus aboneliğini iptal etmez. SpeakPlus’ı durdurmak için aboneliğini App Store veya Google Play hesap ayarlarından iptal et.',
         },
       ]}
       footer={sharedFooter}

@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.ethemsincar.echospeak"
+      "bundleIdentifier": "com.ethemsincar.echospeak",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {

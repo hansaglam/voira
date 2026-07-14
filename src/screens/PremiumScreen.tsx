@@ -31,6 +31,7 @@ import type { PremiumPackageOption } from '../services/premium';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legalLinks';
 import { openExternalLink } from '../utils/openExternalLink';
 import { VoiraFeedbackModal, type VoiraFeedbackType } from '../components/VoiraFeedbackModal';
+import { getStoreAccountLabel } from '../utils/storeSubscriptions';
 import { colors, spacing, borderRadius, layout } from '../theme';
 
 type Props = RootScreenProps<'Premium'>;
@@ -357,7 +358,7 @@ export function PremiumScreen({ navigation }: Props) {
     if (result === 'already_subscribed') {
       Alert.alert(
         'Aktif abonelik var',
-        'Bu Google Play hesabında aktif abonelik görünüyor. Satın alımları geri yüklemeyi dene.',
+        `Bu ${getStoreAccountLabel()} hesabında aktif abonelik görünüyor. Satın alımları geri yüklemeyi dene.`,
         [
           { text: 'İptal', style: 'cancel' },
           { text: 'Satın alımları geri yükle', onPress: () => void handleRestore() },
@@ -383,7 +384,7 @@ export function PremiumScreen({ navigation }: Props) {
     if (result === 'not_found') {
       Alert.alert(
         'Abonelik bulunamadı',
-        'Bu Google Play hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.',
+        `Bu ${getStoreAccountLabel()} hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.`,
       );
     }
     if (result === 'error') {
@@ -571,8 +572,8 @@ export function PremiumScreen({ navigation }: Props) {
 
           {selectedPackage ? (
             <Text style={styles.cancelNote}>
-              Abonelik Google Play üzerinden yönetilir ve otomatik yenilenir. İstediğin zaman iptal
-              edebilirsin.
+              Aboneliğini App Store veya Google Play hesap ayarlarından yönetebilir ya da iptal
+              edebilirsin. Abonelik otomatik yenilenir.
             </Text>
           ) : null}
         </>

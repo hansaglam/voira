@@ -36,6 +36,7 @@ import {
   TERMS_OF_USE_URL,
 } from '../constants/legalLinks';
 import { openExternalLink } from '../utils/openExternalLink';
+import { getStoreAccountLabel, openManageSubscriptions } from '../utils/storeSubscriptions';
 import {
   getUserDisplayName,
   validateDisplayName,
@@ -362,14 +363,14 @@ export function ProfileScreen({ navigation, route }: Props) {
     if (result === 'not_found') {
       Alert.alert(
         'Abonelik bulunamadı',
-        'Bu Google Play hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.',
+        `Bu ${getStoreAccountLabel()} hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.`,
       );
     }
   };
 
   const handleSettingsPress = (item: SettingsItem) => {
     if (item.label === 'Aboneliği yönet') {
-      void openExternalLink('https://play.google.com/store/account/subscriptions');
+      void openManageSubscriptions();
       return;
     }
 
