@@ -1,22 +1,53 @@
+import { Platform } from 'react-native';
+import { logAudioDebug } from '../../config/audioDebugConfig';
+
 export interface AudioUploadFile {
   uri: string;
   name: string;
   type: string;
 }
 
+function stripQuery(uri: string): string {
+  return uri.split('?')[0] ?? uri;
+}
+
+function extensionFromUri(audioUri: string): string {
+  const path = stripQuery(audioUri.trim()).toLowerCase();
+  const idx = path.lastIndexOf('.');
+  if (idx < 0) return '';
+  return path.slice(idx);
+}
+
+/**
+ * Resolve upload MIME for local recording URIs.
+ * Prefer audio/mp4 for iOS .m4a (widely accepted); keep Android extension mapping.
+ */
 export function getAudioMimeType(audioUri: string): string {
-  if (audioUri.endsWith('.m4a')) return 'audio/m4a';
-  if (audioUri.endsWith('.mp4')) return 'audio/mp4';
-  if (audioUri.endsWith('.caf')) return 'audio/x-caf';
-  if (audioUri.endsWith('.wav')) return 'audio/wav';
-  return 'audio/m4a';
+  const extension = extensionFromUri(audioUri);
+
+  if (extension === '.m4a' || extension === '.mp4' || extension === '.aac') {
+    // iOS often works best declaring MPEG-4 container MIME for AAC/m4a uploads.
+    if (Platform.OS === 'ios') return 'audio/mp4';
+    return extension === '.mp4' ? 'audio/mp4' : 'audio/m4a';
+  }
+  if (extension === '.caf') return 'audio/x-caf';
+  if (extension === '.wav') return 'audio/wav';
+  if (extension === '.mp3') return 'audio/mpeg';
+
+  // Ambiguous / missing extension — production-safe default for Voira recordings.
+  return Platform.OS === 'ios' ? 'audio/mp4' : 'audio/m4a';
 }
 
 export function getAudioFileName(audioUri: string): string {
-  if (audioUri.endsWith('.m4a')) return 'recording.m4a';
-  if (audioUri.endsWith('.mp4')) return 'recording.mp4';
-  if (audioUri.endsWith('.caf')) return 'recording.caf';
-  if (audioUri.endsWith('.wav')) return 'recording.wav';
+  const extension = extensionFromUri(audioUri);
+
+  if (extension === '.m4a') return 'recording.m4a';
+  if (extension === '.mp4') return 'recording.mp4';
+  if (extension === '.caf') return 'recording.caf';
+  if (extension === '.wav') return 'recording.wav';
+  if (extension === '.mp3') return 'recording.mp3';
+  if (extension === '.aac') return 'recording.m4a';
+
   return 'recording.m4a';
 }
 
@@ -25,11 +56,20 @@ export function getAudioFileName(audioUri: string): string {
  */
 export function buildAudioUploadFile(audioUri: string): AudioUploadFile {
   const uri = audioUri.trim();
-  return {
+  const file = {
     uri,
     name: getAudioFileName(uri),
     type: getAudioMimeType(uri),
   };
+
+  logAudioDebug('build_audio_upload_file', {
+    platform: Platform.OS,
+    uriExtension: extensionFromUri(uri) || null,
+    name: file.name,
+    type: file.type,
+  });
+
+  return file;
 }
 
 /**
@@ -44,7 +84,7 @@ export function appendAudioToFormData(formData: FormData, audioUri: string): Aud
       uri: file.uri,
       name: file.name,
       type: file.type,
-    } as any,
+    } as unknown as Blob,
   );
 
   return file;

@@ -36,6 +36,12 @@ export const ANALYSIS_MISSING_RECORDING_TR =
 export const ANALYSIS_TOO_SHORT_TR =
   'Kayıt çok kısa. Lütfen cümleyi tekrar söyle.';
 
+export const ANALYSIS_RECORDING_CAPTURE_FAILED_TR =
+  'Ses kaydı alınamadı. Mikrofon iznini kontrol edip tekrar dene.';
+
+export const ANALYSIS_START_FAILED_TR =
+  'Analiz başlatılamadı. Lütfen bağlantını kontrol edip tekrar dene.';
+
 export const ANALYSIS_REAL_DISABLED_TR =
   'Analiz servisine şu anda ulaşılamıyor. Lütfen internet bağlantını kontrol edip tekrar dene.';
 

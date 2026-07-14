@@ -4,12 +4,14 @@ import {
   MIN_SPEECH_FRAMES,
   SILENCE_PEAK_THRESHOLD_DB,
 } from '../../config/audioValidationConfig';
+import { logAudioDebug } from '../../config/audioDebugConfig';
 
 export type RecordingValidationReason =
   | 'missing_uri'
   | 'too_short'
   | 'permission_denied'
   | 'file_missing'
+  | 'file_empty'
   | 'silent_recording'
   | 'low_volume'
   | 'unknown';
@@ -32,6 +34,7 @@ export interface RecordingValidationResult {
   peakMetering?: number;
   speechFrames?: number;
   meteringAvailable?: boolean;
+  fileSizeBytes?: number;
 }
 
 export interface RecordedAudioValidationInput {
@@ -41,6 +44,7 @@ export interface RecordedAudioValidationInput {
   recordingState?: RecordingLifecycleState;
   meteringSamples?: number[];
   meteringAvailable?: boolean;
+  fileSizeBytes?: number | null;
 }
 
 const MICROPHONE_PERMISSION_DENIED_TR =
@@ -54,6 +58,9 @@ const MISSING_URI_MESSAGE_TR =
 const FILE_MISSING_MESSAGE_TR =
   'Kayıt dosyası bulunamadı. Lütfen tekrar kayıt al.';
 
+const FILE_EMPTY_MESSAGE_TR =
+  'Ses kaydı alınamadı. Mikrofon iznini kontrol edip tekrar dene.';
+
 const SILENT_RECORDING_MESSAGE_TR =
   'Sesini algılayamadım. Lütfen cümleyi sesli şekilde tekrar söyle.';
 
@@ -65,6 +72,9 @@ const UNKNOWN_MESSAGE_TR =
 
 const VALID_RECORDING_MESSAGE_TR =
   'Kayıt hazır. Analiz için devam edebilirsin.';
+
+/** Minimum acceptable recorded file size (approx. ~0.2s of AAC). */
+const MIN_AUDIO_FILE_BYTES = 256;
 
 export interface MeteringStats {
   averageMetering?: number;
@@ -156,6 +166,18 @@ export function validateRecordedAudio(
     return buildInvalidResult('file_missing', FILE_MISSING_MESSAGE_TR, { durationMillis: duration });
   }
 
+  const fileSizeBytes =
+    typeof recording.fileSizeBytes === 'number' && Number.isFinite(recording.fileSizeBytes)
+      ? recording.fileSizeBytes
+      : undefined;
+
+  if (fileSizeBytes !== undefined && fileSizeBytes < MIN_AUDIO_FILE_BYTES) {
+    return buildInvalidResult('file_empty', FILE_EMPTY_MESSAGE_TR, {
+      durationMillis: duration,
+      fileSizeBytes,
+    });
+  }
+
   const meteringStats = computeMeteringStats(recording.meteringSamples ?? []);
   const meteringAvailable =
     recording.meteringAvailable === true || meteringStats.meteringAvailable;
@@ -166,6 +188,7 @@ export function validateRecordedAudio(
     peakMetering: meteringStats.peakMetering,
     speechFrames: meteringStats.speechFrames,
     meteringAvailable,
+    fileSizeBytes,
   };
 
   /**
@@ -174,11 +197,17 @@ export function validateRecordedAudio(
    * When metering is unavailable, accept a long-enough file and let the backend decide.
    */
   if (!meteringAvailable) {
+    logAudioDebug('validation_metering_unavailable_passthrough', {
+      durationMillis: duration,
+      fileSizeBytes,
+      uriExtension: uri.includes('.') ? uri.slice(uri.lastIndexOf('.')) : null,
+    });
     return {
       isValid: true,
       hasSpeech: true,
       messageTr: VALID_RECORDING_MESSAGE_TR,
       ...baseMetrics,
+      meteringAvailable: false,
     };
   }
 
@@ -209,15 +238,14 @@ export function logRecordingValidation(
   result: RecordingValidationResult,
   audioUri?: string | null,
 ): void {
-  if (!__DEV__) return;
-
-  console.log('[EchoSpeak Recording Validation]', {
+  logAudioDebug('recording_validation', {
     duration: result.durationMillis,
     audioUriExists: Boolean(audioUri?.trim()),
     averageMetering: result.averageMetering,
     peakMetering: result.peakMetering,
     speechFrames: result.speechFrames,
     meteringAvailable: result.meteringAvailable,
+    fileSizeBytes: result.fileSizeBytes,
     hasSpeech: result.hasSpeech,
     isValid: result.isValid,
     reason: result.reason ?? 'valid',

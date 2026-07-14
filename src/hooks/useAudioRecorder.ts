@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import {
   useAudioRecorder as useExpoAudioRecorder,
   useAudioRecorderState,
   useAudioPlayer,
   useAudioPlayerStatus,
-  RecordingPresets,
   setAudioModeAsync,
   requestRecordingPermissionsAsync,
   type AudioPlayer,
 } from 'expo-audio';
+import * as FileSystem from 'expo-file-system/legacy';
 import { RecordedAudio } from '../types/audio';
 import { MIN_RECORDING_DURATION_MS } from '../config/analysisConfig';
+import { logAudioDebug } from '../config/audioDebugConfig';
+import { getVoiraRecordingOptions } from '../config/recordingOptions';
 import {
   logRecordingValidation,
   validateRecordedAudio,
@@ -42,10 +45,7 @@ export type RecordingSessionStatus = 'idle' | 'recording' | 'recorded' | 'error'
 
 const NATIVE_PLACEHOLDER_MS = 2200;
 
-const RECORDING_WITH_METERING = {
-  ...RecordingPresets.HIGH_QUALITY,
-  isMeteringEnabled: true,
-};
+const RECORDING_OPTIONS = getVoiraRecordingOptions();
 
 async function runSafeAsync(action: () => void | Promise<void>) {
   try {
@@ -53,6 +53,25 @@ async function runSafeAsync(action: () => void | Promise<void>) {
   } catch {
     // Native audio object may already be released — ignore.
   }
+}
+
+async function getRecordingFileSizeBytes(uri: string): Promise<number | null> {
+  try {
+    const info = await FileSystem.getInfoAsync(uri);
+    if (info.exists && 'size' in info && typeof info.size === 'number') {
+      return info.size;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function uriExtension(uri: string): string | null {
+  const path = uri.split('?')[0] ?? uri;
+  const idx = path.lastIndexOf('.');
+  if (idx < 0) return null;
+  return path.slice(idx).toLowerCase();
 }
 
 export function getRecordingStatusMessage(
@@ -77,7 +96,7 @@ export function getRecordingStatusMessage(
 }
 
 export function useAudioRecorder() {
-  const expoRecorder = useExpoAudioRecorder(RECORDING_WITH_METERING);
+  const expoRecorder = useExpoAudioRecorder(RECORDING_OPTIONS);
   const recorderState = useAudioRecorderState(expoRecorder, 100);
   const player = useAudioPlayer(null);
   const playerStatus = useAudioPlayerStatus(player);
@@ -196,11 +215,12 @@ export function useAudioRecorder() {
   }, [isRecording]);
 
   const runRecordingValidation = useCallback(
-    (
+    async (
       uri: string,
       durationMillis: number,
       state: RecordingState,
-    ): RecordingValidationResult => {
+    ): Promise<RecordingValidationResult> => {
+      const fileSizeBytes = await getRecordingFileSizeBytes(uri);
       const validation = validateRecordedAudio({
         audioUri: uri,
         durationMillis,
@@ -208,8 +228,19 @@ export function useAudioRecorder() {
         recordingState: state,
         meteringSamples: meteringSamplesRef.current,
         meteringAvailable: meteringAvailableRef.current,
+        fileSizeBytes,
       });
       logRecordingValidation(validation, uri);
+      logAudioDebug('stop_recording_meta', {
+        platform: Platform.OS,
+        uriExtension: uriExtension(uri),
+        durationMs: durationMillis,
+        fileSizeBytes,
+        meteringSampleCount: meteringSamplesRef.current.length,
+        meteringAvailable: meteringAvailableRef.current,
+        validationReason: validation.reason ?? 'valid',
+        hasSpeech: validation.hasSpeech,
+      });
       return validation;
     },
     [permissionDenied],
@@ -365,9 +396,15 @@ export function useAudioRecorder() {
       safeSetState(setRecordingEndedAt, null);
       meteringSamplesRef.current = [];
       meteringAvailableRef.current = false;
-      await expoRecorder.prepareToRecordAsync(RECORDING_WITH_METERING);
+      await expoRecorder.prepareToRecordAsync(RECORDING_OPTIONS);
       expoRecorder.record();
       isRecordingRef.current = true;
+      logAudioDebug('start_recording', {
+        platform: Platform.OS,
+        extension: RECORDING_OPTIONS.extension ?? null,
+        sampleRate: RECORDING_OPTIONS.sampleRate ?? null,
+        numberOfChannels: RECORDING_OPTIONS.numberOfChannels ?? null,
+      });
     } catch {
       safeSetState(setErrorMessage, 'Kayıt başlatılamadı. Lütfen tekrar dene.');
     }
@@ -413,7 +450,7 @@ export function useAudioRecorder() {
         createdAt: endedIso,
       });
 
-      const validation = runRecordingValidation(normalizedUri, durationMillis, 'recorded');
+      const validation = await runRecordingValidation(normalizedUri, durationMillis, 'recorded');
       safeSetState(setRecordingValidation, validation);
 
       if (!validation.isValid && !permissionDenied) {

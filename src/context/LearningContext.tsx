@@ -31,6 +31,7 @@ import {
   runAudioAnalysisPipeline,
   AnalysisUnavailableError,
   ANALYSIS_MISSING_RECORDING_TR,
+  ANALYSIS_PROCESSING_FAILED_TR,
   ANALYSIS_SILENT_RECORDING_TR,
   ANALYSIS_TOO_SHORT_TR,
   MIN_AUDIO_ANALYSIS_DURATION_MS,
@@ -281,9 +282,25 @@ export function LearningProvider({ children }: { children: ReactNode }) {
             options.recordingValidation.messageTr,
           );
         }
+        if (
+          options.recordingValidation.reason === 'file_empty' ||
+          options.recordingValidation.reason === 'file_missing' ||
+          options.recordingValidation.reason === 'missing_uri'
+        ) {
+          throw new AnalysisUnavailableError(
+            'missing_recording',
+            options.recordingValidation.messageTr || ANALYSIS_MISSING_RECORDING_TR,
+          );
+        }
+        if (options.recordingValidation.reason === 'silent_recording') {
+          throw new AnalysisUnavailableError(
+            'silent_recording',
+            options.recordingValidation.messageTr || ANALYSIS_SILENT_RECORDING_TR,
+          );
+        }
         throw new AnalysisUnavailableError(
-          'silent_recording',
-          options.recordingValidation.messageTr || ANALYSIS_SILENT_RECORDING_TR,
+          'processing_failed',
+          options.recordingValidation.messageTr || ANALYSIS_PROCESSING_FAILED_TR,
         );
       }
 

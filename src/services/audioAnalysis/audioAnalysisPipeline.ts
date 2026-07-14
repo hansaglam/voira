@@ -117,7 +117,14 @@ function throwBackendFailure(
   if (errorCode === 'silent_recording') {
     throw new AnalysisUnavailableError('silent_recording', messageTr);
   }
-  if (errorCode === 'network_error' || errorCode === 'upload_failed') {
+  if (
+    errorCode === 'network_error' ||
+    errorCode === 'upload_failed' ||
+    errorCode === 'upload_format_error' ||
+    errorCode === 'backend_error' ||
+    errorCode === 'invalid_response' ||
+    errorCode === 'file_missing'
+  ) {
     throw new AnalysisUnavailableError('processing_failed', messageTr);
   }
   throw new AnalysisUnavailableError('processing_failed', messageTr);
@@ -144,6 +151,12 @@ function assertSpeechActivity(input: AudioAnalysisInput): void {
   if (validation && !validation.isValid) {
     if (validation.reason === 'low_volume') {
       throw new AnalysisUnavailableError('low_volume', ANALYSIS_LOW_VOLUME_TR);
+    }
+    if (validation.reason === 'file_empty' || validation.reason === 'file_missing') {
+      throw new AnalysisUnavailableError(
+        'missing_recording',
+        validation.messageTr || ANALYSIS_MISSING_RECORDING_TR,
+      );
     }
     if (validation.reason === 'silent_recording' || !validation.hasSpeech) {
       throw new AnalysisUnavailableError('silent_recording', ANALYSIS_SILENT_RECORDING_TR);
