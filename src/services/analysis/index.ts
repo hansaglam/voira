@@ -1,5 +1,11 @@
 export { requestBackendSpeechAnalysis } from './backendAnalysisProvider';
-export { appendAudioToFormData, buildAudioUploadFile, getAudioFileName, getAudioMimeType } from './prepareAudioUpload';
+export {
+  appendAudioToFormData,
+  buildAudioUploadFile,
+  getAudioFileName,
+  getAudioMimeType,
+  normalizeFormDataUri,
+} from './prepareAudioUpload';
 export type { AudioUploadFile } from './prepareAudioUpload';
 export type {
   BackendAnalysisErrorCode,

@@ -19,6 +19,22 @@ function extensionFromUri(audioUri: string): string {
 }
 
 /**
+ * Ensure local recording URIs are FormData / FileSystem upload compatible.
+ * expo-audio on iOS may return absolute paths without a `file://` scheme.
+ */
+export function normalizeFormDataUri(audioUri: string): string {
+  const trimmed = audioUri.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/')) {
+    return `file://${trimmed}`;
+  }
+  return trimmed;
+}
+
+/**
  * Resolve upload MIME for local recording URIs.
  * Prefer audio/mp4 for iOS .m4a (widely accepted); keep Android extension mapping.
  */
@@ -55,7 +71,7 @@ export function getAudioFileName(audioUri: string): string {
  * Builds a React Native FormData-compatible audio file descriptor from a local URI.
  */
 export function buildAudioUploadFile(audioUri: string): AudioUploadFile {
-  const uri = audioUri.trim();
+  const uri = normalizeFormDataUri(audioUri);
   const file = {
     uri,
     name: getAudioFileName(uri),
@@ -67,6 +83,7 @@ export function buildAudioUploadFile(audioUri: string): AudioUploadFile {
     uriExtension: extensionFromUri(uri) || null,
     name: file.name,
     type: file.type,
+    hasFileScheme: uri.startsWith('file://') || uri.startsWith('content://'),
   });
 
   return file;
