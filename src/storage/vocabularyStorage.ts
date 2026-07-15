@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import safeAsyncStorage from './safeAsyncStorage';
 import type { VocabularyItem } from '../types/vocabulary';
 import { normalizeVocabularyTerm } from '../utils/vocabularyMeanings';
 
@@ -41,7 +41,7 @@ function sortNewestFirst(items: VocabularyItem[]): VocabularyItem[] {
 
 export async function getVocabularyItems(): Promise<VocabularyItem[]> {
   try {
-    const raw = await AsyncStorage.getItem(VOCABULARY_STORAGE_KEY);
+    const raw = await safeAsyncStorage.getItem(VOCABULARY_STORAGE_KEY);
     return sortNewestFirst(parseItems(raw));
   } catch {
     return [];
@@ -86,7 +86,7 @@ export async function addVocabularyItem(
     };
 
     const next = sortNewestFirst([item, ...items]);
-    await AsyncStorage.setItem(VOCABULARY_STORAGE_KEY, JSON.stringify(next));
+    await safeAsyncStorage.setItem(VOCABULARY_STORAGE_KEY, JSON.stringify(next));
     return { item, added: true };
   } catch {
     return { item: null, added: false };
@@ -98,7 +98,7 @@ export async function removeVocabularyItem(id: string): Promise<boolean> {
     const items = await getVocabularyItems();
     const next = items.filter((item) => item.id !== id);
     if (next.length === items.length) return false;
-    await AsyncStorage.setItem(VOCABULARY_STORAGE_KEY, JSON.stringify(next));
+    await safeAsyncStorage.setItem(VOCABULARY_STORAGE_KEY, JSON.stringify(next));
     return true;
   } catch {
     return false;
@@ -107,7 +107,7 @@ export async function removeVocabularyItem(id: string): Promise<boolean> {
 
 export async function clearVocabularyItems(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(VOCABULARY_STORAGE_KEY);
+    await safeAsyncStorage.removeItem(VOCABULARY_STORAGE_KEY);
   } catch {
     // ignore
   }

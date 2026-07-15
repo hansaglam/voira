@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import safeAsyncStorage from '../storage/safeAsyncStorage';
 import { DailyPracticeSession } from '../types/dailyPractice';
 import { PracticeResult, UserLearningProfile } from '../types/learning';
 import {
@@ -172,7 +172,7 @@ export function buildLearningProgressSnapshot(
 
 export async function loadLearningProgress(): Promise<LearningProgressPersistedState | null> {
   try {
-    const raw = await AsyncStorage.getItem(LEARNING_PROGRESS_STORAGE_KEY);
+    const raw = await safeAsyncStorage.getItem(LEARNING_PROGRESS_STORAGE_KEY);
     if (!raw) return null;
 
     const parsed = parsePersistedState(JSON.parse(raw));
@@ -183,12 +183,16 @@ export async function loadLearningProgress(): Promise<LearningProgressPersistedS
 }
 
 export async function saveLearningProgress(state: LearningProgressPersistedState): Promise<void> {
-  await AsyncStorage.setItem(LEARNING_PROGRESS_STORAGE_KEY, JSON.stringify(state));
+  try {
+    await safeAsyncStorage.setItem(LEARNING_PROGRESS_STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Ignore persist failures — in-memory progress remains for the session.
+  }
 }
 
 export async function clearLearningProgress(): Promise<void> {
   try {
-    await AsyncStorage.removeItem(LEARNING_PROGRESS_STORAGE_KEY);
+    await safeAsyncStorage.removeItem(LEARNING_PROGRESS_STORAGE_KEY);
   } catch {
     // Ignore delete failures — caller handles UX.
   }

@@ -5,8 +5,9 @@ import Purchases, {
 } from 'react-native-purchases';
 import {
   getRevenueCatApiKey,
-  isPremiumNativePlatform,
   isRevenueCatConfigured,
+  isRevenueCatNativeAvailable,
+  isRunningInExpoGo,
   resolveStableAppUserId,
   warnIfRevenueCatKeyMissingForPlatform,
 } from './premiumConfig';
@@ -65,9 +66,14 @@ export function isAlreadySubscribedPurchaseError(error: unknown): boolean {
 export async function configureRevenueCat(appUserId?: string): Promise<boolean> {
   warnIfRevenueCatKeyMissingForPlatform();
 
-  if (!isRevenueCatConfigured() || !isPremiumNativePlatform()) {
+  if (!isRevenueCatConfigured() || !isRevenueCatNativeAvailable()) {
     if (__DEV__) {
-      console.log(`${LOG_PREFIX} RevenueCat not configured for this platform`);
+      console.log(
+        `${LOG_PREFIX} RevenueCat skipped`,
+        isRunningInExpoGo()
+          ? '(Expo Go — use a development/TestFlight build for purchases)'
+          : '(not available on this platform)',
+      );
     }
     return false;
   }
@@ -97,7 +103,8 @@ export async function configureRevenueCat(appUserId?: string): Promise<boolean> 
     return true;
   } catch (error) {
     if (__DEV__) {
-      console.warn(`${LOG_PREFIX} configure failed`);
+      const details = getPurchasesErrorDetails(error);
+      console.warn(`${LOG_PREFIX} configure failed`, details.message ?? 'unknown');
     }
     return false;
   }

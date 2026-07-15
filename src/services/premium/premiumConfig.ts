@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 /**
  * RevenueCat SpeakPlus configuration.
@@ -28,6 +29,14 @@ const REVENUECAT_ANDROID_API_KEY =
 
 const LOG_PREFIX = '[EchoSpeak Premium]';
 
+/**
+ * Expo Go cannot use App Store / Play Billing. Calling Purchases.configure with a
+ * production appl_/goog_ key throws a red LogBox error — skip configure instead.
+ */
+export function isRunningInExpoGo(): boolean {
+  return Constants.appOwnership === 'expo';
+}
+
 export function getRevenueCatApiKey(): string {
   if (Platform.OS === 'ios') return REVENUECAT_IOS_API_KEY;
   if (Platform.OS === 'android') return REVENUECAT_ANDROID_API_KEY;
@@ -47,11 +56,19 @@ export function isRevenueCatConfigured(): boolean {
 }
 
 /**
+ * True when the native RevenueCat SDK can be configured (dev client / TestFlight /
+ * store build). False in Expo Go and on web.
+ */
+export function isRevenueCatNativeAvailable(): boolean {
+  return isPremiumNativePlatform() && !isRunningInExpoGo();
+}
+
+/**
  * Dev-only warning when the current platform’s public SDK key is missing.
  * Missing iOS key must not affect Android builds (and vice versa).
  */
 export function warnIfRevenueCatKeyMissingForPlatform(): void {
-  if (!__DEV__ || !isPremiumNativePlatform()) return;
+  if (!__DEV__ || !isRevenueCatNativeAvailable()) return;
 
   if (Platform.OS === 'ios' && !hasRevenueCatIosKey()) {
     console.warn(
@@ -66,7 +83,7 @@ export function warnIfRevenueCatKeyMissingForPlatform(): void {
   }
 }
 
-/** RevenueCat requires a native dev build — Expo Go does not support real purchases. */
+/** iOS / Android only — web has no store. Expo Go still reports these platforms. */
 export function isPremiumNativePlatform(): boolean {
   return Platform.OS === 'ios' || Platform.OS === 'android';
 }
