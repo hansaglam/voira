@@ -152,6 +152,15 @@ export function buildPackageOptions(
   });
 }
 
+function packagePriceDiagnostics(pkg: PurchasesPackage) {
+  return {
+    packageIdentifier: pkg.identifier,
+    productIdentifier: pkg.product.identifier,
+    priceString: pkg.product.priceString,
+    currencyCode: pkg.product.currencyCode ?? null,
+  };
+}
+
 /** __DEV__ only — never logs API key values. */
 export function logOfferingsDiagnostics(
   offering: PurchasesOffering | null,
@@ -169,17 +178,8 @@ export function logOfferingsDiagnostics(
     packageIdentifiers: packages.map((pkg) => pkg.identifier),
     productIdentifiers: packages.map((pkg) => pkg.product.identifier),
     packageTypes: packages.map((pkg) => pkg.packageType),
-    selectedMonthly: monthly
-      ? {
-          packageIdentifier: monthly.identifier,
-          productIdentifier: monthly.product.identifier,
-        }
-      : null,
-    selectedYearly: yearly
-      ? {
-          packageIdentifier: yearly.identifier,
-          productIdentifier: yearly.product.identifier,
-        }
-      : null,
+    packagePrices: packages.map((pkg) => packagePriceDiagnostics(pkg)),
+    selectedMonthly: monthly ? packagePriceDiagnostics(monthly) : null,
+    selectedYearly: yearly ? packagePriceDiagnostics(yearly) : null,
   });
 }

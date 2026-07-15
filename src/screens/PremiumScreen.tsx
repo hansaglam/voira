@@ -125,8 +125,9 @@ function PackageCard({
           </View>
         ) : null}
       </View>
+      {/* Store-localized price only — never hardcode or approximate prices here. */}
       <Text style={[styles.packagePrice, selected && styles.packagePriceSelected]}>
-        {option.priceString || 'Yükleniyor...'}
+        {option.priceString || 'Fiyat yükleniyor...'}
       </Text>
       <Text style={styles.packagePeriod}>{periodSuffix}</Text>
     </TouchableOpacity>
@@ -413,7 +414,9 @@ export function PremiumScreen({ navigation }: Props) {
     ? 'Devam et'
     : selectedPeriod === 'yearly'
       ? "Yıllık SpeakPlus'u Başlat"
-      : "SpeakPlus'u Başlat";
+      : selectedPeriod === 'monthly'
+        ? "Aylık SpeakPlus'u Başlat"
+        : "SpeakPlus'u Başlat";
   const isPackagesLoading = isLoadingPremium || isOfferingsLoading;
   const showOfferingsFallback =
     registered && !isPackagesLoading && !isPremium && packageOptions.length === 0;
