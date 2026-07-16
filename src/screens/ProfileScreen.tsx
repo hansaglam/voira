@@ -36,6 +36,7 @@ import {
   TERMS_OF_USE_URL,
 } from '../constants/legalLinks';
 import { openExternalLink } from '../utils/openExternalLink';
+import { getAccountDeletionConfirmBody } from '../utils/billingCopy';
 import { getStoreAccountLabel, openManageSubscriptions } from '../utils/storeSubscriptions';
 import {
   DEFAULT_SIGNED_IN_DISPLAY_NAME,
@@ -147,7 +148,7 @@ function AccountRow({
         {value ? (
           <Text
             style={styles.accountRowValue}
-            numberOfLines={1}
+            numberOfLines={2}
             ellipsizeMode="tail"
           >
             {value}
@@ -164,7 +165,12 @@ function AccountRow({
 
   if (onPress) {
     return (
-      <TouchableOpacity style={styles.accountRow} onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity
+        style={styles.accountRow}
+        onPress={onPress}
+        activeOpacity={0.7}
+        disabled={loading}
+      >
         {content}
       </TouchableOpacity>
     );
@@ -188,10 +194,11 @@ export function ProfileScreen({ navigation, route }: Props) {
     signUpWithEmailPassword,
     updateDisplayName,
     signOut,
+    deleteAccount,
     clearError,
   } = useAuth();
   const { restorePurchases, isRevenueCatConfigured, isPremium, isRestoring } = usePremium();
-  const { count: vocabularyCount, limit: vocabularyLimit, isPremium: isVocabPremium } =
+  const { count: vocabularyCount, limit: vocabularyLimit, isPremium: isVocabPremium, refresh: refreshVocabulary } =
     useVocabulary();
 
   const [email, setEmail] = useState('');
@@ -199,6 +206,7 @@ export function ProfileScreen({ navigation, route }: Props) {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isSigningUp, setIsSigningUp] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isAuthCardExpanded, setIsAuthCardExpanded] = useState(false);
   const [isNameEditorVisible, setIsNameEditorVisible] = useState(false);
   const [draftDisplayName, setDraftDisplayName] = useState('');
@@ -469,6 +477,56 @@ export function ProfileScreen({ navigation, route }: Props) {
     });
   };
 
+  /**
+   * App Review Guideline 5.1.1(v) evidence path:
+   * Profile → sign in → Hesabı Sil → confirm → final confirm → success.
+   */
+  const runAccountDeletion = async () => {
+    setIsDeletingAccount(true);
+    try {
+      const result = await deleteAccount();
+      if (!result.ok) {
+        showAppFeedback({
+          title: 'Hesap silinemedi',
+          message: result.messageTr,
+          variant: 'error',
+        });
+        return;
+      }
+
+      void refreshVocabulary();
+      showAppFeedback({
+        title: 'Hesabın silindi',
+        message: 'Hesabın ve bu cihazdaki uygulama verilerin temizlendi. İstersen misafir olarak devam edebilirsin.',
+        variant: 'success',
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    showAppConfirm({
+      title: 'Hesabını silmek istiyor musun?',
+      message: getAccountDeletionConfirmBody(),
+      destructive: true,
+      confirmLabel: 'Hesabı Sil',
+      cancelLabel: 'Vazgeç',
+      onConfirm: () => {
+        showAppConfirm({
+          title: 'Son onay',
+          message: 'Hesap silme işlemi geri alınamaz.',
+          destructive: true,
+          confirmLabel: 'Kalıcı olarak sil',
+          cancelLabel: 'Vazgeç',
+          onConfirm: () => {
+            void runAccountDeletion();
+          },
+        });
+      },
+    });
+  };
+
   return (
     <ScreenContainer withTabBar scrollRef={scrollRef}>
       <View style={styles.hero}>
@@ -695,6 +753,15 @@ export function ProfileScreen({ navigation, route }: Props) {
               label="Veri silme bilgisi"
               onPress={() => void openExternalLink(DATA_DELETION_URL)}
               showChevron
+            />
+            <AccountRow
+              icon="warning-outline"
+              label="Hesabı Sil"
+              value="Hesabını ve uygulama verilerini kalıcı olarak sil."
+              onPress={handleDeleteAccount}
+              showChevron
+              destructive
+              loading={isDeletingAccount}
             />
             <AccountRow
               icon="log-out-outline"

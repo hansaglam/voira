@@ -16,6 +16,7 @@ import { warnIfAdminSecretMissingInDev } from './middleware/adminAuth.js';
 import { corsMiddleware } from './middleware/cors.js';
 import { adminAudioRouter } from './routes/adminAudio.js';
 import { adminAudioPageRouter } from './routes/adminAudioPage.js';
+import { accountDeleteRouter } from './routes/accountDelete.js';
 import { analyzeSpeechRouter } from './routes/analyzeSpeech.js';
 import { audioRegistryRouter } from './routes/audioRegistry.js';
 import {
@@ -81,6 +82,7 @@ app.use(
 );
 
 app.use('/api', analyzeSpeechRouter);
+app.use('/api', accountDeleteRouter);
 app.use('/api', adminAudioRouter);
 app.use('/api', audioRegistryRouter);
 app.use(adminAudioPageRouter);
@@ -142,6 +144,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`EchoSpeak backend listening on http://0.0.0.0:${PORT}`);
   console.log(`Health check: ${publicBaseUrl}/health`);
   console.log(`Analyze endpoint: ${publicBaseUrl}/api/analyze-speech`);
+  console.log(`Account delete: ${publicBaseUrl}/api/account/delete`);
   console.log(`Audio registry: ${publicBaseUrl}/api/audio/registry`);
   console.log(`Audio admin panel: ${publicBaseUrl}/admin/audio`);
 });

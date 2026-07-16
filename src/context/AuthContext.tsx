@@ -18,16 +18,19 @@ import {
   isAuthServiceAvailable,
   logAuthRedirectUrlForDev,
   refreshSession,
+  requestAccountDeletion,
   signInWithEmailPassword,
   signOut as signOutFromSupabase,
   signUpWithEmailPassword,
   subscribeToAuthChanges,
   updateDisplayName as updateDisplayNameRequest,
+  type AccountDeletionResult,
   type AuthActionResult,
   type AuthFeatures,
   type AuthUser,
 } from '../services/auth';
 import { isRevenueCatConfigured, logoutRevenueCatUser } from '../services/premium';
+import { clearVocabularyItems } from '../storage/vocabularyStorage';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -41,6 +44,7 @@ interface AuthContextType {
   signUpWithEmailPassword: (email: string, password: string) => Promise<AuthActionResult>;
   updateDisplayName: (displayName: string) => Promise<AuthActionResult>;
   signOut: () => Promise<boolean>;
+  deleteAccount: () => Promise<AccountDeletionResult>;
   refreshSession: () => Promise<void>;
   clearError: () => void;
 }
@@ -48,7 +52,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { setUserId, setName } = useLearning();
+  const { setUserId, setName, resetLocalPracticeData } = useLearning();
   const authFeatures = useMemo(() => getAuthFeatures(), []);
   const isAuthAvailable = useMemo(() => isAuthServiceAvailable(), []);
 
@@ -242,6 +246,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, [anonymousUserId, applyGuestIdentity]);
 
+  /**
+   * In-app account deletion (App Store Guideline 5.1.1(v)).
+   * App Review path: Profile → sign in → Hesabı Sil → confirm → success.
+   */
+  const deleteAccountHandler = useCallback(async (): Promise<AccountDeletionResult> => {
+    setErrorMessage(null);
+
+    const result = await requestAccountDeletion();
+    if (!result.ok) {
+      setErrorMessage(result.messageTr);
+      return result;
+    }
+
+    try {
+      await clearVocabularyItems();
+    } catch {
+      // Best-effort local wipe.
+    }
+
+    try {
+      resetLocalPracticeData();
+    } catch {
+      // Best-effort local wipe.
+    }
+
+    if (isRevenueCatConfigured()) {
+      try {
+        await logoutRevenueCatUser();
+      } catch {
+        // Account is already deleted server-side; continue local cleanup.
+      }
+    }
+
+    // Auth user may already be gone — ignore sign-out failures.
+    try {
+      await signOutFromSupabase();
+    } catch {
+      // continue
+    }
+
+    const guestId = anonymousUserId ?? (await getOrCreateAnonymousUserId());
+    await applyGuestIdentity(guestId);
+
+    if (__DEV__) {
+      console.log('[EchoSpeak Auth] account deleted');
+    }
+
+    return { ok: true };
+  }, [anonymousUserId, applyGuestIdentity, resetLocalPracticeData]);
+
   const refreshSessionHandler = useCallback(async () => {
     setErrorMessage(null);
     const nextUser = await refreshSession();
@@ -305,6 +359,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUpWithEmailPassword: signUpWithEmailPasswordHandler,
       updateDisplayName: updateDisplayNameHandler,
       signOut: signOutHandler,
+      deleteAccount: deleteAccountHandler,
       refreshSession: refreshSessionHandler,
       clearError,
     }),
@@ -319,6 +374,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUpWithEmailPasswordHandler,
       updateDisplayNameHandler,
       signOutHandler,
+      deleteAccountHandler,
       refreshSessionHandler,
       clearError,
     ],

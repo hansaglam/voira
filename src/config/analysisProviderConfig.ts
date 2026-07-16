@@ -29,3 +29,18 @@ export function getAnalysisProviderMode(): AnalysisProviderMode {
 
   return 'disabled';
 }
+
+export function getBackendApiBaseUrl(): string {
+  const endpoint = BACKEND_ANALYSIS_ENDPOINT;
+  if (!endpoint) return '';
+  return endpoint.replace(/\/api\/analyze-speech\/?$/i, '').replace(/\/$/, '');
+}
+
+export function getAccountDeleteEndpoint(): string {
+  const base = getBackendApiBaseUrl();
+  return base ? `${base}/api/account/delete` : '';
+}
+
+export function isAccountDeleteEndpointConfigured(): boolean {
+  return getAccountDeleteEndpoint().length > 0;
+}
