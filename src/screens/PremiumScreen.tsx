@@ -31,6 +31,7 @@ import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legalLinks';
 import { openExternalLink } from '../utils/openExternalLink';
 import { showAppDialog, showAppFeedback } from '../components/dialog';
 import { VoiraFeedbackModal, type VoiraFeedbackType } from '../components/VoiraFeedbackModal';
+import { getPremiumCancelNote } from '../utils/billingCopy';
 import { getStoreAccountLabel } from '../utils/storeSubscriptions';
 import { colors, spacing, borderRadius, layout } from '../theme';
 
@@ -602,10 +603,7 @@ export function PremiumScreen({ navigation }: Props) {
           </AppCard>
 
           {selectedPackage ? (
-            <Text style={styles.cancelNote}>
-              Aboneliğini App Store veya Google Play hesap ayarlarından yönetebilir ya da iptal
-              edebilirsin. Abonelik otomatik yenilenir.
-            </Text>
+            <Text style={styles.cancelNote}>{getPremiumCancelNote()}</Text>
           ) : null}
         </>
       )}

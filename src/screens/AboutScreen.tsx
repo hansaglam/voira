@@ -8,6 +8,7 @@ import {
   SUPPORT_EMAIL,
   TERMS_OF_USE_URL,
 } from '../constants/legalLinks';
+import { getAboutSpeakPlusBody } from '../utils/billingCopy';
 import { openExternalLink } from '../utils/openExternalLink';
 import { colors, spacing, typography, borderRadius } from '../theme';
 
@@ -34,8 +35,7 @@ export function AboutScreen(_props: Props) {
         },
         {
           title: 'SpeakPlus',
-          body:
-            'SpeakPlus, uygulama içi abonelik ile sunulan premium ders paketleri ve gelişmiş geri bildirimlerdir. Abonelik ödemeleri, kullandığın platforma göre Apple App Store veya Google Play hesabın üzerinden yönetilir. Satın alımları Profil veya paywall ekranından geri yükleyebilirsin.',
+          body: getAboutSpeakPlusBody(),
         },
         {
           title: 'İletişim ve yasal',

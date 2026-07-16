@@ -16,6 +16,9 @@ import Constants from 'expo-constants';
  *
  * The app never hardcodes product IDs or prices — it loads the current
  * RevenueCat offering’s monthly/annual packages for the active platform.
+ *
+ * Note: user-facing store names live in platform-split billingCopy.* files
+ * so iOS binaries never include competing-store strings (Guideline 2.3.10).
  */
 
 export const PREMIUM_ENTITLEMENT_ID =

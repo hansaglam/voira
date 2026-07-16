@@ -10,6 +10,12 @@ import {
   DATA_DELETION_URL,
   SUPPORT_EMAIL,
 } from '../constants/legalLinks';
+import {
+  getDataDeletionLocalResetMessage,
+  getDataDeletionMayRemainBody,
+  getDataDeletionSpeakPlusNote,
+  getDataDeletionSubscriptionNote,
+} from '../utils/billingCopy';
 import { openExternalLink } from '../utils/openExternalLink';
 import { colors, spacing, borderRadius } from '../theme';
 
@@ -27,8 +33,7 @@ export function DataDeletionScreen(_props: Props) {
   const handleLocalReset = () => {
     showAppConfirm({
       title: 'Yerel verileri sıfırla',
-      message:
-        'Bu işlem yalnızca bu cihazdaki pratik geçmişini, skorları ve günlük oturum kayıtlarını siler. Hesap silme talebi değildir. Profil tercihlerin korunur. Aktif bir App Store veya Google Play aboneliğini iptal etmez.',
+      message: getDataDeletionLocalResetMessage(),
       destructive: true,
       confirmLabel: 'Sıfırla',
       cancelLabel: 'Vazgeç',
@@ -99,8 +104,7 @@ export function DataDeletionScreen(_props: Props) {
           requestSection,
           {
             title: 'Abonelik notu',
-            body:
-              'Uygulama hesabını veya uygulama verilerini silmek, aktif SpeakPlus aboneliğini iptal etmez. Faturalandırmayı durdurmak için aboneliğini App Store veya Google Play hesap ayarlarından iptal et.',
+            body: getDataDeletionSubscriptionNote(),
           },
         ]}
         footer={sharedFooter}
@@ -120,14 +124,17 @@ export function DataDeletionScreen(_props: Props) {
             'Doğrulanmış bir silme talebinden sonra, yasal / güvenlik / dolandırıcılık önleme / işlem kaydı zorunlulukları saklı kalmak üzere hesabınla ilişkili veriler silinir veya kimlikten arındırılır. Buna hesap verileri; saklanıyorsa ilerleme, kelime defteri ve analiz geçmişi dahil olabilir.',
         },
         {
-          title: 'Kalabilecekler',
+          title: 'Uygulama içi hesap silme',
           body:
-            'App Store / Google Play / RevenueCat işlem veya entitlement kayıtları, kimliği belli olmayan günlükler ve yalnızca cihazında kalan veriler (uygulama verisi temizlenene veya uygulama kaldırılana kadar).',
+            'Kayıtlı hesabını silmek için Profil → Hesabı Sil yolunu kullan. Onayladıktan sonra hesap silme işlemi uygulama içinde tamamlanır.',
+        },
+        {
+          title: 'Kalabilecekler',
+          body: getDataDeletionMayRemainBody(),
         },
         {
           title: 'Abonelik notu',
-          body:
-            'Uygulama hesabını veya uygulama verilerini silmek, aktif SpeakPlus aboneliğini iptal etmez. SpeakPlus’ı durdurmak için aboneliğini App Store veya Google Play hesap ayarlarından iptal et.',
+          body: getDataDeletionSpeakPlusNote(),
         },
       ]}
       footer={sharedFooter}

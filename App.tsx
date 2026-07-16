@@ -35,7 +35,7 @@ if (__DEV__) {
   LogBox.ignoreLogs([
     'Error fetching offerings',
     'There is an issue with your configuration',
-    'no Play Store products registered in the RevenueCat dashboard',
+    'no store products registered in the RevenueCat dashboard',
   ]);
 
   void getAllLessons().then((publishedLessons) => {

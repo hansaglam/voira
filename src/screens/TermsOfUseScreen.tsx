@@ -7,6 +7,7 @@ import {
   SUPPORT_EMAIL,
   TERMS_OF_USE_URL,
 } from '../constants/legalLinks';
+import { getTermsSpeakPlusBody } from '../utils/billingCopy';
 import { openExternalLink } from '../utils/openExternalLink';
 import { colors, spacing, borderRadius } from '../theme';
 
@@ -40,8 +41,7 @@ export function TermsOfUseScreen(_props: Props) {
         },
         {
           title: 'SpeakPlus abonelikleri',
-          body:
-            'SpeakPlus abonelikleri iOS’ta Apple App Store, Android’de Google Play üzerinden faturalandırılır. Fiyat ve yenileme koşulları satın almadan önce gösterilir. İptal ve iadeler ilgili mağaza politikalarına tabidir. Uygulamayı silmek veya veri silme talebi aboneliği iptal etmez; aboneliğini App Store veya Google Play hesap ayarlarından yönetebilir ya da iptal edebilirsin.',
+          body: getTermsSpeakPlusBody(),
         },
         {
           title: 'Kabul edilebilir kullanım',
