@@ -1,4 +1,6 @@
 import { getLessonById } from '../../data/lessons';
+import { calculateNativeScore, getRecommendedLessons } from '../../data/learningAlgorithm';
+import { contentCatalog } from '../../data/content/contentCatalog';
 import {
   getAnalysisProviderMode,
   isBackendAnalysisEndpointConfigured,
@@ -11,8 +13,15 @@ import { UserLearningProfile } from '../../types/learning';
 import { Lesson } from '../../types/lesson';
 import { LessonSegment } from '../../types/segment';
 import { getActiveSegment } from '../../utils/lessonUtils';
+import { dedupeStrings } from '../../utils/stringUtils';
 import { analyzeSpeechMock } from '../ai/mockSpeechAnalysisService';
-import { AiAnalysisMode, AiSpeechAnalysisOutput } from '../ai/aiTypes';
+import { getMatchingFeedbackRules } from '../ai/feedbackRules';
+import {
+  AiAnalysisMode,
+  AiSpeechAnalysisOutput,
+  PronunciationIssue,
+  RhythmIssue,
+} from '../ai/aiTypes';
 import { PracticeMode } from '../../types/learning';
 import {
   AudioAnalysisInput,
@@ -293,6 +302,59 @@ export async function runAudioAnalysisPipeline(
   }
 }
 
+const DEFAULT_BACKEND_COACH_TR =
+  'Her deneme seni ileri taşır. Önce yavaş, sonra doğal ritimle tekrar et.';
+const DEFAULT_BACKEND_FOCUS_TR =
+  'Cümleyi tek nefeste, bağlı bir ritimle tekrar et.';
+
+function resolveNumericScore(value: number | undefined): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function buildPronunciationIssues(
+  rules: ReturnType<typeof getMatchingFeedbackRules>,
+): PronunciationIssue[] {
+  return rules
+    .filter((rule) => ['th_sound', 'w_v_distinction', 'final_consonants'].includes(rule.id))
+    .map((rule) => {
+      let severity: PronunciationIssue['severity'] = 'low';
+      if (rule.penalty >= 8) severity = 'high';
+      else if (rule.penalty >= 6) severity = 'medium';
+      return {
+        id: rule.id,
+        labelTr: rule.labelTr,
+        detailTr: rule.coachTipTr,
+        severity,
+      };
+    });
+}
+
+function buildRhythmIssues(rules: ReturnType<typeof getMatchingFeedbackRules>): RhythmIssue[] {
+  return rules
+    .filter((rule) =>
+      ['rhythm_stress', 'word_linking', 'word_by_word', 'fast_reductions'].includes(rule.id),
+    )
+    .map((rule) => ({
+      id: rule.id,
+      labelTr: rule.labelTr,
+      detailTr: rule.coachTipTr,
+    }));
+}
+
+function buildRecommendedLessonIds(
+  userProfile: UserLearningProfile,
+  currentLessonId: string,
+): string[] {
+  try {
+    const catalogLessons = Array.isArray(contentCatalog) ? contentCatalog : [];
+    return getRecommendedLessons(userProfile, catalogLessons, 2)
+      .filter((lesson) => lesson.id !== currentLessonId)
+      .map((lesson) => lesson.id);
+  } catch {
+    return [];
+  }
+}
+
 /** Maps pipeline output into the rich AI analysis shape used by existing screens. */
 export function pipelineResultToAiSpeechAnalysisOutput(
   pipeline: AudioAnalysisPipelineResult,
@@ -304,51 +366,76 @@ export function pipelineResultToAiSpeechAnalysisOutput(
     mode: PracticeMode;
   },
 ): AiSpeechAnalysisOutput {
-  if (!pipeline.transcription.transcript.trim() || pipeline.transcription.confidence <= 0) {
+  const transcript = pipeline.transcription.transcript.trim();
+  if (!transcript || pipeline.transcription.confidence <= 0) {
     throw new AnalysisUnavailableError('silent_recording', ANALYSIS_SILENT_RECORDING_TR);
   }
 
-  const base = analyzeSpeechMock({
-    targetText: context.targetText,
-    userTranscript: pipeline.transcription.transcript,
-    lesson: context.lesson,
-    segment: context.segment,
-    userProfile: context.userProfile,
-    audioUri: pipeline.preparedAudio.uri,
-    mode: context.mode,
-  });
+  const scoring = pipeline.scoring;
+  const pronunciationScore = resolveNumericScore(scoring.pronunciationScore) ?? 0;
+  const fluencyScore = resolveNumericScore(scoring.fluencyScore) ?? 0;
+  const rhythmScore = resolveNumericScore(scoring.rhythmScore) ?? 0;
+  const confidenceScore = resolveNumericScore(scoring.confidenceScore) ?? 0;
+  const nativeScore =
+    resolveNumericScore(scoring.nativeScore) ??
+    calculateNativeScore({
+      pronunciationScore,
+      fluencyScore,
+      rhythmScore,
+      confidenceScore,
+    });
+
+  const wordMatchScore =
+    computeWordMatchScore(
+      scoring.correctWords,
+      scoring.missingWords,
+      scoring.wordsToImprove,
+    ) || resolveNumericScore(scoring.matchScore) || 0;
+
+  const feedbackRules = getMatchingFeedbackRules(
+    context.targetText,
+    transcript,
+    context.userProfile.weakAreas,
+  );
+
+  if (__DEV__) {
+    console.log('[EchoSpeak Analysis] backend pipeline scores', {
+      scoreSource: scoring.scoreSource ?? null,
+      analysisMode: pipeline.analysisMode ?? scoring.analysisMode ?? null,
+      nativeScore,
+      matchScore: scoring.matchScore ?? null,
+      transcriptPreview: transcript.slice(0, 80),
+    });
+  }
 
   return {
-    ...base,
-    transcript: pipeline.transcription.transcript,
-    wordMatchScore: computeWordMatchScore(
-      pipeline.scoring.correctWords,
-      pipeline.scoring.missingWords,
-      pipeline.scoring.wordsToImprove,
-    ),
-    matchScore: pipeline.scoring.matchScore,
-    analysisMode: pipeline.analysisMode ?? pipeline.scoring.analysisMode,
+    transcript,
+    wordMatchScore,
+    matchScore: scoring.matchScore,
+    analysisMode: pipeline.analysisMode ?? scoring.analysisMode,
     pronunciationAssessmentAvailable:
-      pipeline.pronunciationAssessmentAvailable ??
-      pipeline.scoring.pronunciationAssessmentAvailable,
-    pronunciationProvider: pipeline.scoring.pronunciationProvider,
-    scoreSource: pipeline.scoring.scoreSource,
-    pronunciationScore: pipeline.scoring.pronunciationScore,
-    accuracyScore: pipeline.scoring.accuracyScore,
-    fluencyScore: pipeline.scoring.fluencyScore,
-    completenessScore: pipeline.scoring.completenessScore,
-    prosodyScore: pipeline.scoring.prosodyScore,
-    rhythmScore: pipeline.scoring.rhythmScore,
-    confidenceScore: pipeline.scoring.confidenceScore,
-    nativeScore: pipeline.scoring.nativeScore,
-    correctWords: pipeline.scoring.correctWords,
-    missingWords: pipeline.scoring.missingWords,
-    wordsToImprove: pipeline.scoring.wordsToImprove,
-    weakAreasDetected: pipeline.scoring.weakAreasDetected,
-    wordPronunciationFeedback: pipeline.scoring.wordPronunciationFeedback,
-    phonemeFeedback: pipeline.scoring.phonemeFeedback,
-    aiCoachCommentTr: pipeline.aiCoachCommentTr,
-    nextFocusTr: pipeline.nextFocusTr,
-    feedbackType: pipeline.feedbackType ?? pipeline.scoring.feedbackType,
+      pipeline.pronunciationAssessmentAvailable ?? scoring.pronunciationAssessmentAvailable,
+    pronunciationProvider: scoring.pronunciationProvider,
+    scoreSource: scoring.scoreSource,
+    pronunciationScore,
+    accuracyScore: scoring.accuracyScore,
+    fluencyScore,
+    completenessScore: scoring.completenessScore,
+    prosodyScore: scoring.prosodyScore,
+    rhythmScore,
+    confidenceScore,
+    nativeScore,
+    correctWords: dedupeStrings(scoring.correctWords ?? []),
+    missingWords: dedupeStrings(scoring.missingWords ?? []),
+    wordsToImprove: dedupeStrings(scoring.wordsToImprove ?? []),
+    weakAreasDetected: dedupeStrings(scoring.weakAreasDetected ?? []),
+    wordPronunciationFeedback: scoring.wordPronunciationFeedback,
+    phonemeFeedback: scoring.phonemeFeedback,
+    pronunciationIssues: buildPronunciationIssues(feedbackRules),
+    rhythmIssues: buildRhythmIssues(feedbackRules),
+    aiCoachCommentTr: pipeline.aiCoachCommentTr?.trim() || DEFAULT_BACKEND_COACH_TR,
+    nextFocusTr: pipeline.nextFocusTr?.trim() || DEFAULT_BACKEND_FOCUS_TR,
+    recommendedLessonIds: buildRecommendedLessonIds(context.userProfile, context.lesson.id),
+    feedbackType: pipeline.feedbackType ?? scoring.feedbackType,
   };
 }
