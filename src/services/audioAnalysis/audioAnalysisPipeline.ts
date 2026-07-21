@@ -27,6 +27,7 @@ import {
   AudioAnalysisInput,
   AudioAnalysisPipelineResult,
   PreparedAudio,
+  PronunciationScoringResult,
 } from './audioAnalysisTypes';
 import {
   ANALYSIS_LOW_VOLUME_TR,
@@ -43,7 +44,10 @@ import {
 } from './mockPronunciationScoringService';
 import { mockTranscribeAudio } from './mockTranscriptionService';
 import { prepareAudioForAnalysis } from './prepareAudioForAnalysis';
-import { computeWordMatchScore } from '../../utils/analysisWordDisplay';
+import {
+  computeWordMatchScore,
+  wordsEquivalentForDisplay,
+} from '../../utils/analysisWordDisplay';
 
 export interface AudioAnalysisPipelineContext {
   lesson?: Lesson;
@@ -355,6 +359,31 @@ function buildRecommendedLessonIds(
   }
 }
 
+/**
+ * Azure moves weakly pronounced words out of "missing" (they were spoken), which
+ * can leave them absent from every word list while the coach comment still
+ * mentions them. Surface those words under "improve" and drop them from
+ * "correct" so chips and the match percent stay consistent with the coaching.
+ */
+function reconcileWeakWordsForDisplay(scoring: PronunciationScoringResult): {
+  correctWords: string[];
+  missingWords: string[];
+  wordsToImprove: string[];
+} {
+  const missingWords = dedupeStrings(scoring.missingWords ?? []);
+  const weakWords = (scoring.wordPronunciationFeedback ?? [])
+    .map((item) => item.word.trim())
+    .filter(Boolean)
+    .filter((word) => !missingWords.some((missing) => wordsEquivalentForDisplay(missing, word)));
+
+  const wordsToImprove = dedupeStrings([...(scoring.wordsToImprove ?? []), ...weakWords]);
+  const correctWords = dedupeStrings(scoring.correctWords ?? []).filter(
+    (word) => !weakWords.some((weak) => wordsEquivalentForDisplay(weak, word)),
+  );
+
+  return { correctWords, missingWords, wordsToImprove };
+}
+
 /** Maps pipeline output into the rich AI analysis shape used by existing screens. */
 export function pipelineResultToAiSpeechAnalysisOutput(
   pipeline: AudioAnalysisPipelineResult,
@@ -385,12 +414,13 @@ export function pipelineResultToAiSpeechAnalysisOutput(
       confidenceScore,
     });
 
+  const { correctWords, missingWords, wordsToImprove } =
+    reconcileWeakWordsForDisplay(scoring);
+
   const wordMatchScore =
-    computeWordMatchScore(
-      scoring.correctWords,
-      scoring.missingWords,
-      scoring.wordsToImprove,
-    ) || resolveNumericScore(scoring.matchScore) || 0;
+    computeWordMatchScore(correctWords, missingWords, wordsToImprove) ||
+    resolveNumericScore(scoring.matchScore) ||
+    0;
 
   const feedbackRules = getMatchingFeedbackRules(
     context.targetText,
@@ -425,9 +455,9 @@ export function pipelineResultToAiSpeechAnalysisOutput(
     rhythmScore,
     confidenceScore,
     nativeScore,
-    correctWords: dedupeStrings(scoring.correctWords ?? []),
-    missingWords: dedupeStrings(scoring.missingWords ?? []),
-    wordsToImprove: dedupeStrings(scoring.wordsToImprove ?? []),
+    correctWords,
+    missingWords,
+    wordsToImprove,
     weakAreasDetected: dedupeStrings(scoring.weakAreasDetected ?? []),
     wordPronunciationFeedback: scoring.wordPronunciationFeedback,
     phonemeFeedback: scoring.phonemeFeedback,
