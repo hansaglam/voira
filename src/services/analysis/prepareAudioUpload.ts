@@ -42,8 +42,7 @@ export function getAudioMimeType(audioUri: string): string {
   const extension = extensionFromUri(audioUri);
 
   if (extension === '.m4a' || extension === '.mp4' || extension === '.aac') {
-    // iOS often works best declaring MPEG-4 container MIME for AAC/m4a uploads.
-    if (Platform.OS === 'ios') return 'audio/mp4';
+    if (Platform.OS === 'ios') return 'audio/m4a';
     return extension === '.mp4' ? 'audio/mp4' : 'audio/m4a';
   }
   if (extension === '.caf') return 'audio/x-caf';
@@ -51,7 +50,7 @@ export function getAudioMimeType(audioUri: string): string {
   if (extension === '.mp3') return 'audio/mpeg';
 
   // Ambiguous / missing extension — production-safe default for Voira recordings.
-  return Platform.OS === 'ios' ? 'audio/mp4' : 'audio/m4a';
+  return Platform.OS === 'ios' ? 'audio/m4a' : 'audio/m4a';
 }
 
 export function getAudioFileName(audioUri: string): string {

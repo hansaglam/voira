@@ -2,6 +2,7 @@ export type AnalysisFailureReason =
   | 'missing_recording'
   | 'too_short'
   | 'silent_recording'
+  | 'partial_transcript'
   | 'low_volume'
   | 'real_analysis_disabled'
   | 'processing_failed'
@@ -9,6 +10,9 @@ export type AnalysisFailureReason =
 
 export const ANALYSIS_SILENT_RECORDING_TR =
   'Sesini algılayamadım. Lütfen cümleyi sesli şekilde tekrar söyle.';
+
+export const ANALYSIS_PARTIAL_TRANSCRIPT_TR =
+  'Konuşmanın yalnızca küçük bir kısmı algılandı. Cümleyi biraz daha net ve baştan sona tekrar söyle.';
 
 export const ANALYSIS_SILENT_RECORDING_SCREEN_TITLE_TR = 'Ses algılanamadı';
 
@@ -56,6 +60,8 @@ export function getAnalysisFailureMessageTr(reason: AnalysisFailureReason): stri
       return ANALYSIS_TOO_SHORT_TR;
     case 'silent_recording':
       return ANALYSIS_SILENT_RECORDING_TR;
+    case 'partial_transcript':
+      return ANALYSIS_PARTIAL_TRANSCRIPT_TR;
     case 'low_volume':
       return ANALYSIS_LOW_VOLUME_TR;
     case 'real_analysis_disabled':

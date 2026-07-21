@@ -4,13 +4,18 @@ import {
   BACKEND_ANALYSIS_ENDPOINT,
   isBackendAnalysisEndpointConfigured,
 } from '../../config/analysisProviderConfig';
-import { logAudioDebug } from '../../config/audioDebugConfig';
+import { logAudioDebug, logUploadDiagnostics, shouldLogUploadDiagnostics } from '../../config/audioDebugConfig';
 import type {
   BackendAnalysisFailedResponse,
   BackendAnalysisRequest,
   BackendAnalysisResponse,
   BackendAnalysisSuccessResponse,
 } from './backendAnalysisTypes';
+import {
+  ANDROID_MIN_STABLE_FILE_BYTES,
+  IOS_MIN_STABLE_FILE_BYTES,
+  waitForStableFile,
+} from '../audio/waitForStableFile';
 import {
   buildAudioUploadFile,
   normalizeFormDataUri,
@@ -139,6 +144,22 @@ function parseAnalysisPayload(
         : null,
   });
 
+  if (
+    shouldLogUploadDiagnostics() &&
+    payload &&
+    typeof payload === 'object' &&
+    'transcript' in payload &&
+    typeof (payload as { transcript?: unknown }).transcript === 'string'
+  ) {
+    const transcript = (payload as { transcript: string }).transcript.trim();
+    logUploadDiagnostics('backend_analysis_transcript_preview', {
+      platform: Platform.OS,
+      status,
+      transcriptLength: transcript.length,
+      transcriptPreview: transcript.slice(0, 120),
+    });
+  }
+
   if (status >= 400) {
     if (isFailedResponse(payload)) {
       return failed(
@@ -236,6 +257,23 @@ export async function requestBackendSpeechAnalysis(
   let stagedUri: string | null = null;
 
   try {
+    const minStableBytes =
+      Platform.OS === 'ios' ? IOS_MIN_STABLE_FILE_BYTES : ANDROID_MIN_STABLE_FILE_BYTES;
+
+    if (Platform.OS === 'ios') {
+      const stable = await waitForStableFile(audioUri, { minBytes: minStableBytes });
+      logUploadDiagnostics('backend_upload_stable_file', {
+        platform: Platform.OS,
+        fileSizeBytes: stable.fileSizeBytes,
+        stable: stable.stable,
+        attempts: stable.attempts,
+        reason: stable.reason ?? null,
+      });
+      if (!stable.ok) {
+        return failed('file_missing', FILE_EMPTY_TR);
+      }
+    }
+
     const fileInfo = await FileSystem.getInfoAsync(audioUri);
     const fileSizeBytes =
       fileInfo.exists && 'size' in fileInfo && typeof fileInfo.size === 'number'
@@ -254,11 +292,22 @@ export async function requestBackendSpeechAnalysis(
       durationMs: input.durationMillis,
     });
 
+    logUploadDiagnostics('backend_upload_payload', {
+      platform: Platform.OS,
+      fileSizeBytes,
+      durationMs: input.durationMillis,
+      mimeType: uploadFile.type,
+      uploadName: uploadFile.name,
+      uriExtension: uploadFile.name.includes('.')
+        ? uploadFile.name.slice(uploadFile.name.lastIndexOf('.'))
+        : null,
+    });
+
     if (!fileInfo.exists) {
       return failed('file_missing', FILE_MISSING_TR);
     }
 
-    if (fileSizeBytes !== null && fileSizeBytes < 256) {
+    if (fileSizeBytes !== null && fileSizeBytes < minStableBytes) {
       return failed('file_missing', FILE_EMPTY_TR);
     }
 

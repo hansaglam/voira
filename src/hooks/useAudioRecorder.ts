@@ -5,15 +5,25 @@ import {
   useAudioRecorderState,
   useAudioPlayer,
   useAudioPlayerStatus,
-  setAudioModeAsync,
   requestRecordingPermissionsAsync,
   type AudioPlayer,
 } from 'expo-audio';
 import * as FileSystem from 'expo-file-system/legacy';
 import { RecordedAudio } from '../types/audio';
 import { MIN_RECORDING_DURATION_MS } from '../config/analysisConfig';
-import { logAudioDebug } from '../config/audioDebugConfig';
+import { logAudioDebug, logUploadDiagnostics } from '../config/audioDebugConfig';
 import { getVoiraRecordingOptions } from '../config/recordingOptions';
+import {
+  configureAudioSessionForPlayback,
+  configureAudioSessionForRecording,
+  IOS_POST_STOP_SETTLE_MS,
+  IOS_RECORD_START_DELAY_MS,
+  sleepMs,
+} from '../services/audio/iosRecordingSession';
+import {
+  IOS_MIN_STABLE_FILE_BYTES,
+  waitForStableFile,
+} from '../services/audio/waitForStableFile';
 import {
   logRecordingValidation,
   validateRecordedAudio,
@@ -42,6 +52,8 @@ export type RecordingState =
 
 /** @deprecated use RecordingState */
 export type RecordingSessionStatus = 'idle' | 'recording' | 'recorded' | 'error';
+
+const RECORDING_CAPTURE_FAILED_TR = 'Ses kaydı alınamadı. Lütfen tekrar dene.';
 
 const NATIVE_PLACEHOLDER_MS = 2200;
 
@@ -72,6 +84,18 @@ function uriExtension(uri: string): string | null {
   const idx = path.lastIndexOf('.');
   if (idx < 0) return null;
   return path.slice(idx).toLowerCase();
+}
+
+function normalizeRecordingUri(uri: string): string {
+  const trimmed = uri.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/')) {
+    return `file://${trimmed}`;
+  }
+  return trimmed;
 }
 
 export function getRecordingStatusMessage(
@@ -117,7 +141,6 @@ export function useAudioRecorder() {
   const recordingStartedAtRef = useRef<number | null>(null);
   const meteringSamplesRef = useRef<number[]>([]);
   const meteringAvailableRef = useRef(false);
-  const audioModeReadyRef = useRef(false);
   const isMountedRef = useRef(true);
   const isRecordingRef = useRef(false);
   const isPlayingRef = useRef(false);
@@ -226,8 +249,12 @@ export function useAudioRecorder() {
       uri: string,
       durationMillis: number,
       state: RecordingState,
+      fileSizeBytesOverride?: number | null,
     ): Promise<RecordingValidationResult> => {
-      const fileSizeBytes = await getRecordingFileSizeBytes(uri);
+      const fileSizeBytes =
+        fileSizeBytesOverride !== undefined
+          ? fileSizeBytesOverride
+          : await getRecordingFileSizeBytes(uri);
       const validation = validateRecordedAudio({
         audioUri: uri,
         durationMillis,
@@ -334,13 +361,11 @@ export function useAudioRecorder() {
   }, [cleanupAudio]);
 
   const ensureAudioMode = useCallback(async () => {
-    if (audioModeReadyRef.current) return;
-    await setAudioModeAsync({
-      playsInSilentMode: true,
-      allowsRecording: true,
-      shouldPlayInBackground: false,
-    });
-    audioModeReadyRef.current = true;
+    await configureAudioSessionForRecording();
+  }, []);
+
+  const ensurePlaybackAudioMode = useCallback(async () => {
+    await configureAudioSessionForPlayback();
   }, []);
 
   useEffect(() => {
@@ -398,6 +423,7 @@ export function useAudioRecorder() {
 
     try {
       await safeStopPlayback();
+      await configureAudioSessionForRecording();
       safeSetState(setRecordedAudio, null);
       safeSetState(setRecordingValidation, null);
       safeSetState(setRecordingStartedAt, null);
@@ -405,9 +431,18 @@ export function useAudioRecorder() {
       meteringSamplesRef.current = [];
       meteringAvailableRef.current = false;
       await expoRecorder.prepareToRecordAsync(RECORDING_OPTIONS);
+      if (Platform.OS === 'ios') {
+        await sleepMs(IOS_RECORD_START_DELAY_MS);
+      }
       expoRecorder.record();
       isRecordingRef.current = true;
       logAudioDebug('start_recording', {
+        platform: Platform.OS,
+        extension: RECORDING_OPTIONS.extension ?? null,
+        sampleRate: RECORDING_OPTIONS.sampleRate ?? null,
+        numberOfChannels: RECORDING_OPTIONS.numberOfChannels ?? null,
+      });
+      logUploadDiagnostics('recording_start', {
         platform: Platform.OS,
         extension: RECORDING_OPTIONS.extension ?? null,
         sampleRate: RECORDING_OPTIONS.sampleRate ?? null,
@@ -426,22 +461,20 @@ export function useAudioRecorder() {
       isRecordingRef.current = false;
       clearRecordingTimer();
 
+      if (Platform.OS === 'ios') {
+        await sleepMs(IOS_POST_STOP_SETTLE_MS);
+      }
+
       const endedIso = new Date().toISOString();
       safeSetState(setRecordingEndedAt, endedIso);
 
       const uri = expoRecorder.uri;
       if (!uri) {
-        safeSetState(setErrorMessage, 'Kayıt kaydedilemedi. Lütfen tekrar dene.');
+        safeSetState(setErrorMessage, RECORDING_CAPTURE_FAILED_TR);
         return;
       }
 
-      // Keep a scheme-prefixed URI for playback / upload on iOS.
-      const normalizedUri =
-        uri.startsWith('file://') || uri.startsWith('content://')
-          ? uri
-          : uri.startsWith('/')
-            ? `file://${uri}`
-            : uri;
+      const normalizedUri = normalizeRecordingUri(uri);
 
       const status = expoRecorder.getStatus();
       const durationMillis = Math.max(
@@ -452,18 +485,56 @@ export function useAudioRecorder() {
           : 0,
       );
 
+      let fileSizeBytes: number | null | undefined;
+      if (Platform.OS === 'ios') {
+        const stable = await waitForStableFile(normalizedUri, {
+          minBytes: IOS_MIN_STABLE_FILE_BYTES,
+        });
+        fileSizeBytes = stable.fileSizeBytes;
+        logUploadDiagnostics('recording_stop_stable_file', {
+          platform: Platform.OS,
+          uriExtension: uriExtension(normalizedUri),
+          durationMs: durationMillis,
+          fileSizeBytes,
+          stable: stable.stable,
+          attempts: stable.attempts,
+          reason: stable.reason ?? null,
+        });
+        if (!stable.ok) {
+          safeSetState(setErrorMessage, RECORDING_CAPTURE_FAILED_TR);
+          safeSetState(setRecordingValidation, {
+            isValid: false,
+            hasSpeech: false,
+            reason: 'file_empty',
+            messageTr: RECORDING_CAPTURE_FAILED_TR,
+            durationMillis,
+            fileSizeBytes: fileSizeBytes ?? undefined,
+          });
+          return;
+        }
+      }
+
       safeSetState(setRecordedAudio, {
         uri: normalizedUri,
         durationMillis,
         createdAt: endedIso,
       });
 
-      const validation = await runRecordingValidation(normalizedUri, durationMillis, 'recorded');
+      const validation = await runRecordingValidation(
+        normalizedUri,
+        durationMillis,
+        'recorded',
+        fileSizeBytes,
+      );
       safeSetState(setRecordingValidation, validation);
 
       if (!validation.isValid && !permissionDenied) {
+        safeSetState(setErrorMessage, validation.messageTr || RECORDING_CAPTURE_FAILED_TR);
+      } else if (!permissionDenied) {
         safeSetState(setErrorMessage, null);
       }
+
+      await configureAudioSessionForPlayback();
     } catch {
       safeSetState(setErrorMessage, 'Kayıt durdurulamadı. Lütfen tekrar dene.');
     }
@@ -485,7 +556,7 @@ export function useAudioRecorder() {
     }
 
     try {
-      await ensureAudioMode();
+      await ensurePlaybackAudioMode();
       clearNativeTimer();
       safeSetState(setIsPlayingNative, false);
 
@@ -504,7 +575,7 @@ export function useAudioRecorder() {
       isPlayingRef.current = false;
       safeSetState(setIsPlayingRecording, false);
     }
-  }, [clearNativeTimer, ensureAudioMode, permissionDenied, recordedAudio, safeSetState]);
+  }, [clearNativeTimer, ensurePlaybackAudioMode, permissionDenied, recordedAudio, safeSetState]);
 
   const playNativePlaceholder = useCallback(
     async (durationMs = NATIVE_PLACEHOLDER_MS) => {

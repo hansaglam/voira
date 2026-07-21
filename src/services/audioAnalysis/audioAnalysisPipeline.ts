@@ -32,6 +32,7 @@ import {
 import {
   ANALYSIS_LOW_VOLUME_TR,
   ANALYSIS_MISSING_RECORDING_TR,
+  ANALYSIS_PARTIAL_TRANSCRIPT_TR,
   ANALYSIS_REAL_DISABLED_TR,
   ANALYSIS_SILENT_RECORDING_TR,
   ANALYSIS_TOO_SHORT_TR,
@@ -72,6 +73,29 @@ function tokenize(text: string): string[] {
     .replace(/[^\w\s']/g, ' ')
     .split(/\s+/)
     .filter(Boolean);
+}
+
+/** Reject truncated-capture uploads before showing misleading scores. */
+function assertTranscriptCoversSpeech(
+  transcript: string,
+  targetText: string,
+  durationMillis: number,
+): void {
+  const transcriptWords = tokenize(transcript);
+  const targetWords = tokenize(targetText);
+  if (targetWords.length === 0 || transcriptWords.length === 0) {
+    return;
+  }
+
+  const coverageRatio = transcriptWords.length / targetWords.length;
+  const veryShortCapture =
+    transcriptWords.length <= 2 && targetWords.length >= 4 && durationMillis >= 1000;
+  const lowCoverage =
+    coverageRatio < 0.25 && targetWords.length >= 5 && durationMillis >= 1000;
+
+  if (veryShortCapture || lowCoverage) {
+    throw new AnalysisUnavailableError('partial_transcript', ANALYSIS_PARTIAL_TRANSCRIPT_TR);
+  }
 }
 
 function mapBackendResponseToPipeline(
@@ -215,6 +239,12 @@ async function runBackendAnalysisPipeline(
   if (!backendResponse.ok) {
     throwBackendFailure(backendResponse.errorCode, backendResponse.messageTr);
   }
+
+  assertTranscriptCoversSpeech(
+    backendResponse.transcript,
+    input.targetText,
+    preparedAudio.durationMillis ?? input.durationMillis ?? 0,
+  );
 
   return mapBackendResponseToPipeline(preparedAudio, backendResponse);
 }

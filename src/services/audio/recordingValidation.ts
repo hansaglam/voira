@@ -5,6 +5,7 @@ import {
   MIN_SPEECH_FRAMES,
   SILENCE_PEAK_THRESHOLD_DB,
 } from '../../config/audioValidationConfig';
+import { IOS_MIN_STABLE_FILE_BYTES } from './waitForStableFile';
 import { logAudioDebug } from '../../config/audioDebugConfig';
 
 export type RecordingValidationReason =
@@ -218,8 +219,13 @@ export function validateRecordedAudio(
   /**
    * Client metering is unreliable on iOS (missing samples, floor values, wrong scale).
    * Do not block practice with false "Sesini algılayamadım" — backend STT is the source of truth.
+   * Still reject clearly empty/truncated files after stable-size checks upstream.
    */
   if (Platform.OS === 'ios') {
+    if (fileSizeBytes !== undefined && fileSizeBytes < IOS_MIN_STABLE_FILE_BYTES) {
+      return buildInvalidResult('file_empty', FILE_EMPTY_MESSAGE_TR, baseMetrics);
+    }
+
     logAudioDebug('validation_ios_metering_bypass', {
       durationMillis: duration,
       fileSizeBytes,
