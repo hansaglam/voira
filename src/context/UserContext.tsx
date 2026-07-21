@@ -16,8 +16,17 @@ import {
   saveOnboardingState,
 } from '../data/onboardingStorage';
 import { LessonCategory } from '../types/lesson';
+import type { RecordingValidationResult } from '../services/audio/recordingValidation';
 
 export type PostOnboardingRoute = 'Home' | 'AnalysisResult' | null;
+
+export interface PostOnboardingAnalysisParams {
+  audioUri?: string;
+  durationMillis?: number;
+  recordedAt?: string;
+  hasSpeech?: boolean;
+  recordingValidation?: RecordingValidationResult;
+}
 
 export interface PendingFirstLesson {
   lessonId: string;
@@ -31,11 +40,7 @@ interface UserContextType {
   onboardingComplete: boolean;
   isOnboardingHydrated: boolean;
   postOnboardingRoute: PostOnboardingRoute;
-  postOnboardingAnalysisParams: {
-    audioUri?: string;
-    durationMillis?: number;
-    recordedAt?: string;
-  } | null;
+  postOnboardingAnalysisParams: PostOnboardingAnalysisParams | null;
   pendingFirstLesson: PendingFirstLesson | null;
   setLevel: (level: EnglishLevel) => void;
   setGoals: (goals: string[]) => void;
@@ -45,7 +50,7 @@ interface UserContextType {
   completeOnboarding: (
     route?: 'Home' | 'AnalysisResult',
     options?: {
-      analysisParams?: { audioUri?: string; durationMillis?: number; recordedAt?: string };
+      analysisParams?: PostOnboardingAnalysisParams;
       lessonParams?: PendingFirstLesson;
       primaryGoal?: string;
     },
@@ -78,11 +83,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isOnboardingHydrated, setIsOnboardingHydrated] = useState(false);
   const [primaryGoal, setPrimaryGoalState] = useState<string | null>(null);
   const [postOnboardingRoute, setPostOnboardingRoute] = useState<PostOnboardingRoute>(null);
-  const [postOnboardingAnalysisParams, setPostOnboardingAnalysisParams] = useState<{
-    audioUri?: string;
-    durationMillis?: number;
-    recordedAt?: string;
-  } | null>(null);
+  const [postOnboardingAnalysisParams, setPostOnboardingAnalysisParams] =
+    useState<PostOnboardingAnalysisParams | null>(null);
   const [pendingFirstLesson, setPendingFirstLesson] = useState<PendingFirstLesson | null>(null);
 
   useEffect(() => {
@@ -142,7 +144,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     async (
       route: 'Home' | 'AnalysisResult' = 'Home',
       options?: {
-        analysisParams?: { audioUri?: string; durationMillis?: number; recordedAt?: string };
+        analysisParams?: PostOnboardingAnalysisParams;
         lessonParams?: PendingFirstLesson;
         primaryGoal?: string;
       },

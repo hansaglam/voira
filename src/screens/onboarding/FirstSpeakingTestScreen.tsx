@@ -32,6 +32,8 @@ export function FirstSpeakingTestScreen({ navigation }: Props) {
     recordingDurationMs,
     canAnalyze,
     isRecordingTooShort,
+    hasSpeech,
+    recordingValidation,
     permissionDenied,
     errorMessage,
     statusMessage,
@@ -87,6 +89,7 @@ export function FirstSpeakingTestScreen({ navigation }: Props) {
     const uri = audioUri;
     const duration = durationMillis ?? undefined;
     const recordedAtParam = recordedAt ?? undefined;
+    const validationSnapshot = recordingValidation ?? undefined;
 
     void prepareForNavigation().then(() => {
       void completeOnboarding('AnalysisResult', {
@@ -94,10 +97,21 @@ export function FirstSpeakingTestScreen({ navigation }: Props) {
           audioUri: uri,
           durationMillis: duration,
           recordedAt: recordedAtParam,
+          hasSpeech,
+          recordingValidation: validationSnapshot,
         },
       });
     });
-  }, [audioUri, canAnalyze, completeOnboarding, durationMillis, prepareForNavigation, recordedAt]);
+  }, [
+    audioUri,
+    canAnalyze,
+    completeOnboarding,
+    durationMillis,
+    hasSpeech,
+    prepareForNavigation,
+    recordedAt,
+    recordingValidation,
+  ]);
 
   const handleRetryPermission = useCallback(() => {
     void retryPermission();

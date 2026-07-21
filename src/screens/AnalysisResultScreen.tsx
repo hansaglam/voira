@@ -209,22 +209,12 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     return false;
   }, [analysisError, routeValidation?.reason]);
 
+  // resolveLessonOrFallback always falls back to lessons[0]; an early return here
+  // would violate the Rules of Hooks because more hooks follow below.
   const lesson = useMemo(
     () => resolveLessonOrFallback(lessonId),
     [lessonId],
   );
-
-  if (!lesson) {
-    return (
-      <ScreenContainer withPersistentTabBar activeTab={analysisActiveTab}>
-        <AppCard style={styles.errorCard}>
-          <Text style={styles.errorText}>
-            Ders içeriği şu anda yüklenemedi. Lütfen kategori listesinden tekrar seç.
-          </Text>
-        </AppCard>
-      </ScreenContainer>
-    );
-  }
 
   const currentSegmentIndex = useMemo(
     () => resolveCurrentSegmentIndex(lesson, segmentId, segmentIndexParam),
@@ -741,6 +731,17 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
         </Text>
       </View>
 
+      {analysis.transcript.trim() ? (
+        <AppCard style={styles.transcriptCard}>
+          <View style={styles.transcriptHeader}>
+            <Ionicons name="mic-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.transcriptTitle}>Algılanan konuşman</Text>
+          </View>
+          <Text style={styles.transcriptText}>“{analysis.transcript.trim()}”</Text>
+          <Text style={styles.transcriptTarget}>Hedef: {segment.text}</Text>
+        </AppCard>
+      ) : null}
+
       {isWrongSentenceFeedback ? (
         <AppCard style={styles.wrongSentenceCard}>
           <View style={styles.wrongSentenceHeader}>
@@ -1029,6 +1030,34 @@ const styles = StyleSheet.create({
   },
   analysisNote: {
     flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textMuted,
+  },
+  transcriptCard: {
+    marginBottom: spacing.sm,
+    padding: CARD_PADDING,
+    gap: spacing.xs,
+  },
+  transcriptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  transcriptTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  transcriptText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textPrimary,
+    fontStyle: 'italic',
+  },
+  transcriptTarget: {
     fontSize: 12,
     lineHeight: 18,
     color: colors.textMuted,

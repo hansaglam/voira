@@ -65,9 +65,6 @@ const FILE_EMPTY_MESSAGE_TR =
 const SILENT_RECORDING_MESSAGE_TR =
   'Sesini algılayamadım. Lütfen cümleyi sesli şekilde tekrar söyle.';
 
-const LOW_VOLUME_MESSAGE_TR =
-  'Ses çok düşük görünüyor. Mikrofona biraz daha yakın konuşmayı dene.';
-
 const UNKNOWN_MESSAGE_TR =
   'Kayıt doğrulanamadı. Lütfen tekrar dene.';
 
@@ -249,10 +246,18 @@ export function validateRecordedAudio(
     return buildInvalidResult('silent_recording', SILENT_RECORDING_MESSAGE_TR, baseMetrics);
   }
 
+  /**
+   * Speech was detected (peak + speech frames passed). Do not reject on the
+   * whole-recording average: leading/trailing silence and natural pauses pull
+   * it below any threshold on longer sentences, producing false "low volume"
+   * errors. Backend STT is the source of truth for actual audibility.
+   */
   if (average <= LOW_VOLUME_AVERAGE_THRESHOLD_DB) {
-    return buildInvalidResult('low_volume', LOW_VOLUME_MESSAGE_TR, {
-      ...baseMetrics,
-      hasSpeech: false,
+    logAudioDebug('validation_low_average_accepted', {
+      durationMillis: duration,
+      averageMetering: average,
+      peakMetering: peak,
+      speechFrames,
     });
   }
 
