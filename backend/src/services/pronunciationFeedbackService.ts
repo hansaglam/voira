@@ -2,37 +2,54 @@ import type {
   PhonemeFeedback,
   WordPronunciationFeedback,
 } from '../types/analysis.js';
+import { getCoachCopy } from '../i18n/coachCopy.js';
+import type { CoachLanguage } from '../i18n/uiLanguage.js';
+import { DEFAULT_COACH_LANGUAGE } from '../i18n/uiLanguage.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 
 export const WEAK_WORD_ACCURACY_THRESHOLD = 70;
 const WEAK_PHONEME_ACCURACY_THRESHOLD = 65;
 
-function buildWordFeedbackTr(word: string, accuracyScore?: number, errorType?: string): string | undefined {
+function buildWordFeedbackTr(
+  word: string,
+  accuracyScore: number | undefined,
+  errorType: string | undefined,
+  uiLanguage: CoachLanguage,
+): string | undefined {
+  const copy = getCoachCopy(uiLanguage);
+
   if (errorType && errorType !== 'None') {
-    return `'${word}' kelimesinde telaffuz hatası görüldü.`;
+    return copy.wordError(word);
   }
 
   if (accuracyScore !== undefined && accuracyScore < WEAK_WORD_ACCURACY_THRESHOLD) {
-    return `'${word}' kelimesinin telaffuzu zayıf kaldı.`;
+    return copy.wordWeak(word);
   }
 
   return undefined;
 }
 
-function buildPhonemeFeedbackTr(phoneme: string, accuracyScore?: number): string | undefined {
+function buildPhonemeFeedbackTr(
+  phoneme: string,
+  accuracyScore: number | undefined,
+  uiLanguage: CoachLanguage,
+): string | undefined {
   if (accuracyScore === undefined || accuracyScore >= WEAK_PHONEME_ACCURACY_THRESHOLD) {
     return undefined;
   }
 
+  const copy = getCoachCopy(uiLanguage);
+
   if (phoneme.toLowerCase().includes('th')) {
-    return 'TH sesi zayıf kaldı; dil uçlarını hafifçe ısırarak dene.';
+    return copy.phonemeTh;
   }
 
-  return `'${phoneme}' sesinin netliğini artırmayı dene.`;
+  return copy.phonemeWeak(phoneme);
 }
 
 export function buildWordPronunciationFeedback(
   assessment?: PronunciationAssessmentResult | null,
+  uiLanguage: CoachLanguage = DEFAULT_COACH_LANGUAGE,
 ): WordPronunciationFeedback[] {
   if (!assessment?.ok || !assessment.wordScores?.length) {
     return [];
@@ -47,6 +64,7 @@ export function buildWordPronunciationFeedback(
         wordScore.word,
         wordScore.accuracyScore,
         wordScore.errorType,
+        uiLanguage,
       ),
     }))
     .filter((entry) => entry.feedbackTr || (entry.accuracyScore ?? 100) < WEAK_WORD_ACCURACY_THRESHOLD);
@@ -54,6 +72,7 @@ export function buildWordPronunciationFeedback(
 
 export function buildPhonemeFeedback(
   assessment?: PronunciationAssessmentResult | null,
+  uiLanguage: CoachLanguage = DEFAULT_COACH_LANGUAGE,
 ): PhonemeFeedback[] {
   if (!assessment?.ok || !assessment.wordScores?.length) {
     return [];
@@ -66,6 +85,7 @@ export function buildPhonemeFeedback(
       const feedbackTr = buildPhonemeFeedbackTr(
         phonemeScore.phoneme,
         phonemeScore.accuracyScore,
+        uiLanguage,
       );
 
       if (!feedbackTr) {

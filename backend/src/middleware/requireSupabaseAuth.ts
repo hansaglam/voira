@@ -1,18 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 import { getSupabaseAdminClient, isSupabaseAdminConfigured } from '../services/supabase/supabaseAdminClient.js';
+import { extractBearerToken } from '../utils/authHeaders.js';
 import { failed, sendFailed } from '../utils/response.js';
 
 export type AuthenticatedRequest = Request & {
   authUserId?: string;
 };
-
-function extractBearerToken(req: Request): string | null {
-  const header = req.header('authorization') ?? req.header('Authorization');
-  if (!header) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  const token = match?.[1]?.trim();
-  return token && token.length > 0 ? token : null;
-}
 
 /**
  * Verifies the caller's Supabase access token and attaches authUserId.

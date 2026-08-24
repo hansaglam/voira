@@ -174,6 +174,7 @@ test('buildCoachFeedbackTr uses low-score copy for poor matches', () => {
     targetText: target,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -201,6 +202,7 @@ test('buildCoachFeedbackTr prioritizes missing-word guidance when words were not
     targetText: target,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -307,6 +309,7 @@ test('buildCoachFeedbackTr avoids native pronunciation claims in text_match_only
     targetText: target,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -422,6 +425,7 @@ test('buildCoachFeedbackTr mentions weak azure words in pronunciation mode', () 
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -461,6 +465,7 @@ test('azure coach feedback prioritizes wrong sentence over pronunciation tips', 
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -501,6 +506,7 @@ test('azure coach feedback focuses on completion when words are missing', () => 
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -541,6 +547,7 @@ test('azure coach feedback mentions low fluency when rhythm is weak', () => {
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -580,6 +587,7 @@ test('azure coach feedback gives positive message on strong results', () => {
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -657,6 +665,7 @@ test('wrong sentence suppresses misleading coach and weak pronunciation words', 
   });
   const reconciled = reconcileWordFeedback(target, comparison, pronunciationAssessment);
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -711,6 +720,7 @@ test('missing final word keeps weak pronunciation only for spoken words', () => 
   });
   const reconciled = reconcileWordFeedback(target, comparison, pronunciationAssessment);
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -824,6 +834,7 @@ test('rebalanced azure scoring caps full sentence with bad pronunciation', () =>
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -866,6 +877,7 @@ test('rebalanced azure scoring keeps moderate pronunciation below excellent rang
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -906,6 +918,7 @@ test('rebalanced azure scoring allows excellent result for strong pronunciation'
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,
@@ -941,6 +954,7 @@ test('rebalanced coach keeps missing words feedback for low completeness', () =>
     pronunciationAssessment,
   });
   const coach = buildCoachFeedbackTr({
+    uiLanguage: 'tr',
     targetText: target,
     transcript,
     comparison,

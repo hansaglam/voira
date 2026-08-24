@@ -1,4 +1,7 @@
 import type { TextComparisonResult, WordPronunciationFeedback } from '../types/analysis.js';
+import { getCoachCopy } from '../i18n/coachCopy.js';
+import type { CoachLanguage } from '../i18n/uiLanguage.js';
+import { DEFAULT_COACH_LANGUAGE } from '../i18n/uiLanguage.js';
 import { tokenize } from '../utils/normalize.js';
 import type { PronunciationAssessmentResult, PronunciationWordScore } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 import {
@@ -196,12 +199,13 @@ export function reconcileWordFeedback(
   targetText: string,
   comparison: TextComparisonResult,
   assessment?: PronunciationAssessmentResult | null,
+  uiLanguage: CoachLanguage = DEFAULT_COACH_LANGUAGE,
 ): ReconciledWordFeedback {
   if (!assessment?.ok || !assessment.wordScores?.length) {
     return {
       missingWords: [...comparison.missingWords],
       wordsToImprove: [...comparison.wordsToImprove],
-      wordPronunciationFeedback: buildWordPronunciationFeedback(assessment),
+      wordPronunciationFeedback: buildWordPronunciationFeedback(assessment, uiLanguage),
       movedFromMissingToWeak: [],
     };
   }
@@ -232,7 +236,7 @@ export function reconcileWordFeedback(
   }
 
   let wordPronunciationFeedback = mapFeedbackToTargetWords(
-    buildWordPronunciationFeedback(assessment),
+    buildWordPronunciationFeedback(assessment, uiLanguage),
     targetText,
   );
 
@@ -261,7 +265,7 @@ export function reconcileWordFeedback(
       word: movedWord,
       accuracyScore: azureMatch.accuracyScore,
       errorType: azureMatch.errorType,
-      feedbackTr: `'${movedWord}' kelimesinin telaffuzu zayıf kaldı.`,
+      feedbackTr: getCoachCopy(uiLanguage).wordWeak(movedWord),
     });
   }
 

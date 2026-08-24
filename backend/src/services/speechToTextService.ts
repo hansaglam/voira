@@ -1,6 +1,8 @@
 import OpenAI, { toFile } from 'openai';
 import { APIError } from 'openai';
 import { IS_DEV, OPENAI_API_KEY } from '../config.js';
+import { OPENAI_WHISPER_TIMEOUT_MS } from '../config/timeouts.js';
+import { PRACTICE_AUDIO_LANGUAGE } from '../i18n/coachPromptRules.js';
 import { analysisErrorLog } from '../utils/analysisDebugLog.js';
 import { normalizeForComparison } from '../utils/normalize.js';
 
@@ -31,7 +33,10 @@ let openaiClient: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
   if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: OPENAI_API_KEY });
+    openaiClient = new OpenAI({
+      apiKey: OPENAI_API_KEY,
+      timeout: OPENAI_WHISPER_TIMEOUT_MS,
+    });
   }
   return openaiClient;
 }
@@ -102,7 +107,7 @@ export async function transcribeAudio(file: UploadedAudioFile): Promise<Transcri
     const transcription = await openai.audio.transcriptions.create({
       file: audioFile,
       model: 'whisper-1',
-      language: 'en',
+      language: PRACTICE_AUDIO_LANGUAGE,
       response_format: 'json',
     });
 
@@ -136,7 +141,9 @@ export async function transcribeAudio(file: UploadedAudioFile): Promise<Transcri
 
     return {
       ok: false,
-      errorCode: 'transcription_failed',
+      errorCode: error instanceof Error && error.message.includes('timeout')
+        ? 'transcription_timeout'
+        : 'transcription_failed',
       messageTr: STT_FAILED_TR,
     };
   }

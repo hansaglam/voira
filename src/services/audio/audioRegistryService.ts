@@ -2,6 +2,8 @@ import {
   AUDIO_REGISTRY_ENDPOINT,
   isAudioRegistryEndpointConfigured,
 } from '../../config/audioRegistryConfig';
+import { AUDIO_REGISTRY_FETCH_TIMEOUT_MS } from '../../config/httpTimeouts';
+import { fetchWithTimeout } from '../../utils/fetchWithTimeout';
 import { Lesson } from '../../types/lesson';
 import { LessonSegment } from '../../types/segment';
 
@@ -133,7 +135,11 @@ export async function fetchAudioRegistry(): Promise<RemoteAudioRegistry | null> 
 
   fetchPromise = (async () => {
     try {
-      const response = await fetch(AUDIO_REGISTRY_ENDPOINT);
+      const response = await fetchWithTimeout(
+        AUDIO_REGISTRY_ENDPOINT,
+        { method: 'GET', headers: { Accept: 'application/json' } },
+        AUDIO_REGISTRY_FETCH_TIMEOUT_MS,
+      );
       if (!response.ok) {
         throw new Error(`registry_status_${response.status}`);
       }

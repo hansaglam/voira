@@ -31,6 +31,9 @@ import {
 } from './services/pronunciationAssessment/pronunciationAssessmentConfig.js';
 import { isPronunciationAssessmentAvailable } from './services/pronunciationAssessment/pronunciationAssessmentProvider.js';
 import { failed, sendFailed } from './utils/response.js';
+import { requestIdMiddleware } from './middleware/requestId.js';
+import { logServerError } from './utils/safeServerLog.js';
+import type { RequestWithId } from './middleware/requestId.js';
 
 validateProductionConfig();
 warnIfAdminSecretMissingInDev();
@@ -44,6 +47,7 @@ if (!IS_DEV) {
 }
 
 app.use(corsMiddleware);
+app.use(requestIdMiddleware);
 app.use(express.json({ limit: '1mb' }));
 
 app.use((req, _res, next) => {
@@ -107,13 +111,14 @@ app.use(
 app.use(
   (
     err: unknown,
-    _req: express.Request,
+    req: express.Request,
     res: express.Response,
     _next: express.NextFunction,
   ) => {
-    if (IS_DEV) {
-      console.error('[EchoSpeak API] unhandled_error', err);
-    }
+    logServerError('unhandled_error', {
+      req: req as RequestWithId,
+      error: err,
+    });
     res.status(500).json({
       ok: false,
       errorCode: 'server_error',

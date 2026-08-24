@@ -21,6 +21,9 @@ import {
   normalizeFormDataUri,
   type AudioUploadFile,
 } from './prepareAudioUpload';
+import { buildAnalysisUploadHeaders } from './buildAnalysisUploadHeaders';
+import { ANALYSIS_UPLOAD_TIMEOUT_MS } from '../../config/httpTimeouts';
+import { FetchTimeoutError, withTimeout } from '../../utils/fetchWithTimeout';
 
 const BACKEND_NOT_CONFIGURED_TR =
   'Analiz servisine şu anda ulaşılamıyor. Lütfen internet bağlantını kontrol edip tekrar dene.';
@@ -324,7 +327,9 @@ export async function requestBackendSpeechAnalysis(
       staged: Boolean(stagedUri),
     });
 
-    const uploadResult = await FileSystem.uploadAsync(
+    const uploadHeaders = await buildAnalysisUploadHeaders(input.userId);
+
+    const uploadTask = FileSystem.createUploadTask(
       BACKEND_ANALYSIS_ENDPOINT,
       uploadUri,
       {
@@ -333,16 +338,35 @@ export async function requestBackendSpeechAnalysis(
         fieldName: 'audio',
         mimeType: stagedUploadFile.type,
         sessionType: FileSystem.FileSystemSessionType.FOREGROUND,
+        headers: uploadHeaders,
         parameters: {
-          userId: input.userId ?? 'guest-local',
           lessonId: input.lessonId,
           segmentId: input.segmentId,
           targetText: input.targetText,
           durationMillis: String(input.durationMillis),
           mode: input.mode,
+          uiLanguage: input.uiLanguage ?? '',
         },
       },
     );
+
+    let uploadResult;
+    try {
+      uploadResult = await withTimeout(
+        uploadTask.uploadAsync(),
+        ANALYSIS_UPLOAD_TIMEOUT_MS,
+        'analysis_upload_timeout',
+      );
+    } catch (error) {
+      if (error instanceof FetchTimeoutError) {
+        await uploadTask.cancelAsync().catch(() => undefined);
+      }
+      throw error;
+    }
+
+    if (!uploadResult) {
+      return failed('network_error', NETWORK_ERROR_TR);
+    }
 
     return parseAnalysisPayload(uploadResult.body ?? '', uploadResult.status);
   } catch (error) {
@@ -350,6 +374,7 @@ export async function requestBackendSpeechAnalysis(
     logAudioDebug('backend_analysis_network_error', {
       platform: Platform.OS,
       message,
+      timedOut: error instanceof FetchTimeoutError,
     });
     return failed('network_error', NETWORK_ERROR_TR);
   } finally {

@@ -1,4 +1,6 @@
 import { getAccountDeleteEndpoint, isAccountDeleteEndpointConfigured } from '../../config/analysisProviderConfig';
+import { ACCOUNT_DELETE_TIMEOUT_MS } from '../../config/httpTimeouts';
+import { fetchWithTimeout } from '../../utils/fetchWithTimeout';
 import { getCurrentSession } from './authService';
 
 export type AccountDeletionErrorCode =
@@ -65,15 +67,19 @@ export async function requestAccountDeletion(): Promise<AccountDeletionResult> {
   }
 
   try {
-    const response = await fetch(getAccountDeleteEndpoint(), {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
+    const response = await fetchWithTimeout(
+      getAccountDeleteEndpoint(),
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({}),
       },
-      body: JSON.stringify({}),
-    });
+      ACCOUNT_DELETE_TIMEOUT_MS,
+    );
 
     const bodyText = await response.text();
     let payload: {

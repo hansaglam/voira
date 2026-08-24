@@ -1,14 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { Request } from 'express';
-
-function extractBearerToken(req: Request): string | null {
-  const header = req.header('authorization') ?? req.header('Authorization');
-  if (!header) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
-  const token = match?.[1]?.trim();
-  return token && token.length > 0 ? token : null;
-}
+import { extractBearerToken } from '../utils/authHeaders.js';
 
 function mockRequest(partial: Partial<Request> & { headers?: Record<string, string> }): Request {
   const headers = partial.headers ?? {};
@@ -37,10 +30,9 @@ test('extractBearerToken returns null without Authorization', () => {
 });
 
 test('account delete must ignore body userId and use JWT subject only', () => {
-  // Documented contract for reviewers / maintainers — body userId is never trusted.
   const bodyUserId = 'attacker-controlled-id';
   const jwtSubject = 'verified-user-id';
-  const resolvedUserId = jwtSubject; // requireSupabaseAuth sets authUserId from JWT
+  const resolvedUserId = jwtSubject;
   assert.notEqual(bodyUserId, resolvedUserId);
   assert.equal(resolvedUserId, 'verified-user-id');
 });

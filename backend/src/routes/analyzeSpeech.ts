@@ -2,13 +2,18 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'node:path';
 import {
-  MAX_ANALYSIS_AUDIO_DURATION_MS,
   MAX_AUDIO_FILE_BYTES,
-  MIN_RECORDING_DURATION_MS,
   IS_DEV,
 } from '../config.js';
-import { analyzeRateLimit } from '../middleware/analyzeRateLimit.js';
+import { analyzeIdentityRateLimit, analyzeIpRateLimit, analyzeLegacyRateLimit } from '../middleware/analyzeRateLimit.js';
+import {
+  requireAnalysisIdentity,
+  type AnalysisIdentityRequest,
+} from '../middleware/analysisRequestIdentity.js';
 import { buildCoachFeedbackTr, logCoachDecision, resolveCoachFeedbackDecision } from '../services/coachFeedbackService.js';
+import { resolveCoachLanguage } from '../i18n/uiLanguage.js';
+import { getAnalyzeErrorCopy } from '../i18n/analyzeErrors.js';
+import { COACH_FEEDBACK_LANGUAGE_RULES } from '../i18n/coachPromptRules.js';
 import {
   buildAzureScoringDecision,
   logAzureScoringDecision,
@@ -32,11 +37,14 @@ import {
 } from '../services/pronunciationAssessment/index.js';
 import { buildAnalysisScores } from '../services/speechScoreService.js';
 import { transcribeAudio } from '../services/speechToTextService.js';
+import { validateUploadedAnalysisAudio } from '../services/audio/probeUploadedAudio.js';
 import { compareTranscriptToTarget } from '../services/textComparisonService.js';
 import { detectWeakAreas } from '../services/weakAreaDetectionService.js';
 import type { AnalysisSuccessResponse } from '../types/analysis.js';
 import { analysisDebugLog } from '../utils/analysisDebugLog.js';
+import type { RequestWithId } from '../middleware/requestId.js';
 import { debugLog } from '../utils/debugLog.js';
+import { logServerError } from '../utils/safeServerLog.js';
 import { failed, sendFailed, sendSuccess } from '../utils/response.js';
 
 const upload = multer({
@@ -89,99 +97,123 @@ export const analyzeSpeechRouter = Router();
 /**
  * POST /api/analyze-speech
  *
- * Guest analysis remains supported (no JWT required yet).
- * Cost controls: IP rate limit, MIME allowlist, file size, max duration.
- *
- * TODO(post-release): add per-user / per-device analysis limits once stable
- * identity is available for both guests and signed-in users.
- * TODO(future): optionally verify Supabase JWT before trusting userId.
- * TODO(future): save analysis result; delete audio after processing.
+ * Guest analysis supported via x-guest-id; signed-in users send Bearer token.
+ * Legacy clients without modern headers are accepted when ALLOW_LEGACY_ANALYSIS_CLIENTS is enabled.
+ * Cost controls: identity + IP rate limits, server-side audio probe, file size.
  */
 analyzeSpeechRouter.post(
   '/analyze-speech',
-  analyzeRateLimit,
+  requireAnalysisIdentity,
+  analyzeIpRateLimit,
+  analyzeLegacyRateLimit,
+  analyzeIdentityRateLimit,
   upload.single('audio'),
   async (req, res) => {
+    const identityReq = req as AnalysisIdentityRequest & RequestWithId;
+    const uiLanguage = resolveCoachLanguage(req.body?.uiLanguage);
+    const errorCopy = getAnalyzeErrorCopy(uiLanguage);
+    const identity = identityReq.analysisIdentity;
+
     try {
       const audioFile = req.file;
       const {
-        userId,
         lessonId,
         segmentId,
         targetText,
         durationMillis: durationMillisRaw,
         mode,
+        userId: bodyUserId,
       } = req.body ?? {};
 
       if (!audioFile || audioFile.size === 0) {
         return sendFailed(res, 400, failed(
           'missing_audio',
-          'Ses dosyası alınamadı. Lütfen tekrar dene.',
-        ));
-      }
-
-      if (audioFile.size > MAX_AUDIO_FILE_BYTES) {
-        return sendFailed(res, 400, failed(
-          'file_too_large',
-          'Ses dosyası çok büyük. Lütfen daha kısa bir kayıt dene.',
+          errorCopy.missingAudio,
         ));
       }
 
       const mimeType = (audioFile.mimetype || '').trim();
-      if (!isAllowedAnalysisAudio(audioFile.originalname || '', mimeType)) {
+      const formatAllowed = isAllowedAnalysisAudio(audioFile.originalname || '', mimeType);
+
+      const clientDurationMs = (() => {
+        if (
+          durationMillisRaw === undefined ||
+          durationMillisRaw === null ||
+          String(durationMillisRaw).trim() === ''
+        ) {
+          return undefined;
+        }
+        const parsed = Number(durationMillisRaw);
+        return Number.isFinite(parsed) ? parsed : undefined;
+      })();
+
+      const audioValidation = await validateUploadedAnalysisAudio({
+        buffer: audioFile.buffer,
+        mimeType,
+        originalname: audioFile.originalname || 'recording.m4a',
+        fileSizeBytes: audioFile.size,
+        maxFileBytes: MAX_AUDIO_FILE_BYTES,
+        clientDurationMs,
+        isAllowedFormat: formatAllowed,
+      });
+
+      if (!audioValidation.ok) {
+        const messageByCode: Record<typeof audioValidation.errorCode, string> = {
+          missing_audio: errorCopy.missingAudio,
+          file_too_large: errorCopy.fileTooLarge,
+          unsupported_audio_format: errorCopy.unsupportedFormat,
+          too_short: errorCopy.tooShort,
+          audio_too_long: errorCopy.audioTooLong,
+          audio_unreadable: errorCopy.audioUnreadable,
+          audio_probe_failed: errorCopy.audioUnreadable,
+        };
         return sendFailed(res, 400, failed(
-          'unsupported_audio_format',
-          'Ses dosyası formatı desteklenmiyor. Lütfen tekrar kaydet.',
+          audioValidation.errorCode,
+          messageByCode[audioValidation.errorCode],
         ));
       }
+
+      const durationMillis = audioValidation.durationMs;
 
       const target = typeof targetText === 'string' ? targetText.trim() : '';
       if (!target) {
         return sendFailed(res, 400, failed(
           'missing_target_text',
-          'Hedef cümle bulunamadı.',
+          errorCopy.missingTarget,
         ));
       }
 
-      const hasDuration =
-        durationMillisRaw !== undefined &&
-        durationMillisRaw !== null &&
-        String(durationMillisRaw).trim() !== '';
+      const identityLog = identity?.type === 'authenticated'
+        ? { identityType: 'authenticated' as const, userId: identity.userId }
+        : identity?.type === 'guest'
+          ? { identityType: 'guest' as const, guestId: identity.guestId }
+          : identity?.type === 'legacy'
+            ? { identityType: 'legacy' as const }
+            : { identityType: 'unknown' as const };
 
-      let durationMillis: number;
-      if (hasDuration) {
-        durationMillis = Number(durationMillisRaw);
-        if (!Number.isFinite(durationMillis) || durationMillis < MIN_RECORDING_DURATION_MS) {
-          return sendFailed(res, 400, failed(
-            'too_short',
-            'Kayıt çok kısa. Lütfen cümleyi tekrar söyle.',
-          ));
-        }
-        if (durationMillis > MAX_ANALYSIS_AUDIO_DURATION_MS) {
-          return sendFailed(res, 400, failed(
-            'audio_too_long',
-            'Kayıt süresi çok uzun. Lütfen daha kısa bir kayıtla tekrar dene.',
-          ));
-        }
-      } else {
-        analysisDebugLog('[EchoSpeak API] missing_durationMillis', {
-          audioBytes: audioFile.size,
-          mimeType,
+      if (
+        typeof bodyUserId === 'string' &&
+        bodyUserId.trim() &&
+        identity?.type === 'authenticated' &&
+        bodyUserId.trim() !== identity.userId
+      ) {
+        analysisDebugLog('[EchoSpeak API] ignored_body_user_id_mismatch', {
+          ...identityLog,
+          bodyUserId: bodyUserId.trim(),
         });
-        // Old clients without duration: rely on file-size limit; use a neutral default for scoring.
-        durationMillis = Math.min(
-          MAX_ANALYSIS_AUDIO_DURATION_MS,
-          Math.max(MIN_RECORDING_DURATION_MS, 5_000),
-        );
       }
 
       debugLog('analyze_request', {
-        userId: typeof userId === 'string' ? userId : undefined,
+        ...identityLog,
         lessonId: typeof lessonId === 'string' ? lessonId : undefined,
         segmentId: typeof segmentId === 'string' ? segmentId : undefined,
         durationMillis,
+        clientDurationMs,
         mode: typeof mode === 'string' ? mode : undefined,
+        uiLanguage,
         audioBytes: audioFile.size,
+        requestId: identityReq.requestId,
+        coachLanguageRules: COACH_FEEDBACK_LANGUAGE_RULES.slice(0, 48),
       });
 
       analysisDebugLog('[EchoSpeak API] before_transcription', {
@@ -203,11 +235,16 @@ analyzeSpeechRouter.post(
       });
 
       if (!transcription.ok || !transcription.transcript?.trim()) {
+        const transcriptionMessage =
+          transcription.errorCode === 'empty_transcript'
+            ? errorCopy.emptyTranscript
+            : transcription.errorCode === 'backend_not_configured'
+              ? errorCopy.notConfigured
+              : errorCopy.transcriptionFailed;
         return res.status(200).json(
           failed(
             transcription.errorCode ?? 'empty_transcript',
-            transcription.messageTr ??
-              'Konuşmanı net algılayamadım. Lütfen daha net şekilde tekrar söyle.',
+            transcriptionMessage,
           ),
         );
       }
@@ -249,6 +286,7 @@ analyzeSpeechRouter.post(
         target,
         comparison,
         pronunciationAssessment,
+        uiLanguage,
       );
       const comparisonForFeedback = withReconciledComparison(
         comparison,
@@ -262,6 +300,7 @@ analyzeSpeechRouter.post(
         durationMillis,
       );
       const coach = buildCoachFeedbackTr({
+        uiLanguage,
         targetText: target,
         transcript,
         comparison: comparisonForFeedback,
@@ -324,7 +363,7 @@ analyzeSpeechRouter.post(
       const wordPronunciationFeedback = presentation.wordPronunciationFeedback;
       const phonemeFeedback = shouldSuppressPhonemeFeedback(feedbackType)
         ? []
-        : buildPhonemeFeedback(pronunciationAssessment);
+        : buildPhonemeFeedback(pronunciationAssessment, uiLanguage);
       const azurePronunciation = pronunciationAssessment?.ok
         ? {
             pronunciationScore: pronunciationAssessment.pronunciationScore ?? null,
@@ -407,13 +446,14 @@ analyzeSpeechRouter.post(
 
       return sendSuccess(res, success);
     } catch (error) {
-      debugLog('analyze_error', {
-        message: error instanceof Error ? error.message : 'unknown',
+      logServerError('analyze_error', {
+        req: identityReq,
+        error,
       });
 
       return sendFailed(res, 500, failed(
         'server_error',
-        'Analiz hazırlanırken bir sorun oluştu. Lütfen tekrar dene.',
+        errorCopy.serverError,
       ));
     }
   },

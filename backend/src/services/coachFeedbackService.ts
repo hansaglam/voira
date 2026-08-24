@@ -9,8 +9,13 @@ import { analysisDebugLog } from '../utils/analysisDebugLog.js';
 import { tokenize } from '../utils/normalize.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 import { wordsEquivalentForReconciliation } from './wordFeedbackReconciliationService.js';
+import type { CoachLanguage } from '../i18n/uiLanguage.js';
+import { DEFAULT_COACH_LANGUAGE } from '../i18n/uiLanguage.js';
+import { getCoachCopy, type CoachCopy } from '../i18n/coachCopy.js';
 
 export interface CoachFeedbackInput {
+  /** Resolved UI language for coach copy (tr/en/es/pt/id/ar). */
+  uiLanguage?: CoachLanguage;
   targetText: string;
   transcript: string;
   comparison: TextComparisonResult;
@@ -21,9 +26,6 @@ export interface CoachFeedbackInput {
   durationMillis?: number;
   pronunciationAssessment?: PronunciationAssessmentResult | null;
 }
-
-const TEXT_MATCH_NOTE_TR =
-  'Bu analiz kelime eşleşmesine göre hazırlanmıştır; gerçek telaffuz puanı için Azure telaffuz değerlendirmesi gerekir.';
 
 const WORDS_PER_SECOND_ESTIMATE = 2.4;
 const LOW_ORDER_SCORE_THRESHOLD = 75;
@@ -126,16 +128,16 @@ function getWeakAzureWords(
     .map((word) => word.word);
 }
 
-function formatWeakWordPhrase(words: string[]): string {
+function formatWeakWordPhrase(words: string[], copy: CoachCopy): string {
   if (words.length === 0) {
     return '';
   }
 
   if (words.length === 1) {
-    return `'${words[0]}'`;
+    return copy.quote(words[0]);
   }
 
-  return `'${words[0]}' ve '${words[1]}'`;
+  return copy.andJoin(copy.quote(words[0]), copy.quote(words[1]));
 }
 
 function formatMissingWords(missingWords: string[], limit = 4): string {
@@ -160,23 +162,24 @@ function isRecordingTooShort(
 function buildNextFocus(
   weakAreas: string[],
   comparison: TextComparisonResult,
+  copy: CoachCopy,
   feedbackType?: CoachFeedbackType,
 ): string {
   switch (feedbackType) {
     case 'wrong_sentence':
-      return 'Önce hedef cümleyi doğru kelimelerle baştan sona tamamlamaya odaklan.';
+      return copy.nextFocus.wrongSentence;
     case 'missing_words':
-      return 'Bir sonraki denemede cümleyi baştan sona tamamlamaya odaklan.';
+      return copy.nextFocus.missingWords;
     case 'clarity_issue':
-      return 'Zayıf görünen kelimeleri daha yavaş ve net söylemeye odaklan.';
+      return copy.nextFocus.clarityIssue;
     case 'weak_pronunciation':
-      return 'Zayıf kalan kelimeleri daha net söylemeye odaklan.';
+      return copy.nextFocus.weakPronunciation;
     case 'fluency_issue':
-      return 'Cümleyi tek parça ve daha akıcı söylemeyi dene.';
+      return copy.nextFocus.fluencyIssue;
     case 'prosody_issue':
-      return 'Önemli kelimelere hafif vurgu vererek tekrar dene.';
+      return copy.nextFocus.prosodyIssue;
     case 'good_result':
-      return 'Bir sonraki denemede daha doğal vurgu ve ritme odaklanabilirsin.';
+      return copy.nextFocus.goodResult;
     default:
       break;
   }
@@ -185,76 +188,80 @@ function buildNextFocus(
   const improveOnlyCount = getImproveOnlyWords(comparison).length;
 
   if (missingCount >= 2) {
-    return 'Bir sonraki denemede cümleyi baştan sona tamamlamaya odaklan.';
+    return copy.nextFocus.missingMany;
   }
 
   if (missingCount > improveOnlyCount && missingCount > 0) {
-    return 'Bir sonraki denemede cümleyi tamamlamaya odaklan.';
+    return copy.nextFocus.missingSome;
   }
 
   if (improveOnlyCount > 0) {
-    return 'Ritmi hedef cümleyle benzer tutmayı dene.';
+    return copy.nextFocus.improveWords;
   }
 
   const primaryWeakArea = weakAreas[0];
   if (!primaryWeakArea) {
-    return 'Önce kısa bölümler halinde, sonra tam cümle olarak söyle.';
+    return copy.nextFocus.fallback;
   }
-  return `Öncelik: ${primaryWeakArea}`;
+  return copy.nextFocus.priority(primaryWeakArea);
 }
 
-function appendTextMatchNote(comment: string, analysisMode: SpeechAnalysisMode): string {
+function appendTextMatchNote(
+  comment: string,
+  analysisMode: SpeechAnalysisMode,
+  copy: CoachCopy,
+): string {
   if (analysisMode !== 'text_match_only') {
     return comment;
   }
 
-  if (comment.includes('Detaylı telaffuz')) {
+  if (comment.includes(copy.textMatchNote) || comment.includes('Detaylı telaffuz')) {
     return comment;
   }
 
-  return `${comment} ${TEXT_MATCH_NOTE_TR}`;
+  return `${comment} ${copy.textMatchNote}`;
 }
 
-function buildMissingWordsComment(missingCount: number): string {
+function buildMissingWordsComment(missingCount: number, copy: CoachCopy): string {
   if (missingCount >= 2) {
-    return 'Bazı kelimeler eksik kaldı. Bir sonraki denemede cümleyi baştan sona tamamlamaya odaklan.';
+    return copy.missingWordsMany;
   }
 
-  return 'Bu denemede bazı kelimeler eksik kaldı. Bir sonraki denemede cümleyi tamamlamaya odaklan.';
+  return copy.missingWordsSome;
 }
 
-function buildShortRecordingComment(): string {
-  return 'Kayıt hedef cümleye göre kısa görünüyor. Cümleyi acele etmeden tamamını söylemeyi dene.';
+function buildShortRecordingComment(copy: CoachCopy): string {
+  return copy.shortRecording;
 }
 
-function buildLowOrderComment(): string {
-  return 'Kelimeleri doğru sırada ve cümle akışında söylemeye çalış.';
+function buildLowOrderComment(copy: CoachCopy): string {
+  return copy.lowOrder;
 }
 
-function buildImproveWordsComment(): string {
-  return 'Ritmi hedef cümleyle benzer tutmayı dene.';
+function buildImproveWordsComment(copy: CoachCopy): string {
+  return copy.improveWords;
 }
 
 function combineCoachComments(...parts: string[]): string {
   return parts.filter(Boolean).join(' ');
 }
 
-function buildStrictnessComments(input: CoachFeedbackInput): string[] {
+function buildStrictnessComments(input: CoachFeedbackInput, copy: CoachCopy): string[] {
   const { comparison, durationMillis } = input;
   const parts: string[] = [];
   const missingCount = comparison.missingWordCount || comparison.missingWords.length;
   const targetWordCount = comparison.targetWordCount;
 
   if (missingCount >= 2) {
-    parts.push(buildMissingWordsComment(missingCount));
+    parts.push(buildMissingWordsComment(missingCount, copy));
   }
 
   if (isRecordingTooShort(durationMillis, targetWordCount)) {
-    parts.push(buildShortRecordingComment());
+    parts.push(buildShortRecordingComment(copy));
   }
 
   if (comparison.orderScore < LOW_ORDER_SCORE_THRESHOLD && missingCount === 0) {
-    parts.push(buildLowOrderComment());
+    parts.push(buildLowOrderComment(copy));
   }
 
   return parts;
@@ -438,14 +445,14 @@ function logCoachDecision(
 }
 
 function buildClarityIssueComment(
+  copy: CoachCopy,
   pronunciationAssessment?: PronunciationAssessmentResult | null,
 ): string {
   const severeWeakWords = getSevereWeakAzureWords(pronunciationAssessment, 2);
-  let comment =
-    'Cümleyi büyük ölçüde tamamladın fakat telaffuz netliği düşük kaldı. Önce zayıf görünen kelimeleri daha yavaş ve net söylemeye odaklan.';
+  let comment = copy.clarityIssue;
 
   if (severeWeakWords.length > 0) {
-    comment += ` Özellikle ${formatWeakWordPhrase(severeWeakWords)} kelimelerini daha net söylemeyi dene.`;
+    comment += copy.clarityIssueWords(formatWeakWordPhrase(severeWeakWords, copy));
   }
 
   return comment;
@@ -454,6 +461,7 @@ function buildClarityIssueComment(
 function buildPronunciationAssessmentComment(
   input: CoachFeedbackInput,
   decision: CoachFeedbackDecision,
+  copy: CoachCopy,
 ): string {
   const { comparison, pronunciationAssessment } = input;
   const weakWords = getWeakAzureWords(pronunciationAssessment, 2);
@@ -462,41 +470,41 @@ function buildPronunciationAssessmentComment(
 
   switch (decision.feedbackType) {
     case 'wrong_sentence':
-      return 'Hedef cümleden farklı bir şey söyledin. Önce hedef cümleyi baştan sona doğru kelimelerle söylemeye odaklan.';
+      return copy.wrongSentence;
 
     case 'missing_words': {
-      let comment = 'Cümlenin bazı kelimeleri eksik kaldı. Önce hedef cümleyi baştan sona tamamlamaya odaklan.';
+      let comment = copy.missingWordsLead;
       if (missingWordsText) {
-        comment += ` Eksik kalan kelimeler: ${missingWordsText}.`;
+        comment += copy.missingWordsList(missingWordsText);
       }
       return comment;
     }
 
     case 'clarity_issue':
-      return buildClarityIssueComment(pronunciationAssessment);
+      return buildClarityIssueComment(copy, pronunciationAssessment);
 
     case 'weak_pronunciation':
-      return `Cümleyi büyük ölçüde tamamladın ama bazı kelimelerin telaffuzu zayıf kaldı. Özellikle ${formatWeakWordPhrase(weakWords)} kelimelerini daha net söylemeye odaklan.`;
+      return copy.weakPronunciation(formatWeakWordPhrase(weakWords, copy));
 
     case 'fluency_issue':
-      return 'Kelimeleri doğru söyledin ama akıcılık düşük kaldı. Cümleyi kelime kelime değil, daha bağlı ve tek parça halinde söylemeyi dene.';
+      return copy.fluencyIssue;
 
     case 'prosody_issue':
-      return 'Telaffuzun anlaşılır ama vurgu ve tonlama daha doğal olabilir. Önemli kelimelere hafif vurgu vererek tekrar dene.';
+      return copy.prosodyIssue;
 
     case 'good_result':
-      return 'Güzel iş. Cümleyi anlaşılır ve akıcı söyledin. Bir sonraki denemede daha doğal vurgu ve ritme odaklanabilirsin.';
+      return copy.goodResult;
 
     default:
       if (decision.pronunciationScore < 65 || decision.accuracyScore < 65) {
-        return 'Cümle anlaşılıyor ama telaffuz netliği düşük; hedef cümleyi daha yavaş ve net söylemeyi dene.';
+        return copy.generalLowClarity;
       }
 
       if (completenessScore >= CLARITY_COMPLETENESS_THRESHOLD) {
-        return 'Cümleyi büyük ölçüde tamamladın fakat telaffuz netliğini güçlendirmeye devam et. Zayıf kalan kelimeleri daha yavaş ve net söyle.';
+        return copy.generalStrengthenClarity;
       }
 
-      return 'Bir sonraki denemede hem tamamlamayı hem telaffuz netliğini güçlendirmeye odaklan.';
+      return copy.generalBoth;
   }
 }
 
@@ -527,33 +535,35 @@ function resolveTextMatchFeedbackType(input: CoachFeedbackInput): CoachFeedbackT
 
 export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
   const { comparison, scores, weakAreas } = input;
+  const copy = getCoachCopy(input.uiLanguage ?? DEFAULT_COACH_LANGUAGE);
   const matchScore = input.matchScore ?? scores.matchScore ?? comparison.matchPercent;
   const analysisMode = input.analysisMode ?? scores.analysisMode;
   const hasMissing = comparison.missingWords.length > 0;
   const missingCount = comparison.missingWordCount || comparison.missingWords.length;
   const improveOnlyWords = getImproveOnlyWords(comparison);
   const hasImprove = improveOnlyWords.length > 0;
-  const strictnessComments = buildStrictnessComments(input);
+  const strictnessComments = buildStrictnessComments(input, copy);
 
   if (analysisMode === 'pronunciation_assessment') {
     const decision = resolveCoachFeedbackDecision(input);
 
     return {
-      aiCoachCommentTr: buildPronunciationAssessmentComment(input, decision),
-      nextFocusTr: buildNextFocus(weakAreas, comparison, decision.feedbackType),
+      aiCoachCommentTr: buildPronunciationAssessmentComment(input, decision, copy),
+      nextFocusTr: buildNextFocus(weakAreas, comparison, copy, decision.feedbackType),
       feedbackType: decision.feedbackType,
     };
   }
 
   const textMatchFeedbackType = resolveTextMatchFeedbackType(input);
-  const nextFocusTr = buildNextFocus(weakAreas, comparison, textMatchFeedbackType);
+  const nextFocusTr = buildNextFocus(weakAreas, comparison, copy, textMatchFeedbackType);
 
   if (analysisMode === 'text_match_only') {
     if (textMatchFeedbackType === 'good_result') {
       return {
         aiCoachCommentTr: appendTextMatchNote(
-          'Kelime eşleşmen iyi görünüyor. Azure telaffuz değerlendirmesi açıldığında gerçek telaffuz puanını da görebilirsin.',
+          copy.textMatchGood,
           analysisMode,
+          copy,
         ),
         nextFocusTr,
         feedbackType: textMatchFeedbackType,
@@ -563,8 +573,9 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
     if (textMatchFeedbackType === 'wrong_sentence') {
       return {
         aiCoachCommentTr: appendTextMatchNote(
-          'Hedef cümleden farklı bir şey söyledin. Önce hedef cümleyi baştan sona doğru kelimelerle söylemeye odaklan.',
+          copy.wrongSentence,
           analysisMode,
+          copy,
         ),
         nextFocusTr,
         feedbackType: textMatchFeedbackType,
@@ -573,13 +584,13 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
     if (textMatchFeedbackType === 'missing_words') {
       const parts = [
-        'Cümlenin bazı kelimeleri eksik kaldı. Önce hedef cümleyi baştan sona tamamlamaya odaklan.',
+        copy.missingWordsLead,
         ...strictnessComments,
       ];
-      if (hasImprove) parts.push(buildImproveWordsComment());
+      if (hasImprove) parts.push(buildImproveWordsComment(copy));
 
       return {
-        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode),
+        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode, copy),
         nextFocusTr,
         feedbackType: textMatchFeedbackType,
       };
@@ -587,14 +598,14 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
     if (matchScore < 55) {
       const parts = [
-        'Bu denemede hedef cümleyle eşleşme düşük görünüyor. Cümleyi daha yavaş ve parça parça tekrar etmeyi dene.',
+        copy.textMatchLow,
         ...strictnessComments,
       ];
-      if (hasMissing && missingCount < 2) parts.push(buildMissingWordsComment(missingCount));
-      if (hasImprove) parts.push(buildImproveWordsComment());
+      if (hasMissing && missingCount < 2) parts.push(buildMissingWordsComment(missingCount, copy));
+      if (hasImprove) parts.push(buildImproveWordsComment(copy));
 
       return {
-        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode),
+        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode, copy),
         nextFocusTr,
         feedbackType: textMatchFeedbackType,
       };
@@ -602,11 +613,11 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
     if (strictnessComments.length > 0) {
       const parts = [...strictnessComments];
-      if (hasImprove) parts.push(buildImproveWordsComment());
-      if (hasMissing && missingCount < 2) parts.push(buildMissingWordsComment(missingCount));
+      if (hasImprove) parts.push(buildImproveWordsComment(copy));
+      if (hasMissing && missingCount < 2) parts.push(buildMissingWordsComment(missingCount, copy));
 
       return {
-        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode),
+        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode, copy),
         nextFocusTr,
         feedbackType: textMatchFeedbackType,
       };
@@ -614,18 +625,18 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
     if (hasMissing && !hasImprove) {
       return {
-        aiCoachCommentTr: appendTextMatchNote(buildMissingWordsComment(missingCount), analysisMode),
+        aiCoachCommentTr: appendTextMatchNote(buildMissingWordsComment(missingCount, copy), analysisMode, copy),
         nextFocusTr,
         feedbackType: textMatchFeedbackType,
       };
     }
 
     if (hasImprove) {
-      const parts = [buildImproveWordsComment()];
-      if (hasMissing) parts.unshift(buildMissingWordsComment(missingCount));
+      const parts = [buildImproveWordsComment(copy)];
+      if (hasMissing) parts.unshift(buildMissingWordsComment(missingCount, copy));
 
       return {
-        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode),
+        aiCoachCommentTr: appendTextMatchNote(combineCoachComments(...parts), analysisMode, copy),
         nextFocusTr,
         feedbackType: textMatchFeedbackType,
       };
@@ -633,8 +644,9 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
     return {
       aiCoachCommentTr: appendTextMatchNote(
-        `Cümleyi doğru kelimelerle tamamladın (%${matchScore} eşleşme). Azure telaffuz değerlendirmesi açıldığında gerçek telaffuz puanını da görebilirsin.`,
+        copy.textMatchComplete(matchScore),
         analysisMode,
+        copy,
       ),
       nextFocusTr,
       feedbackType: textMatchFeedbackType,
@@ -643,8 +655,7 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
   if (scores.nativeScore >= 80 && !hasMissing && !hasImprove) {
     return {
-      aiCoachCommentTr:
-        'Genel olarak iyi gidiyorsun. Bir sonraki denemede ritmi biraz daha doğal hale getirmeye odaklan.',
+      aiCoachCommentTr: copy.nativeGood,
       nextFocusTr,
       feedbackType: 'good_result',
     };
@@ -652,7 +663,7 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
   if (textMatchFeedbackType === 'wrong_sentence') {
     const parts = [
-      'Hedef cümleden farklı bir şey söyledin. Önce hedef cümleyi baştan sona doğru kelimelerle söylemeye odaklan.',
+      copy.wrongSentence,
       ...strictnessComments,
     ];
 
@@ -665,11 +676,11 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
   if (scores.nativeScore < 55) {
     const parts = [
-      'Bu denemede hedef cümleyle eşleşme düşük görünüyor. Cümleyi daha yavaş ve parça parça tekrar etmeyi dene.',
+      copy.textMatchLow,
       ...strictnessComments,
     ];
-    if (hasMissing && missingCount < 2) parts.push(buildMissingWordsComment(missingCount));
-    if (hasImprove) parts.push(buildImproveWordsComment());
+    if (hasMissing && missingCount < 2) parts.push(buildMissingWordsComment(missingCount, copy));
+    if (hasImprove) parts.push(buildImproveWordsComment(copy));
 
     return {
       aiCoachCommentTr: combineCoachComments(...parts),
@@ -680,7 +691,7 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
   if (strictnessComments.length > 0) {
     const parts = [...strictnessComments];
-    if (hasImprove) parts.push(buildImproveWordsComment());
+    if (hasImprove) parts.push(buildImproveWordsComment(copy));
 
     return {
       aiCoachCommentTr: combineCoachComments(...parts),
@@ -691,15 +702,15 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
 
   if (hasMissing && !hasImprove) {
     return {
-      aiCoachCommentTr: buildMissingWordsComment(missingCount),
+      aiCoachCommentTr: buildMissingWordsComment(missingCount, copy),
       nextFocusTr,
       feedbackType: textMatchFeedbackType === 'general' ? 'missing_words' : textMatchFeedbackType,
     };
   }
 
   if (hasImprove) {
-    const parts = [buildImproveWordsComment()];
-    if (hasMissing) parts.unshift(buildMissingWordsComment(missingCount));
+    const parts = [buildImproveWordsComment(copy)];
+    if (hasMissing) parts.unshift(buildMissingWordsComment(missingCount, copy));
 
     return {
       aiCoachCommentTr: combineCoachComments(...parts),
@@ -709,7 +720,7 @@ export function buildCoachFeedbackTr(input: CoachFeedbackInput): CoachFeedback {
   }
 
   return {
-    aiCoachCommentTr: `Cümlenin büyük kısmı anlaşılır (%${matchScore} eşleşme). Bir sonraki denemede eksik kalan kelimeleri daha net söylemeye çalış.`,
+    aiCoachCommentTr: copy.nativePartial(matchScore),
     nextFocusTr,
     feedbackType: textMatchFeedbackType,
   };

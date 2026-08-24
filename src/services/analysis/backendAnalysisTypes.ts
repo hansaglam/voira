@@ -9,6 +9,11 @@ export interface BackendAnalysisRequest {
   targetText: string;
   durationMillis: number;
   mode: AudioAnalysisMode;
+  /**
+   * UI language for future localized coach copy.
+   * Client-ready now; backend may ignore until enabled.
+   */
+  uiLanguage?: string;
 }
 
 export type BackendAnalysisErrorCode =
