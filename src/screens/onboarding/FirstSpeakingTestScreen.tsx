@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { LegacyOnboardingScreenProps } from './legacyNavigation';
 import { RecordingSessionFeedback, ScreenContainer } from '../../components';
 import { SpeakingTestHeader } from './SpeakingTestHeader';
@@ -19,6 +20,7 @@ import { formatRecordingTime } from '../../utils/recordingTime';
 type Props = LegacyOnboardingScreenProps<'FirstSpeakingTest'>;
 
 export function FirstSpeakingTestScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { completeOnboarding } = useUser();
   const layout = useSpeakingTestLayout();
   const {
@@ -132,8 +134,8 @@ export function FirstSpeakingTestScreen({ navigation }: Props) {
       }
     >
       <SpeakingTestHeader
-        title="İlk konuşma testin"
-        subtitle="Cümleyi dinle, sonra aynı ritimle tekrar et."
+        title={t('onboarding.firstTestTitle')}
+        subtitle={t('onboarding.firstTestSubtitle')}
         step={3}
         totalSteps={ONBOARDING_TOTAL_STEPS}
         onBack={() => navigation.goBack()}

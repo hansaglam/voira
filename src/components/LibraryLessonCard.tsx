@@ -14,6 +14,8 @@ import { isLessonCompleted as checkLessonCompleted } from '../data/lessonProgres
 import { getLessonDifficulty } from '../utils/lessonUtils';
 import { isLessonLocked } from '../utils/premiumAccess';
 import { colors, spacing, typography, borderRadius } from '../theme';
+import { useTranslation } from 'react-i18next';
+import { localizedLessonSubtitle, localizedLessonTitle } from '../utils/lessonLocalization';
 
 interface LibraryLessonCardProps {
   lesson: Lesson;
@@ -42,6 +44,9 @@ export function LibraryLessonCard({
   ctaLabelOverride,
   sectionTone = 'default',
 }: LibraryLessonCardProps) {
+  const { i18n } = useTranslation();
+  const displayTitle = localizedLessonTitle(lesson, i18n.language);
+  const displaySubtitle = localizedLessonSubtitle(lesson, i18n.language);
   const locked = isLessonLocked(lesson, isPremiumUser);
   const isCompleted =
     completed ??
@@ -76,7 +81,7 @@ export function LibraryLessonCard({
             )}
           </View>
           <Text style={styles.compactTitle} numberOfLines={2}>
-            {lesson.title}
+            {displayTitle}
           </Text>
           <Text style={styles.compactFocus} numberOfLines={1}>
             {lesson.focusSkill}
@@ -103,12 +108,12 @@ export function LibraryLessonCard({
         <View style={styles.listContent}>
           <View style={styles.titleRow}>
             <Text style={styles.listTitle} numberOfLines={1}>
-              {lesson.title}
+              {displayTitle}
             </Text>
             {locked ? <LockedBadge compact /> : null}
           </View>
           <Text style={styles.listFocus} numberOfLines={1}>
-            {lesson.subtitle || lesson.focusSkill}
+            {displaySubtitle || lesson.focusSkill}
           </Text>
           {focusTag ? (
             <View style={styles.focusTag}>

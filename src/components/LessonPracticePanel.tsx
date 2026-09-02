@@ -10,6 +10,7 @@ import {
   RECORDING_STATUS_RECORDED_TR,
   RECORDING_TOO_SHORT_TR,
 } from '../hooks/useAudioRecorder';
+import { useTranslation } from 'react-i18next';
 
 interface LessonPracticePanelProps {
   targetSentence: string;
@@ -51,11 +52,13 @@ export function LessonPracticePanel({
   listenOnly = false,
   compactShadowing = false,
   listenDisabled = false,
-  listenLabel = 'Dinle',
+  listenLabel,
   onListen,
   onRecord,
   onRetry,
 }: LessonPracticePanelProps) {
+  const { t } = useTranslation();
+  const resolvedListenLabel = listenLabel ?? t('lesson.listen');
   const canRetry = hasRecorded || isRecording;
   const showRecordedSuccess = canAnalyze ?? false;
   const waveformMode = isRecording ? 'record' : isListening ? 'play' : 'idle';
@@ -81,12 +84,12 @@ export function LessonPracticePanel({
           <View style={styles.hiddenIconWrap}>
             <Ionicons name="headset-outline" size={20} color={colors.secondary} />
           </View>
-          <Text style={styles.hiddenTitle}>Metin gizli</Text>
-          <Text style={styles.hiddenHint}>Önce sadece ritmi ve vurguyu dinle.</Text>
+          <Text style={styles.hiddenTitle}>{t('lesson.textHidden')}</Text>
+          <Text style={styles.hiddenHint}>{t('lesson.hiddenHint')}</Text>
           {onToggleHidden ? (
             <Pressable style={styles.hideLinkInline} onPress={onToggleHidden} hitSlop={6}>
               <Ionicons name="eye-outline" size={11} color={colors.textMuted} />
-              <Text style={styles.hideLinkText}>Metni göster</Text>
+              <Text style={styles.hideLinkText}>{t('lesson.showText')}</Text>
             </Pressable>
           ) : null}
         </LinearGradient>
@@ -115,14 +118,14 @@ export function LessonPracticePanel({
           </Text>
           {!compactShadowing ? (
             <View style={styles.slowBox}>
-              <Text style={styles.slowLabel}>Yavaş pratik</Text>
+              <Text style={styles.slowLabel}>{t('lesson.slowPractice')}</Text>
               <Text style={styles.slowText}>{slowPracticeSentence}</Text>
             </View>
           ) : null}
           {onToggleHidden ? (
             <Pressable style={styles.hideLinkInline} onPress={onToggleHidden} hitSlop={6}>
               <Ionicons name="eye-off-outline" size={11} color={colors.textMuted} />
-              <Text style={styles.hideLinkText}>Metni gizle</Text>
+              <Text style={styles.hideLinkText}>{t('lesson.hideText')}</Text>
             </Pressable>
           ) : null}
         </LinearGradient>
@@ -144,6 +147,9 @@ export function LessonPracticePanel({
           onPress={onListen}
           activeOpacity={0.75}
           disabled={listenDisabled}
+          accessibilityRole="button"
+          accessibilityLabel={resolvedListenLabel}
+          accessibilityState={{ disabled: listenDisabled }}
         >
           <View style={[styles.sideIcon, isListening && styles.sideIconActive, listenDisabled && styles.sideIconDisabled]}>
             <Ionicons
@@ -165,7 +171,7 @@ export function LessonPracticePanel({
               listenDisabled && styles.controlLabelMuted,
             ]}
           >
-            {listenLabel}
+            {resolvedListenLabel}
           </Text>
         </TouchableOpacity>
 
@@ -175,6 +181,8 @@ export function LessonPracticePanel({
               style={styles.micWrap}
               onPress={onRecord}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={isRecording ? t('lesson.stopRecording') : t('lesson.startRecording')}
             >
               {isRecording && <View style={styles.recordPulse} />}
               <LinearGradient
@@ -200,6 +208,9 @@ export function LessonPracticePanel({
               onPress={onRetry}
               activeOpacity={0.75}
               disabled={!canRetry}
+              accessibilityRole="button"
+              accessibilityLabel={t('lesson.retry')}
+              accessibilityState={{ disabled: !canRetry }}
             >
               <View style={[styles.sideIcon, canRetry && styles.sideIconActive]}>
                 <Ionicons
@@ -209,7 +220,7 @@ export function LessonPracticePanel({
                 />
               </View>
               <Text style={[styles.controlLabel, !canRetry && styles.controlLabelMuted]}>
-                Tekrar
+                {t('lesson.retry')}
               </Text>
             </TouchableOpacity>
           </>

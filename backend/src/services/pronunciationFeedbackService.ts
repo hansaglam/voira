@@ -2,28 +2,45 @@ import type {
   PhonemeFeedback,
   WordPronunciationFeedback,
 } from '../types/analysis.js';
+import {
+  PHONEME_FEEDBACK_ACCURACY_MAX,
+  WORD_ACCURACY_BORDERLINE_MAX,
+  WORD_ACCURACY_SEVERE_MAX,
+} from '../config/wordIssueThresholds.js';
 import { getCoachCopy } from '../i18n/coachCopy.js';
 import type { CoachLanguage } from '../i18n/uiLanguage.js';
 import { DEFAULT_COACH_LANGUAGE } from '../i18n/uiLanguage.js';
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
+import {
+  classifyAzureWordIssue,
+  logWordIssueDebug,
+  type WordIssueSeverity,
+  type WordIssueType,
+} from './wordIssueClassification.js';
+import { IS_DEV } from '../config.js';
+import { isAnalysisDebugEnabled } from './pronunciationAssessment/pronunciationAssessmentConfig.js';
 
-export const WEAK_WORD_ACCURACY_THRESHOLD = 70;
-const WEAK_PHONEME_ACCURACY_THRESHOLD = 65;
+/** @deprecated use WORD_ACCURACY_BORDERLINE_MAX — kept for external imports */
+export const WEAK_WORD_ACCURACY_THRESHOLD = WORD_ACCURACY_BORDERLINE_MAX;
+export const SEVERE_WEAK_WORD_ACCURACY_THRESHOLD = WORD_ACCURACY_SEVERE_MAX;
 
 function buildWordFeedbackTr(
   word: string,
-  accuracyScore: number | undefined,
-  errorType: string | undefined,
+  issueType: WordIssueType | null,
   uiLanguage: CoachLanguage,
 ): string | undefined {
   const copy = getCoachCopy(uiLanguage);
 
-  if (errorType && errorType !== 'None') {
-    return copy.wordError(word);
+  if (issueType === 'pronunciation') {
+    return copy.wordWeak(word);
   }
 
-  if (accuracyScore !== undefined && accuracyScore < WEAK_WORD_ACCURACY_THRESHOLD) {
-    return copy.wordWeak(word);
+  if (issueType === 'low_confidence' || issueType === 'recognition_mismatch') {
+    return copy.wordUncertain(word);
+  }
+
+  if (issueType === 'missing') {
+    return copy.wordSkipped(word);
   }
 
   return undefined;
@@ -34,7 +51,7 @@ function buildPhonemeFeedbackTr(
   accuracyScore: number | undefined,
   uiLanguage: CoachLanguage,
 ): string | undefined {
-  if (accuracyScore === undefined || accuracyScore >= WEAK_PHONEME_ACCURACY_THRESHOLD) {
+  if (accuracyScore === undefined || accuracyScore >= PHONEME_FEEDBACK_ACCURACY_MAX) {
     return undefined;
   }
 
@@ -55,19 +72,43 @@ export function buildWordPronunciationFeedback(
     return [];
   }
 
-  return assessment.wordScores
-    .map((wordScore) => ({
+  const debugEnabled = IS_DEV || isAnalysisDebugEnabled();
+
+  const feedback: WordPronunciationFeedback[] = [];
+
+  for (const wordScore of assessment.wordScores) {
+    const classification = classifyAzureWordIssue(wordScore);
+    logWordIssueDebug(debugEnabled, {
+      word: wordScore.word,
+      accuracyScore: wordScore.accuracyScore ?? null,
+      minPhonemeScore: classification.minPhonemeScore ?? null,
+      weakPhonemeCount: classification.weakPhonemeCount,
+      errorType: wordScore.errorType ?? 'None',
+      issueType: classification.issueType,
+      severity: classification.severity,
+      reason: classification.reason,
+    });
+
+    if (!classification.showAsPronunciationWeak) {
+      continue;
+    }
+
+    feedback.push({
       word: wordScore.word,
       accuracyScore: wordScore.accuracyScore,
       errorType: wordScore.errorType,
+      issueType: classification.issueType ?? undefined,
+      severity: classification.severity ?? undefined,
+      persistAsWeakWord: classification.persistAsWeakWord,
       feedbackTr: buildWordFeedbackTr(
         wordScore.word,
-        wordScore.accuracyScore,
-        wordScore.errorType,
+        classification.issueType,
         uiLanguage,
       ),
-    }))
-    .filter((entry) => entry.feedbackTr || (entry.accuracyScore ?? 100) < WEAK_WORD_ACCURACY_THRESHOLD);
+    });
+  }
+
+  return feedback;
 }
 
 export function buildPhonemeFeedback(
@@ -112,8 +153,27 @@ export function getWeakestAzureWords(
   }
 
   return [...assessment.wordScores]
-    .filter((word) => word.accuracyScore !== undefined)
+    .filter((word) => classifyAzureWordIssue(word).showAsPronunciationWeak)
     .sort((a, b) => (a.accuracyScore ?? 100) - (b.accuracyScore ?? 100))
     .slice(0, limit)
     .map((word) => word.word);
+}
+
+export function getPersistentPronunciationWords(
+  assessment?: PronunciationAssessmentResult | null,
+): Array<{ word: string; severity: Exclude<WordIssueSeverity, 'informational'> }> {
+  if (!assessment?.ok || !assessment.wordScores?.length) {
+    return [];
+  }
+
+  const out: Array<{ word: string; severity: Exclude<WordIssueSeverity, 'informational'> }> = [];
+  for (const wordScore of assessment.wordScores) {
+    const classification = classifyAzureWordIssue(wordScore);
+    if (!classification.persistAsWeakWord) continue;
+    if (classification.severity !== 'severe' && classification.severity !== 'borderline') {
+      continue;
+    }
+    out.push({ word: wordScore.word, severity: classification.severity });
+  }
+  return out;
 }

@@ -14,10 +14,10 @@ import {
 import { hasActivePremiumEntitlement } from './premiumEntitlementService';
 import {
   buildPackageOptions,
-  logOfferingsDiagnostics,
   resolveCurrentOffering,
   resolveMonthlyAndYearlyPackages,
 } from './offeringPackageResolve';
+import { logOfferingsDiagnostics } from './offeringPackageDiagnostics';
 import type {
   PremiumPurchaseResult,
   PremiumRestoreResult,

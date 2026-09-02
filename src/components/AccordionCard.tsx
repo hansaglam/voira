@@ -5,16 +5,10 @@ import {
   StyleSheet,
   Pressable,
   LayoutAnimation,
-  Platform,
-  UIManager,
   Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../theme';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 type AccordionIcon = 'chatbubble' | 'bulb' | 'alert' | 'repeat';
 

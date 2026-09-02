@@ -4,7 +4,7 @@ import {
   BACKEND_ANALYSIS_ENDPOINT,
   isBackendAnalysisEndpointConfigured,
 } from '../../config/analysisProviderConfig';
-import { logAudioDebug, logUploadDiagnostics, shouldLogUploadDiagnostics } from '../../config/audioDebugConfig';
+import { logAudioDebug, logUploadDiagnostics } from '../../config/audioDebugConfig';
 import type {
   BackendAnalysisFailedResponse,
   BackendAnalysisRequest,
@@ -146,22 +146,6 @@ function parseAnalysisPayload(
         ? ((payload as { transcript: string }).transcript.length)
         : null,
   });
-
-  if (
-    shouldLogUploadDiagnostics() &&
-    payload &&
-    typeof payload === 'object' &&
-    'transcript' in payload &&
-    typeof (payload as { transcript?: unknown }).transcript === 'string'
-  ) {
-    const transcript = (payload as { transcript: string }).transcript.trim();
-    logUploadDiagnostics('backend_analysis_transcript_preview', {
-      platform: Platform.OS,
-      status,
-      transcriptLength: transcript.length,
-      transcriptPreview: transcript.slice(0, 120),
-    });
-  }
 
   if (status >= 400) {
     if (isFailedResponse(payload)) {

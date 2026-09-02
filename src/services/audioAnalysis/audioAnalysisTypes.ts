@@ -37,6 +37,10 @@ export interface WordPronunciationFeedback {
   word: string;
   accuracyScore?: number;
   errorType?: string;
+  issueType?: 'pronunciation' | 'missing' | 'insertion' | 'recognition_mismatch' | 'low_confidence';
+  severity?: 'severe' | 'borderline' | 'informational';
+  /** When false, show feedback but do not write weak_words memory. */
+  persistAsWeakWord?: boolean;
   feedbackTr?: string;
 }
 

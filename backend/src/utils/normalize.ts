@@ -1,7 +1,8 @@
 export function normalizeForComparison(text: string): string {
   return text
     .toLocaleLowerCase('en-US')
-    .replace(/[^\w\s']/g, ' ')
+    // Keep internal hyphens (Wi-Fi, check-in) so compounds stay one token.
+    .replace(/[^\w\s'-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }

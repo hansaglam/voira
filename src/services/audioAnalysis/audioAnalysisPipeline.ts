@@ -8,6 +8,7 @@ import {
 import { ENABLE_MOCK_ANALYSIS_IN_DEV } from '../../config/analysisConfig';
 import { MIN_RECORDING_DURATION_MS } from '../../config/audioValidationConfig';
 import { requestBackendSpeechAnalysis } from '../analysis/backendAnalysisProvider';
+import { getUiLanguage } from '../../i18n';
 import type { BackendAnalysisSuccessResponse } from '../analysis/backendAnalysisTypes';
 import { UserLearningProfile } from '../../types/learning';
 import { Lesson } from '../../types/lesson';
@@ -234,6 +235,7 @@ async function runBackendAnalysisPipeline(
     targetText: input.targetText,
     durationMillis: preparedAudio.durationMillis ?? input.durationMillis ?? 0,
     mode: input.mode,
+    uiLanguage: getUiLanguage(),
   });
 
   if (!backendResponse.ok) {
@@ -402,11 +404,15 @@ function reconcileWeakWordsForDisplay(scoring: PronunciationScoringResult): {
 } {
   const missingWords = dedupeStrings(scoring.missingWords ?? []);
   const weakWords = (scoring.wordPronunciationFeedback ?? [])
+    .filter((item) => !item.issueType || item.issueType === 'pronunciation')
     .map((item) => item.word.trim())
     .filter(Boolean)
     .filter((word) => !missingWords.some((missing) => wordsEquivalentForDisplay(missing, word)));
 
-  const wordsToImprove = dedupeStrings([...(scoring.wordsToImprove ?? []), ...weakWords]);
+  // Prefer backend pronunciation-backed improve list; merge Azure pronunciation words.
+  const wordsToImprove = dedupeStrings([...(scoring.wordsToImprove ?? []), ...weakWords]).filter(
+    (word) => !missingWords.some((missing) => wordsEquivalentForDisplay(missing, word)),
+  );
   const correctWords = dedupeStrings(scoring.correctWords ?? []).filter(
     (word) => !weakWords.some((weak) => wordsEquivalentForDisplay(weak, word)),
   );
@@ -464,7 +470,7 @@ export function pipelineResultToAiSpeechAnalysisOutput(
       analysisMode: pipeline.analysisMode ?? scoring.analysisMode ?? null,
       nativeScore,
       matchScore: scoring.matchScore ?? null,
-      transcriptPreview: transcript.slice(0, 80),
+      transcriptLength: transcript.length,
     });
   }
 

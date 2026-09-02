@@ -15,3 +15,9 @@ export const AUDIO_PROBE_TIMEOUT_MS = Math.max(
   1_000,
   Number(process.env.AUDIO_PROBE_TIMEOUT_MS ?? 8_000) || 8_000,
 );
+
+/** OpenAI chat completion timeout for roleplay (ms). */
+export const OPENAI_CHAT_TIMEOUT_MS = Math.max(
+  5_000,
+  Number(process.env.OPENAI_CHAT_TIMEOUT_MS ?? 20_000) || 20_000,
+);

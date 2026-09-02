@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Lesson, CATEGORY_LABELS, LEVEL_TO_DIFFICULTY } from '../types/lesson';
 import { colors, spacing, borderRadius } from '../theme';
+import { useTranslation } from 'react-i18next';
+import { localizedLessonSubtitle, localizedLessonTitle } from '../utils/lessonLocalization';
 
 interface LessonHeaderProps {
   lesson: Lesson;
@@ -11,6 +13,9 @@ interface LessonHeaderProps {
 }
 
 export function LessonHeader({ lesson, variant = 'default' }: LessonHeaderProps) {
+  const { i18n } = useTranslation();
+  const displayTitle = localizedLessonTitle(lesson, i18n.language);
+  const displaySubtitle = localizedLessonSubtitle(lesson, i18n.language);
   const isMethodology = variant === 'methodology';
   const isQuick = variant === 'quick';
   const isCompact = isMethodology || isQuick;
@@ -21,7 +26,7 @@ export function LessonHeader({ lesson, variant = 'default' }: LessonHeaderProps)
     <View style={[styles.container, isCompact && styles.containerMethodology]}>
       <View style={styles.titleRow}>
         <Text style={[styles.title, isCompact && styles.titleMethodology]} numberOfLines={2}>
-          {lesson.title}
+          {displayTitle}
         </Text>
         {lesson.isPremium ? (
           <View style={styles.premiumBadge}>
@@ -30,12 +35,12 @@ export function LessonHeader({ lesson, variant = 'default' }: LessonHeaderProps)
         ) : null}
       </View>
 
-      {lesson.subtitle ? (
+      {displaySubtitle ? (
         <Text
           style={[styles.subtitle, isCompact && styles.subtitleMethodology]}
           numberOfLines={isCompact ? 1 : 2}
         >
-          {lesson.subtitle}
+          {displaySubtitle}
         </Text>
       ) : null}
 

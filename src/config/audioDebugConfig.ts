@@ -6,8 +6,8 @@
 export const ENABLE_AUDIO_DEBUG = false;
 
 /**
- * Extra upload/recording diagnostics for TestFlight builds.
- * When enabled, may log transcript preview text — never use in App Store production.
+ * Extra metadata-only upload/recording diagnostics for TestFlight builds.
+ * Spoken text, audio bytes, local URIs, and credentials must never be logged.
  */
 export const ENABLE_AUDIO_UPLOAD_DIAGNOSTICS = false;
 

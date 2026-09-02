@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { PremiumWaveform } from './PremiumWaveform';
 import { useSpeakingTestLayout, SpeakingTestLayout } from './useSpeakingTestLayout';
 import { colors, spacing, typography, borderRadius } from '../../theme';
-import {
-  RECORDING_STATUS_IDLE_TR,
-  RECORDING_STATUS_RECORDING_TR,
-  RECORDING_STATUS_RECORDED_TR,
-  RECORDING_TOO_SHORT_TR,
-} from '../../hooks/useAudioRecorder';
 
 export type PracticePhase = 'initial' | 'listened' | 'recording' | 'recorded';
 
@@ -35,18 +30,11 @@ interface FirstSpeakingPracticePanelProps {
   isRecordingTooShort?: boolean;
 }
 
-const STATUS_COPY: Record<PracticePhase, { text: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  initial: { text: RECORDING_STATUS_IDLE_TR, icon: 'mic-outline' },
-  listened: { text: 'Şimdi aynı ritimle tekrar etmeyi dene.', icon: 'chatbubble-ellipses-outline' },
-  recording: { text: RECORDING_STATUS_RECORDING_TR, icon: 'radio-button-on' },
-  recorded: { text: RECORDING_STATUS_RECORDED_TR, icon: 'checkmark-circle' },
-};
-
-const FLOW_STEPS = [
-  { key: 'listen', label: 'Dinle' },
-  { key: 'speak', label: 'Konuş' },
-  { key: 'analysis', label: 'Analiz' },
-] as const;
+const FLOW_STEP_KEYS = [
+  { key: 'listen' as const, labelKey: 'onboarding.flowListen' as const },
+  { key: 'speak' as const, labelKey: 'onboarding.flowSpeak' as const },
+  { key: 'analysis' as const, labelKey: 'onboarding.flowAnalysis' as const },
+];
 
 function getFlowState(phase: PracticePhase, isListening: boolean) {
   const listenDone = phase !== 'initial' || isListening;
@@ -70,15 +58,16 @@ function FlowIndicator({
   isListening: boolean;
   layout: SpeakingTestLayout;
 }) {
+  const { t } = useTranslation();
   const flow = getFlowState(phase, isListening);
   const dotSize = layout.flow.dotSize;
   const dotRadius = dotSize / 2;
 
   return (
     <View style={[styles.flowRow, { marginBottom: layout.flow.marginBottom }]}>
-      {FLOW_STEPS.map((step, index) => {
+      {FLOW_STEP_KEYS.map((step, index) => {
         const state = flow[step.key];
-        const isLast = index === FLOW_STEPS.length - 1;
+        const isLast = index === FLOW_STEP_KEYS.length - 1;
 
         return (
           <React.Fragment key={step.key}>
@@ -110,7 +99,7 @@ function FlowIndicator({
                   (state.active || state.done) && styles.flowLabelActive,
                 ]}
               >
-                {step.label}
+                {t(step.labelKey)}
               </Text>
             </View>
             {!isLast && (
@@ -364,9 +353,24 @@ export function FirstSpeakingPracticePanel({
   recordingTimerText,
   isRecordingTooShort = false,
 }: FirstSpeakingPracticePanelProps) {
+  const { t } = useTranslation();
   const layout = useSpeakingTestLayout();
   const statusFade = useRef(new Animated.Value(1)).current;
   const cardFade = useRef(new Animated.Value(1)).current;
+
+  const statusCopy = useMemo(
+    () =>
+      ({
+        initial: { text: t('onboarding.statusIdle'), icon: 'mic-outline' as const },
+        listened: {
+          text: t('onboarding.statusListened'),
+          icon: 'chatbubble-ellipses-outline' as const,
+        },
+        recording: { text: t('onboarding.statusRecording'), icon: 'radio-button-on' as const },
+        recorded: { text: t('onboarding.statusRecorded'), icon: 'checkmark-circle' as const },
+      }) satisfies Record<PracticePhase, { text: string; icon: keyof typeof Ionicons.glyphMap }>,
+    [t],
+  );
 
   useEffect(() => {
     Animated.sequence([
@@ -401,10 +405,10 @@ export function FirstSpeakingPracticePanel({
     }
   }, [phase, cardFade]);
 
-  const status = STATUS_COPY[phase];
+  const status = statusCopy[phase];
   const statusText =
     statusOverride ??
-    (isRecordingTooShort ? RECORDING_TOO_SHORT_TR : status.text);
+    (isRecordingTooShort ? t('onboarding.statusTooShort') : status.text);
   const canRetry = phase === 'recorded' || phase === 'recording';
   const waveformActive = isListening || phase === 'recording';
   const s = layout.sentence;
@@ -429,7 +433,7 @@ export function FirstSpeakingPracticePanel({
           ]}
         >
           <View style={[styles.sentenceLabelPill, { marginBottom: s.labelMarginBottom }]}>
-            <Text style={styles.sentenceLabel}>İlk test cümlesi</Text>
+            <Text style={styles.sentenceLabel}>{t('onboarding.sentenceLabel')}</Text>
           </View>
           <Text
             style={[
@@ -470,7 +474,7 @@ export function FirstSpeakingPracticePanel({
           },
         ]}
       >
-        Önce doğal hızda dinle, sonra aynı ritimde tekrar et.
+        {t('onboarding.panelHelper')}
       </Text>
 
       <PremiumWaveform
@@ -493,7 +497,7 @@ export function FirstSpeakingPracticePanel({
         ]}
       >
         <SideControl
-          label="Dinle"
+          label={t('onboarding.controlListen')}
           icon={isListening ? 'volume-high' : 'play'}
           onPress={onListen}
           active={isListening || phase !== 'initial'}
@@ -504,7 +508,7 @@ export function FirstSpeakingPracticePanel({
         <MicButton isRecording={phase === 'recording'} onPress={onRecord} layout={layout} />
 
         <SideControl
-          label="Tekrar"
+          label={t('onboarding.controlRetry')}
           icon="refresh"
           onPress={onRetry}
           active={canRetry}

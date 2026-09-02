@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { RootScreenProps } from '../navigation/types';
 import { goBackOrFallback } from '../navigation/safeGoBack';
 import { resolveAnalysisActiveTab } from '../navigation/lessonTabContext';
@@ -11,6 +12,13 @@ import {
   AppCard,
 } from '../components';
 import { AnimatedScoreCard } from '../components/analysis';
+import {
+  AnalysisImprovementCard,
+  AnalysisPrimaryTakeawayCard,
+  AnalysisSentenceComparisonCard,
+  AnalysisWhatWentWellCard,
+  AnalysisWordFeedbackSection,
+} from '../components/analysis/result';
 import { getLessonById } from '../data/lessons';
 import { lessons } from '../data/lessons';
 import { getLessonIdForPractice } from '../data/learningAlgorithm';
@@ -52,9 +60,21 @@ import {
   computeWordMatchScore,
   wordsEquivalentForDisplay,
 } from '../utils/analysisWordDisplay';
+import { getAllPracticeResults } from '../data/learningSessionStore';
+import {
+  buildAttemptComparison,
+  buildRankedWordIssues,
+  buildWhatWentWell,
+  resolveAnalysisCtaEmphasis,
+  resolvePrimaryTakeaway,
+  resolveSpeakingScoreBand,
+  shouldShowSentenceComparison,
+} from '../services/analysis/result';
+import {
+  trackAnalysisResultEvent,
+} from '../services/analytics/analysisResultAnalytics';
 import {
   filterActionableRecommendations,
-  resolveFocusDisplayText,
   shouldShowRecommendations,
 } from '../utils/analysisResultDisplay';
 import {
@@ -161,11 +181,13 @@ function sanitizeWordChips(words: string[]): string[] {
 }
 
 export function AnalysisResultScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { profile } = useUser();
   const { isPremium } = usePremium();
   const { user } = useAuth();
   const registered = isRegisteredUser(user);
-  const { generateAnalysisAsync, submitPracticeResult, getSession } = useLearning();
+  const { generateAnalysisAsync, submitPracticeResult, getSession, learningProfile } =
+    useLearning();
 
   const lessonId = route.params.lessonId;
   const segmentId = route.params.segmentId;
@@ -300,6 +322,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
     return analysis.wordPronunciationFeedback.filter(
       (item) =>
+        (!item.issueType || item.issueType === 'pronunciation') &&
         typeof item.accuracyScore === 'number' &&
         item.accuracyScore < PRONUNCIATION_WEAK_WORD_THRESHOLD &&
         !displayMissingWords.some((missingWord) =>
@@ -342,23 +365,6 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
         : [],
     [analysis, lessonId, isPremium, profile.level, segmentId, wordMatchScore],
   );
-
-  const focusDisplayText = useMemo(() => {
-    if (!analysis) return null;
-    return resolveFocusDisplayText({
-      nextFocusTr: analysis.nextFocusTr,
-      missingWordCount: displayMissingWords.length,
-      improveWordCount: displayWordsToImprove.length,
-      matchScore: wordMatchScore,
-      weakAreaCount: filteredWeakAreas.length,
-    });
-  }, [
-    analysis,
-    displayMissingWords.length,
-    displayWordsToImprove.length,
-    filteredWeakAreas.length,
-    wordMatchScore,
-  ]);
 
   const actionableRecommendations = useMemo(
     () => filterActionableRecommendations(recommendedLessons),
@@ -472,6 +478,88 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     [analysis, displayError, lesson.id, mode, segment.id, sessionId],
   );
 
+  const primaryTakeaway = useMemo(
+    () => (analysis ? resolvePrimaryTakeaway(analysis) : null),
+    [analysis],
+  );
+
+  const rankedWordIssues = useMemo(
+    () =>
+      analysis
+        ? buildRankedWordIssues({
+            wordPronunciationFeedback: analysis.wordPronunciationFeedback,
+            missingWords: displayMissingWords,
+            phonemeFeedback: analysis.phonemeFeedback,
+            hasRealPronunciation,
+          })
+        : [],
+    [analysis, displayMissingWords, hasRealPronunciation],
+  );
+
+  const attemptComparison = useMemo(() => {
+    if (!result) return null;
+    const priorAttempts = getAllPracticeResults().filter(
+      (entry) => (entry.attemptId ?? entry.resultId) !== (result.attemptId ?? result.resultId),
+    );
+    return buildAttemptComparison(priorAttempts, {
+      lessonId: result.lessonId,
+      segmentId: result.segmentId,
+      mode: result.mode,
+      attemptId: result.attemptId ?? result.resultId,
+      createdAt: result.createdAt,
+      nativeScore: result.nativeScore,
+    });
+  }, [
+    result,
+    learningProfile.averageScore,
+    learningProfile.completedLessonIds.length,
+    learningProfile.lastPracticeDate,
+  ]);
+
+  const whatWentWellItems = useMemo(
+    () => (analysis ? buildWhatWentWell(analysis, attemptComparison) : []),
+    [analysis, attemptComparison],
+  );
+
+  const showSentenceComparison = useMemo(() => {
+    if (!analysis) return false;
+    return shouldShowSentenceComparison({
+      targetText: segment.text,
+      transcript: analysis.transcript,
+      missingWords: displayMissingWords,
+    });
+  }, [analysis, displayMissingWords, segment.text]);
+
+  const ctaEmphasis = useMemo(
+    () => (analysis ? resolveAnalysisCtaEmphasis(analysis) : 'retry'),
+    [analysis],
+  );
+
+  const resultViewedRef = useRef(false);
+
+  useEffect(() => {
+    if (!analysis || !result || displayError || isAnalyzing || resultViewedRef.current) return;
+    resultViewedRef.current = true;
+    trackAnalysisResultEvent('analysis_result_viewed', {
+      scoreBand: resolveSpeakingScoreBand(result.nativeScore),
+      issueType: primaryTakeaway?.kind ?? null,
+      isRetry: attemptComparison != null,
+      improvementDirection: attemptComparison?.direction ?? null,
+    });
+    if (attemptComparison) {
+      trackAnalysisResultEvent('analysis_improvement_shown', {
+        improvementDirection: attemptComparison.direction,
+      });
+    }
+  }, [
+    analysis,
+    attemptComparison,
+    displayError,
+    isAnalyzing,
+    primaryTakeaway?.kind,
+    result,
+  ]);
+
   const submittedRef = useRef(false);
   const hasPlayedResultSoundRef = useRef(false);
   const resultSoundSessionKey = `${lessonId}:${segment.id}:${recordedAt ?? ''}:${audioUri ?? ''}`;
@@ -537,7 +625,20 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
     navigation.replace('Lesson', params);
   };
 
+  const handleRetry = () => {
+    trackAnalysisResultEvent('analysis_retry_tapped', {
+      scoreBand: result ? resolveSpeakingScoreBand(result.nativeScore) : null,
+      issueType: primaryTakeaway?.kind ?? null,
+    });
+    navigateToLesson({
+      segmentId: segment.id,
+      segmentIndex: currentSegmentIndex,
+    });
+  };
   const handleNext = () => {
+    trackAnalysisResultEvent('analysis_continue_tapped', {
+      scoreBand: result ? resolveSpeakingScoreBand(result.nativeScore) : null,
+    });
     if (inDailySession && sessionId) {
       if (isFinal) {
         navigation.navigate('DailyPracticeSummary', { sessionId });
@@ -574,18 +675,12 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
 
   const primaryLabel = inDailySession
     ? isFinal
-      ? 'Günlük özeti gör'
-      : 'Devam et'
+      ? t('analysis.seeDailySummary')
+      : t('analysis.continue')
     : isLastSegment
-      ? 'Dersi tamamla'
-      : 'Sonraki bölüme geç';
+      ? t('analysis.completeLesson')
+      : t('analysis.nextSegment');
 
-  const handleRetry = () => {
-    navigateToLesson({
-      segmentId: segment.id,
-      segmentIndex: currentSegmentIndex,
-    });
-  };
   const handleReturnToLesson = () => {
     goBackOrFallback(navigation, handleRetry);
   };
@@ -609,7 +704,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
   if (displayError) {
     const failureTitle = isSilentFailure
       ? ANALYSIS_SILENT_RECORDING_SCREEN_TITLE_TR
-      : 'Analiz yapılamadı';
+      : t("analysis.failedTitle");
     const failureMessage = isSilentFailure
       ? ANALYSIS_SILENT_RECORDING_SCREEN_MESSAGE_TR
       : displayError;
@@ -623,7 +718,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
           <AnalysisActionBar
             onRetry={handleRetry}
             onNext={handleReturnToLesson}
-            primaryLabel="Derse dön"
+            primaryLabel={t("analysis.returnToLesson")}
           />
         }
       >
@@ -652,7 +747,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
           <AnalysisActionBar
             onRetry={handleRetry}
             onNext={handleReturnToLesson}
-            primaryLabel="Geri dön"
+            primaryLabel={t("analysis.goBack")}
           />
         }
       >
@@ -660,7 +755,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
           <View style={styles.headerIcon}>
             <Ionicons name="analytics" size={18} color={colors.primary} />
           </View>
-          <Text style={styles.headerTitle}>Analiz Sonucu</Text>
+          <Text style={styles.headerTitle}>{t("analysis.resultTitle")}</Text>
           <Text style={styles.headerLesson}>{lesson.title}</Text>
         </View>
         <AppCard style={styles.loadingCard}>
@@ -670,9 +765,9 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
             <View style={styles.loadingSkeletonLine} />
           </View>
           <ActivityIndicator color={colors.primary} style={styles.loadingSpinner} />
-          <Text style={styles.loadingText}>Analiz hazırlanıyor...</Text>
+          <Text style={styles.loadingText}>{t("analysis.loading")}</Text>
           <Text style={styles.loadingSubtext}>
-            Konuşman hedef cümleyle karşılaştırılıyor.
+            {t("analysis.loadingSub")}
           </Text>
         </AppCard>
       </ScreenContainer>
@@ -689,7 +784,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
           onRetry={handleRetry}
           onNext={handleNext}
           primaryLabel={primaryLabel}
-          emphasizeRetry={result.nativeScore < 40 || isWrongSentenceFeedback}
+          emphasizeRetry={ctaEmphasis === 'retry'}
         />
       }
     >
@@ -697,12 +792,12 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
         <View style={styles.headerIcon}>
           <Ionicons name="analytics" size={18} color={colors.primary} />
         </View>
-        <Text style={styles.headerTitle}>Analiz Sonucu</Text>
+        <Text style={styles.headerTitle}>{t("analysis.resultTitle")}</Text>
         <Text style={styles.headerLesson}>{lesson.title}</Text>
         {practiceModeLabel ? (
           <View style={styles.practiceModePill}>
             <Ionicons name="layers-outline" size={10} color={colors.textMuted} />
-            <Text style={styles.practiceModeText}>Mod: {practiceModeLabel}</Text>
+            <Text style={styles.practiceModeText}>{t("analysis.modePrefix", { label: practiceModeLabel })}</Text>
           </View>
         ) : null}
         {progressText ? <Text style={styles.progressText}>{progressText}</Text> : null}
@@ -722,175 +817,40 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
         isWrongSentence={isWrongSentenceFeedback}
       />
 
+      {primaryTakeaway ? <AnalysisPrimaryTakeawayCard takeaway={primaryTakeaway} /> : null}
+
+      <AnalysisWhatWentWellCard items={whatWentWellItems} />
+
+      {rankedWordIssues.length > 0 ? (
+        <AnalysisWordFeedbackSection
+          issues={rankedWordIssues}
+          onSeeAll={() => trackAnalysisResultEvent('analysis_all_words_opened')}
+        />
+      ) : null}
+
+      {showSentenceComparison ? (
+        <AnalysisSentenceComparisonCard
+          targetText={segment.text}
+          transcript={analysis.transcript.trim()}
+        />
+      ) : null}
+
+      {attemptComparison ? <AnalysisImprovementCard comparison={attemptComparison} /> : null}
+
       <View style={styles.analysisNoteCard}>
         <Ionicons name="information-circle-outline" size={14} color={colors.textMuted} />
         <Text style={styles.analysisNote}>
           {hasRealPronunciation
-            ? 'Bu analiz telaffuz, akıcılık ve cümle tamamlama ölçümlerine göre hazırlanmıştır.'
-            : 'Bu analiz kelime eşleşmesi ve akıcılık tahminine göre hazırlanmıştır. Detaylı telaffuz skoru için geliştirme devam ediyor.'}
+            ? t('analysis.noteFullPronunciation')
+            : t('analysis.noteTextMatchOnly')}
         </Text>
       </View>
 
-      {analysis.transcript.trim() ? (
-        <AppCard style={styles.transcriptCard}>
-          <View style={styles.transcriptHeader}>
-            <Ionicons name="mic-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.transcriptTitle}>Algılanan konuşman</Text>
-          </View>
-          <Text style={styles.transcriptText}>“{analysis.transcript.trim()}”</Text>
-          <Text style={styles.transcriptTarget}>Hedef: {segment.text}</Text>
-        </AppCard>
-      ) : null}
-
-      {isWrongSentenceFeedback ? (
-        <AppCard style={styles.wrongSentenceCard}>
-          <View style={styles.wrongSentenceHeader}>
-            <View style={styles.wrongSentenceIcon}>
-              <Ionicons name="flag-outline" size={14} color={colors.primary} />
-            </View>
-            <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
-              Önce hedef cümleyi tamamla
-            </Text>
-          </View>
-          <Text style={styles.wrongSentenceBody}>
-            Telaffuz detaylarına geçmeden önce bu cümleyi doğru kelimelerle baştan sona söylemeyi dene.
-          </Text>
-        </AppCard>
-      ) : null}
-
-      {weakPronunciationWords.length > 0 ? (
-        <AppCard style={styles.weakWordsCard}>
-          <View style={styles.weakWordsHeader}>
-            <View style={styles.weakWordsIcon}>
-              <Ionicons name="volume-medium-outline" size={14} color={colors.warning} />
-            </View>
-            <View style={styles.weakWordsTitleWrap}>
-              <Text style={[styles.sectionTitle, styles.sectionTitleInline]}>
-                Dikkat etmen gereken kelimeler
-              </Text>
-              <Text style={styles.weakWordsHint}>Telaffuz odağı — panik yok, tekrarla gelişir</Text>
-            </View>
-          </View>
-          <View style={styles.weakWordList}>
-            {weakPronunciationWords.map((item, index) => (
-              <View key={`${item.word}-${index}`} style={styles.weakWordItem}>
-                <View style={styles.weakWordHeader}>
-                  <Text style={styles.weakWordLabel}>{item.word}</Text>
-                  {typeof item.accuracyScore === 'number' ? (
-                    <Text style={styles.weakWordScore}>%{Math.round(item.accuracyScore)}</Text>
-                  ) : null}
-                </View>
-                {item.feedbackTr ? (
-                  <Text style={styles.weakWordFeedback}>{item.feedbackTr}</Text>
-                ) : null}
-              </View>
-            ))}
-          </View>
-        </AppCard>
-      ) : null}
-
-      <AppCard style={styles.coachCard}>
-        <View style={styles.coachCardHeader}>
-          <LinearGradient
-            colors={['rgba(91, 95, 239, 0.22)', 'rgba(139, 92, 246, 0.1)']}
-            style={styles.coachIcon}
-          >
-            <Ionicons name="sparkles" size={14} color={colors.secondary} />
-          </LinearGradient>
-          <View style={styles.coachTitles}>
-            <Text style={styles.coachTitle}>AI Koç Yorumu</Text>
-            <Text style={styles.coachSubtitle}>
-              {hasRealPronunciation
-                ? `Kelime eşleşmesi %${wordMatchScore} • telaffuz analizi`
-                : `Kelime eşleşmesi %${wordMatchScore} • konuşma skoru`}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.coachBody}>{analysis.aiCoachCommentTr}</Text>
-        {filteredWeakAreas.length > 0 ? (
-          <View style={styles.weakAreaRow}>
-            {filteredWeakAreas.map((area, index) => (
-              <View key={`${area}-${index}`} style={styles.weakAreaPill}>
-                <Text style={styles.weakAreaText}>{area}</Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-      </AppCard>
-
-      <AppCard style={styles.wordsCard}>
-        <Text style={styles.sectionTitle}>Kelime kontrolü</Text>
-
-        <View style={styles.wordSection}>
-          <View style={styles.wordSectionLabel}>
-            <Ionicons name="checkmark-circle" size={13} color={colors.success} />
-            <Text style={styles.wordSectionTitle}>Doğru</Text>
-          </View>
-          <View style={styles.chipRow}>
-            {displayCorrectWords.length > 0 ? (
-              displayCorrectWords.map((word, index) => (
-                <WordChip key={`correct-${word}-${index}`} label={word} variant="good" />
-              ))
-            ) : (
-              <Text style={styles.wordEmptyText}>Henüz doğru kelime yok.</Text>
-            )}
-          </View>
-        </View>
-
-        {displayMissingWords.length > 0 ? (
-          <>
-            <View style={styles.wordDivider} />
-            <View style={styles.wordSection}>
-              <View style={styles.wordSectionLabel}>
-                <Ionicons name="remove-circle" size={13} color={colors.warning} />
-                <Text style={styles.wordSectionTitle}>Eksik</Text>
-              </View>
-              <View style={styles.chipRow}>
-                {displayMissingWords.map((word, index) => (
-                  <WordChip key={`missing-${word}-${index}`} label={word} variant="missing" />
-                ))}
-              </View>
-            </View>
-          </>
-        ) : null}
-
-        {displayWordsToImprove.length > 0 ? (
-          <>
-            <View style={styles.wordDivider} />
-            <View style={styles.wordSection}>
-              <View style={styles.wordSectionLabel}>
-                <Ionicons name="arrow-up-circle" size={13} color={colors.secondary} />
-                <Text style={styles.wordSectionTitle}>Geliştir</Text>
-              </View>
-              <View style={styles.chipRow}>
-                {displayWordsToImprove.map((word, index) => (
-                  <WordChip key={`improve-${word}-${index}`} label={word} variant="improve" />
-                ))}
-              </View>
-            </View>
-          </>
-        ) : null}
-
-        {!hasWordFeedbackSections ? (
-          <Text style={styles.wordPositiveText}>Kelime eşleşmen iyi görünüyor.</Text>
-        ) : null}
-      </AppCard>
-
-      {focusDisplayText ? (
-        <AppCard style={styles.focusCard}>
-          <View style={styles.focusHeader}>
-            <Ionicons name="flag" size={14} color={colors.secondary} />
-            <Text style={styles.focusTitle}>Bir sonraki denemede buna odaklan</Text>
-          </View>
-          <Text style={styles.focusBody}>{focusDisplayText}</Text>
-        </AppCard>
-      ) : null}
-
       {showRecommendations ? (
         <AppCard style={styles.recommendCard}>
-          <Text style={styles.recommendTitle}>Senin için önerilen çalışma</Text>
+          <Text style={styles.recommendTitle}>{t("analysis.recommendTitle")}</Text>
           <Text style={styles.recommendSubtitle}>
-            Son analizine göre faydalı olabilecek bir sonraki egzersiz.
+            {t("analysis.recommendSubtitle")}
           </Text>
           {actionableRecommendations.map((item) => {
             const isLocked = item.isPremium && !isPremium;
@@ -909,7 +869,7 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
                   <Text style={styles.recommendLessonTitle}>{item.title}</Text>
                   <View style={[styles.recommendBadge, isLocked && styles.recommendBadgePremium]}>
                     <Text style={[styles.recommendBadgeText, isLocked && styles.recommendBadgeTextPremium]}>
-                      {isLocked ? 'SpeakPlus' : 'Ücretsiz'}
+                      {isLocked ? t("common.speakPlus") : t("common.free")}
                     </Text>
                   </View>
                 </View>
@@ -919,10 +879,10 @@ export function AnalysisResultScreen({ navigation, route }: Props) {
                 </Text>
                 <Text style={[styles.recommendCta, isLocked && styles.recommendCtaPremium]}>
                   {isLocked
-                    ? 'SpeakPlus ile aç'
+                    ? t("analysis.openWithSpeakPlus")
                     : item.isCurrentLesson
-                      ? 'Bu dersi tekrar çalış'
-                      : 'Bu egzersizi çalış'}
+                      ? t("analysis.retryThisLesson")
+                      : t("analysis.practiceThis")}
                 </Text>
               </Pressable>
             );

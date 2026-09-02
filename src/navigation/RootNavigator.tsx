@@ -16,6 +16,13 @@ import { TermsOfUseScreen } from '../screens/TermsOfUseScreen';
 import { SupportScreen } from '../screens/SupportScreen';
 import { DataDeletionScreen } from '../screens/DataDeletionScreen';
 import { AboutScreen } from '../screens/AboutScreen';
+import { WeakWordsScreen } from '../screens/WeakWordsScreen';
+import { WeakWordPracticeScreen } from '../screens/WeakWordPracticeScreen';
+import { WeakWordPracticeResultScreen } from '../screens/WeakWordPracticeResultScreen';
+import { RoleplayDiscoverScreen } from '../screens/RoleplayDiscoverScreen';
+import { RoleplaySessionScreen } from '../screens/RoleplaySessionScreen';
+import { RoleplayResultScreen } from '../screens/RoleplayResultScreen';
+import { WeeklyReportScreen } from '../screens/WeeklyReportScreen';
 import { VoiraLogo } from '../components/VoiraLogo';
 import { useUser } from '../context/UserContext';
 import { useLearning } from '../context/LearningContext';
@@ -82,6 +89,37 @@ function MainNavigator() {
       <Stack.Screen name="Support" component={SupportScreen} />
       <Stack.Screen name="DataDeletion" component={DataDeletionScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen
+        name="WeakWords"
+        component={WeakWordsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="WeakWordPractice"
+        component={WeakWordPracticeScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="WeakWordPracticeResult"
+        component={WeakWordPracticeResultScreen}
+        options={{ animation: 'fade' }}
+      />
+      <Stack.Screen
+        name="RoleplayDiscover"
+        component={RoleplayDiscoverScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="RoleplaySession"
+        component={RoleplaySessionScreen}
+        options={{ animation: 'slide_from_bottom', gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="RoleplayResult"
+        component={RoleplayResultScreen}
+        options={{ animation: 'fade', gestureEnabled: false }}
+      />
+      <Stack.Screen name="WeeklyReport" component={WeeklyReportScreen} options={{ animation: 'slide_from_right' }} />
     </Stack.Navigator>
   );
 }

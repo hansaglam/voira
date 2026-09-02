@@ -52,7 +52,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { setUserId, setName, resetLocalPracticeData } = useLearning();
+  const {
+    setUserId,
+    setName,
+    resetLocalPracticeData,
+    requestProgressSync,
+    isLearningHydrated,
+  } = useLearning();
   const authFeatures = useMemo(() => getAuthFeatures(), []);
   const isAuthAvailable = useMemo(() => isAuthServiceAvailable(), []);
 
@@ -84,8 +90,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (__DEV__) {
         console.log('[EchoSpeak Auth] signed in');
       }
+
+      // Merge guest/local progress into cloud after identity is applied.
+      // Non-blocking; failures preserve local data and retry later.
+      if (isLearningHydrated) {
+        void requestProgressSync({ forceGuestMigration: true });
+      }
     },
-    [setName, setUserId],
+    [isLearningHydrated, requestProgressSync, setName, setUserId],
   );
 
   const hydrateAuth = useCallback(async () => {
@@ -149,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (__DEV__) {
-        console.log('[EchoSpeak Auth] deep link received', url);
+        console.log('[EchoSpeak Auth] callback received');
       }
 
       void (async () => {

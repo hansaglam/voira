@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { AppButton } from './AppButton';
 import { LinearGradient } from 'expo-linear-gradient';
 import { spacing } from '../theme';
+import { useTranslation } from 'react-i18next';
 
 interface LessonActionBarProps {
   onRetry: () => void;
@@ -17,6 +18,7 @@ export function LessonActionBar({
   analyzeDisabled,
   showRetry = true,
 }: LessonActionBarProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.wrap}>
       <LinearGradient
@@ -26,7 +28,7 @@ export function LessonActionBar({
       <View style={styles.bar}>
         {showRetry ? (
           <AppButton
-            title="Tekrar dene"
+            title={t('lesson.retry')}
             variant="outline"
             size="compact"
             onPress={onRetry}
@@ -34,7 +36,7 @@ export function LessonActionBar({
           />
         ) : null}
         <AppButton
-          title="Analizi Gör"
+          title={t('lesson.analyze')}
           size="compact"
           onPress={onAnalyze}
           disabled={analyzeDisabled}

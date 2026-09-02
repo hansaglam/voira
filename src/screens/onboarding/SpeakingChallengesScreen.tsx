@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LegacyOnboardingScreenProps } from './legacyNavigation';
 import {
   ScreenContainer,
@@ -8,12 +9,14 @@ import {
   ChipGroup,
 } from '../../components';
 import { SPEAKING_CHALLENGE_SECTIONS, ONBOARDING_TOTAL_STEPS } from '../../constants/options';
+import { CHALLENGE_SECTION_TITLE_KEYS, tChallengeLabel } from '../../i18n/optionLabels';
 import { useUser } from '../../context/UserContext';
 import { spacing } from '../../theme';
 
 type Props = LegacyOnboardingScreenProps<'SpeakingChallenges'>;
 
 export function SpeakingChallengesScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { setSpeakingChallenges } = useUser();
   const [selected, setSelected] = useState<string[]>([]);
 
@@ -41,18 +44,22 @@ export function SpeakingChallengesScreen({ navigation }: Props) {
       }
     >
       <OnboardingHeader
-        title="En çok nerede zorlanıyorsun?"
-        subtitle="AI koçun pratiklerini buna göre önceliklendirsin."
+        title={t('onboarding.challengesTitle')}
+        subtitle={t('onboarding.challengesSubtitle')}
         step={4}
         totalSteps={ONBOARDING_TOTAL_STEPS}
         onBack={() => navigation.goBack()}
       />
 
-      {SPEAKING_CHALLENGE_SECTIONS.map((section) => (
+      {SPEAKING_CHALLENGE_SECTIONS.map((section, index) => (
         <ChipGroup
-          key={section.title}
-          title={section.title}
-          options={section.options}
+          key={CHALLENGE_SECTION_TITLE_KEYS[index]}
+          title={t(CHALLENGE_SECTION_TITLE_KEYS[index])}
+          options={section.options.map((option) => ({
+            id: option.id,
+            label: tChallengeLabel(t, option.id),
+            icon: option.icon,
+          }))}
           selectedIds={selected}
           onToggle={toggleSelection}
         />

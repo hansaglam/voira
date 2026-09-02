@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import {
@@ -20,50 +21,48 @@ import { colors, spacing, borderRadius } from '../theme';
 type Props = RootScreenProps<'PrivacyPolicy'>;
 
 export function PrivacyPolicyScreen(_props: Props) {
+  const { t } = useTranslation();
+
   return (
     <InfoScreenLayout
-      title="Gizlilik Politikası"
-      subtitle="Voira (“Voira”, “uygulama”, “biz”) — Last Updated: July 2026"
+      title={t('privacy.title')}
+      subtitle={t('privacy.subtitle')}
       sections={[
         {
-          title: 'Giriş',
-          body:
-            'Voira; İngilizce konuşma, shadowing, telaffuz, kelime defteri, ilerleme takibi ve SpeakPlus premium erişimi sunar. Bu özet, uygulamadaki veri uygulamalarını açıklar. Tam metin web sayfasındadır.',
+          title: t('privacy.sIntro'),
+          body: t('privacy.introBody'),
         },
         {
-          title: 'Topladığımız / işlediğimiz bilgiler',
+          title: t('privacy.sCollected'),
           body: getPrivacyCollectedBody(),
         },
         {
-          title: 'Ses kayıtları ve telaffuz analizi',
-          body:
-            'Mikrofon izni yalnızca kayıt yapmak istediğinde istenir. Kayıt, analiz için Voira sunucusuna gönderilir. Telaffuz değerlendirmesi için Microsoft Azure Speech kullanılabilir. Backend etkinse OpenAI, kayıtlı sesini speech-to-text/transcription için işleyebilir ve AI koç geri bildirimi üretebilir. Ses kayıtlarını herkese açık profil oluşturmak veya ses verisi satmak için kullanmayız.',
+          title: t('privacy.sAudio'),
+          body: t('privacy.audioBody'),
         },
         {
-          title: 'Üçüncü taraf hizmetler',
+          title: t('privacy.sThirdParty'),
           body: getPrivacyThirdPartyBody(),
         },
         {
-          title: 'Ödemeler ve SpeakPlus',
+          title: t('privacy.sPayments'),
           body: getPrivacyPaymentsBody(),
         },
         {
-          title: 'Veri paylaşımı ve satış',
-          body:
-            'Kişisel verileri satmayız. Verileri yalnızca uygulamayı işletmek için hizmet sağlayıcılarla paylaşır/işleriz. Yasalar gerektirirse veya güvenlik için açıklama yapılabilir.',
+          title: t('privacy.sSharing'),
+          body: t('privacy.sharingBody'),
         },
         {
-          title: 'Saklama ve silme',
+          title: t('privacy.sRetention'),
           body: getPrivacyRetentionBody(),
         },
         {
-          title: 'Çocukların gizliliği',
-          body:
-            'Voira 13 yaş altı çocuklara yönelik değildir. 13 yaş altından bilerek kişisel bilgi toplamayız. Bir ebeveyn/vasi çocuğunun veri verdiğini düşünüyorsa bizimle iletişime geçebilir.',
+          title: t('privacy.sChildren'),
+          body: t('privacy.childrenBody'),
         },
         {
-          title: 'İletişim',
-          body: `Gizlilik talepleri: ${SUPPORT_EMAIL}`,
+          title: t('privacy.sContact'),
+          body: t('privacy.contactBody', { email: SUPPORT_EMAIL }),
         },
       ]}
       footer={
@@ -73,21 +72,21 @@ export function PrivacyPolicyScreen(_props: Props) {
             onPress={() => void openExternalLink(PRIVACY_POLICY_URL)}
             activeOpacity={0.85}
           >
-            <Text style={styles.linkButtonText}>Tam Gizlilik Politikasını aç</Text>
+            <Text style={styles.linkButtonText}>{t('privacy.openFull')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryLink}
             onPress={() => void openExternalLink(TERMS_OF_USE_URL)}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryLinkText}>Kullanım Şartları (web)</Text>
+            <Text style={styles.secondaryLinkText}>{t('privacy.linkTerms')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryLink}
             onPress={() => void openExternalLink(DATA_DELETION_URL)}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryLinkText}>Veri Silme sayfası (web)</Text>
+            <Text style={styles.secondaryLinkText}>{t('privacy.linkDelete')}</Text>
           </TouchableOpacity>
         </>
       }

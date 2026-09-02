@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { showAppFeedback } from '../components/dialog';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { RootScreenProps } from '../navigation/types';
 import type { RootStackParamList } from '../navigation/types';
@@ -24,7 +26,6 @@ import { LessonVocabularySection } from '../components/LessonVocabularySection';
 import { getAllLessons, getLessonById } from '../services/contentRepository';
 import { Lesson } from '../types/lesson';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
-import { RECORDING_TOO_SHORT_TR } from '../hooks/useAudioRecorder';
 import { ALLOW_SKIP_MISSING_LESSON_AUDIO_IN_DEV } from '../config/analysisConfig';
 import { LESSON_FLOW_MODE } from '../config/lessonFlowConfig';
 import {
@@ -76,43 +77,43 @@ type Props = RootScreenProps<'Lesson'>;
 
 type NoteKey = 'usage' | 'pronunciation' | 'mistake' | 'shadowing';
 
-const NOTE_SECTIONS: { key: NoteKey; title: string; icon: 'chatbubble' | 'bulb' | 'alert' | 'repeat' }[] = [
-  { key: 'usage', title: 'Doğal kullanım', icon: 'chatbubble' },
-  { key: 'pronunciation', title: 'Telaffuz ipucu', icon: 'bulb' },
-  { key: 'mistake', title: 'Yaygın hata', icon: 'alert' },
-  { key: 'shadowing', title: 'Shadowing görevi', icon: 'repeat' },
+const NOTE_SECTION_DEFS: { key: NoteKey; titleKey: string; icon: 'chatbubble' | 'bulb' | 'alert' | 'repeat' }[] = [
+  { key: 'usage', titleKey: 'lesson.naturalUsage', icon: 'chatbubble' },
+  { key: 'pronunciation', titleKey: 'lesson.pronunciationTip', icon: 'bulb' },
+  { key: 'mistake', titleKey: 'lesson.commonMistake', icon: 'alert' },
+  { key: 'shadowing', titleKey: 'lesson.shadowingTask', icon: 'repeat' },
 ];
 
-const STUDY_NOTE_SECTIONS = NOTE_SECTIONS.filter((section) => section.key !== 'shadowing');
+const STUDY_NOTE_SECTION_DEFS = NOTE_SECTION_DEFS.filter((section) => section.key !== 'shadowing');
 
-const QUICK_STATUS_IDLE = 'Hazır olduğunda cümleyi aynı ritimde söyle.';
-const QUICK_STATUS_RECORDING = 'Kaydediliyor... bitirmek için dokun.';
-const QUICK_STATUS_RECORDED = 'Kaydın hazır. Analize geçebilirsin.';
-
-function formatSegmentMeta(segment: LessonSegment): string[] {
+function formatSegmentMeta(segment: LessonSegment, t: TFunction): string[] {
   const items: string[] = [];
   if (segment.accent) {
     items.push(
       segment.accent === 'british'
-        ? 'İngiliz (UK)'
+        ? t('lesson.accentBritish')
         : segment.accent === 'american'
-          ? 'Amerikan'
-          : 'Karışık aksan',
+          ? t('lesson.accentAmerican')
+          : t('lesson.accentMixed'),
     );
   }
   if (segment.speechRateWpm) {
-    items.push(`${segment.speechRateWpm} WPM`);
+    items.push(t('lesson.wpm', { wpm: segment.speechRateWpm }));
   }
   if (segment.speedLevel) {
-    const labels = { slow: 'Yavaş tempo', natural: 'Doğal tempo', fast: 'Hızlı tempo' };
+    const labels = {
+      slow: t('lesson.tempoSlow'),
+      natural: t('lesson.tempoNatural'),
+      fast: t('lesson.tempoFast'),
+    };
     items.push(labels[segment.speedLevel] ?? segment.speedLevel);
   }
   return items;
 }
 
-function buildUsageContent(usage: string, naturalSpeedNote?: string): string {
+function buildUsageContent(usage: string, t: TFunction, naturalSpeedNote?: string): string {
   if (!naturalSpeedNote) return usage;
-  return `${usage}\n\nDoğal hız notu: ${naturalSpeedNote}`;
+  return `${usage}\n\n${t('lesson.naturalSpeedNote', { note: naturalSpeedNote })}`;
 }
 
 function resolveLessonAudioSpeedMode(playbackSpeed: PlaybackSpeed): LessonAudioSpeedMode {
@@ -127,44 +128,48 @@ function getQuickRecordingStatus(
   isRecording: boolean,
   canAnalyze: boolean,
   isRecordingTooShort: boolean,
+  t: TFunction,
   statusMessage?: string,
 ): string {
   if (statusMessage) return statusMessage;
-  if (isRecording) return QUICK_STATUS_RECORDING;
-  if (canAnalyze) return QUICK_STATUS_RECORDED;
-  if (isRecordingTooShort) return RECORDING_TOO_SHORT_TR;
-  return QUICK_STATUS_IDLE;
+  if (isRecording) return t('lesson.statusRecording');
+  if (canAnalyze) return t('lesson.statusRecorded');
+  if (isRecordingTooShort) return t('lesson.statusTooShort');
+  return t('lesson.statusIdle');
 }
 
 function buildDetailAccordionContent(
   segment: LessonSegment,
   pauseMarkedText: string,
   highlightedWords: string[],
+  t: TFunction,
 ): string {
   const parts: string[] = [];
 
   if (pauseMarkedText) {
-    parts.push(`Duraklamalı ritim\n${pauseMarkedText}`);
+    parts.push(`${t('lesson.pauseRhythm')}\n${pauseMarkedText}`);
   }
 
   if (highlightedWords.length > 0) {
-    parts.push(`Vurgulu kelimeler\n${highlightedWords.join(' • ')}`);
+    parts.push(`${t('lesson.highlightedWords')}\n${highlightedWords.join(' • ')}`);
   }
 
   if (segment.usageExplanationTr) {
-    parts.push(`Doğal kullanım\n${buildUsageContent(segment.usageExplanationTr, segment.nativeSpeedNoteTr)}`);
+    parts.push(
+      `${t('lesson.naturalUsage')}\n${buildUsageContent(segment.usageExplanationTr, t, segment.nativeSpeedNoteTr)}`,
+    );
   }
 
   if (segment.pronunciationTipTr) {
-    parts.push(`Telaffuz ipucu\n${segment.pronunciationTipTr}`);
+    parts.push(`${t('lesson.pronunciationTip')}\n${segment.pronunciationTipTr}`);
   }
 
   if (segment.commonMistakeTr) {
-    parts.push(`Yaygın hata\n${segment.commonMistakeTr}`);
+    parts.push(`${t('lesson.commonMistake')}\n${segment.commonMistakeTr}`);
   }
 
   if (segment.shadowingInstructionTr) {
-    parts.push(`Shadowing görevi\n${segment.shadowingInstructionTr}`);
+    parts.push(`${t('lesson.shadowingTask')}\n${segment.shadowingInstructionTr}`);
   }
 
   return parts.join('\n\n');
@@ -206,6 +211,7 @@ async function resetSegmentPracticeMedia(options: {
 }
 
 export function LessonScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { recordActiveLesson } = useLearning();
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -260,12 +266,12 @@ export function LessonScreen({ navigation, route }: Props) {
       return (
         <ScreenContainer withPersistentTabBar activeTab={lessonActiveTab}>
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadErrorTitle}>Ders bulunamadı</Text>
+            <Text style={styles.loadErrorTitle}>{t('lesson.notFoundTitle')}</Text>
             <Text style={styles.loadErrorText}>
-              Bu ders şu anda açılamıyor. Kategori ekranına dönüp başka bir ders seçebilirsin.
+              {t('lesson.notFoundMessage')}
             </Text>
             <AppButton
-              title="Kategorilere dön"
+              title={t('lesson.backToCategories')}
               size="compact"
               onPress={() => navigation.navigate('MainTabs', { screen: 'Categories' })}
             />
@@ -307,6 +313,7 @@ function QuickLessonScreenContent({
   route,
   lesson,
 }: Props & { lesson: Lesson }) {
+  const { t } = useTranslation();
   const { learningProfile, recordActiveLesson } = useLearning();
   const isDailySession =
     route.params.source === 'dailySession' || !!route.params.sessionId;
@@ -351,7 +358,7 @@ function QuickLessonScreenContent({
 
   const lessonAudioSpeedMode: LessonAudioSpeedMode = 'natural';
   const lessonAudioReady = isAudioAvailable(segment, lessonAudioSpeedMode);
-  const listenLabel = lessonAudioReady ? 'Dinle' : 'Ses yakında';
+  const listenLabel = lessonAudioReady ? t('lesson.listen') : t('lesson.audioSoon');
 
   const {
     isRecording,
@@ -379,14 +386,15 @@ function QuickLessonScreenContent({
   const isListening = isLessonAudioPlaying || isPlayingRecording;
   const recordingTimerText = isRecording ? formatRecordingTime(recordingDurationMs) : null;
   const quickStatusMessage = getQuickRecordingStatus(
-    isRecording,
-    canAnalyze,
-    isRecordingTooShort,
-    statusMessage,
+      isRecording,
+      canAnalyze,
+      isRecordingTooShort,
+      t,
+      statusMessage,
   );
   const detailContent = useMemo(
-    () => buildDetailAccordionContent(segment, pauseMarkedText, highlightedWords),
-    [segment, pauseMarkedText, highlightedWords],
+    () => buildDetailAccordionContent(segment, pauseMarkedText, highlightedWords, t),
+    [segment, pauseMarkedText, highlightedWords, t],
   );
 
   const goToSegment = useCallback(
@@ -468,7 +476,7 @@ function QuickLessonScreenContent({
 
     if (!lessonAudioReady) {
       setLessonAudioMessage(
-        'Bu dersin dinleme sesi henüz hazır değil. Shadowing için ses dosyası eklendiğinde buradan dinleyebileceksin.',
+        t('lesson.missingAudio'),
       );
       return;
     }
@@ -485,7 +493,7 @@ function QuickLessonScreenContent({
       setIsLessonAudioPlaying(false);
       setLessonAudioMessage(
         result.errorCode === 'missing_audio'
-          ? 'Bu dersin dinleme sesi henüz hazır değil. Shadowing için ses dosyası eklendiğinde buradan dinleyebileceksin.'
+          ? t('lesson.missingAudio')
           : result.messageTr,
       );
     }
@@ -514,8 +522,8 @@ function QuickLessonScreenContent({
 
     if (!validation.isValid || !audioUri || !validation.hasSpeech) {
       showAppFeedback({
-        title: 'Analiz henüz hazır değil',
-        message: validation.messageTr ?? 'Analiz için önce geçerli bir kayıt almalısın.',
+        title: t('lesson.analyzeNotReadyTitle'),
+        message: validation.messageTr ?? t('lesson.analyzeNotReadyFallback'),
         variant: 'warning',
       });
       return;
@@ -598,10 +606,10 @@ function QuickLessonScreenContent({
       {showSession ? (
         <View style={styles.sessionRow}>
           <View style={styles.sessionBadge}>
-            <Text style={styles.sessionBadgeText}>Bugünkü görev</Text>
+            <Text style={styles.sessionBadgeText}>{t('lesson.sessionBadge')}</Text>
           </View>
           <Text style={styles.sessionProgress}>
-            Pratik {practiceIndex + 1} / {totalLessons}
+            {t('lesson.sessionProgress', { current: practiceIndex + 1, total: totalLessons })}
           </Text>
         </View>
       ) : null}
@@ -658,7 +666,7 @@ function QuickLessonScreenContent({
         <View style={styles.focusCard}>
           <View style={styles.focusCardHeader}>
             <Ionicons name="bulb-outline" size={14} color={colors.secondary} />
-            <Text style={styles.focusCardLabel}>Bugünkü odak</Text>
+            <Text style={styles.focusCardLabel}>{t('lesson.focusLabel')}</Text>
           </View>
           <Text style={styles.focusCardText}>{focusTip}</Text>
         </View>
@@ -668,12 +676,12 @@ function QuickLessonScreenContent({
 
       {detailContent ? (
         <AccordionCard
-          title="Detaylı incele"
+          title={t('lesson.detailsTitle')}
           content={detailContent}
           icon="bulb"
           expanded={detailsExpanded}
           onToggle={() => setDetailsExpanded((v) => !v)}
-          collapsedHint="Ritim, vurgu ve öğrenme notları"
+          collapsedHint={t('lesson.detailsHint')}
         />
       ) : null}
 
@@ -688,6 +696,7 @@ function GuidedLessonScreenContent({
   route,
   lesson,
 }: Props & { lesson: Lesson }) {
+  const { t } = useTranslation();
   const { learningProfile, recordActiveLesson } = useLearning();
   const { isPremium: isPremiumUser } = usePremium();
   const { user } = useAuth();
@@ -754,7 +763,7 @@ function GuidedLessonScreenContent({
 
   const lessonAudioSpeedMode = resolveLessonAudioSpeedMode(playbackSpeed);
   const lessonAudioReady = isAudioAvailable(segment, lessonAudioSpeedMode);
-  const listenLabel = lessonAudioReady ? 'Dinle' : 'Ses yakında';
+  const listenLabel = lessonAudioReady ? t('lesson.listen') : t('lesson.audioSoon');
 
   const availableModes = useMemo(
     () => getAvailableShadowingModes(lesson, segment, isPremiumUser),
@@ -794,7 +803,7 @@ function GuidedLessonScreenContent({
   const recordingTimerText = isRecording ? formatRecordingTime(recordingDurationMs) : null;
   const isTextHidden = currentStep === 'listen_only' || currentStep === 'blind_shadowing';
   const indicatorCurrentStep = getIndicatorCurrentStep(currentStep, canAnalyze);
-  const segmentMeta = formatSegmentMeta(segment);
+  const segmentMeta = formatSegmentMeta(segment, t);
   const showRecordingPanel = isShadowingStep(currentStep);
   const showPlaybackControls =
     currentStep === 'listen_only' || isShadowingStep(currentStep);
@@ -883,7 +892,7 @@ function GuidedLessonScreenContent({
   }, [cleanupAudio, navigation]);
 
   const noteContent: Record<NoteKey, string> = {
-    usage: buildUsageContent(segment.usageExplanationTr, segment.nativeSpeedNoteTr),
+    usage: buildUsageContent(segment.usageExplanationTr, t, segment.nativeSpeedNoteTr),
     pronunciation: segment.pronunciationTipTr,
     mistake: segment.commonMistakeTr,
     shadowing: segment.shadowingInstructionTr,
@@ -914,7 +923,7 @@ function GuidedLessonScreenContent({
 
     if (!lessonAudioReady) {
       setLessonAudioMessage(
-        'Bu dersin dinleme sesi henüz hazır değil. Shadowing için ses dosyası eklendiğinde buradan dinleyebileceksin.',
+        t('lesson.missingAudio'),
       );
       return;
     }
@@ -932,7 +941,7 @@ function GuidedLessonScreenContent({
       setIsLessonAudioPlaying(false);
       setLessonAudioMessage(
         result.errorCode === 'missing_audio'
-          ? 'Bu dersin dinleme sesi henüz hazır değil. Shadowing için ses dosyası eklendiğinde buradan dinleyebileceksin.'
+          ? t('lesson.missingAudio')
           : result.messageTr,
       );
     }
@@ -961,8 +970,8 @@ function GuidedLessonScreenContent({
 
     if (!validation.isValid || !audioUri || !validation.hasSpeech) {
       showAppFeedback({
-        title: 'Analiz henüz hazır değil',
-        message: validation.messageTr ?? 'Analiz için önce geçerli bir kayıt almalısın.',
+        title: t('lesson.analyzeNotReadyTitle'),
+        message: validation.messageTr ?? t('lesson.analyzeNotReadyFallback'),
         variant: 'warning',
       });
       return;
@@ -1022,9 +1031,9 @@ function GuidedLessonScreenContent({
       }
 
       showAppFeedback({
-        title: 'Dinleme sesi hazır değil',
+        title: t('lesson.audioNotReadyTitle'),
         message:
-          'Bu dersin dinleme sesi henüz hazır değil. Shadowing için ses dosyası eklendiğinde buradan dinleyebileceksin.',
+          t('lesson.missingAudio'),
         variant: 'info',
       });
       return;
@@ -1032,8 +1041,8 @@ function GuidedLessonScreenContent({
 
     if (!hasCompletedLessonListen && !isLessonAudioPlaying) {
       showAppFeedback({
-        title: 'Önce dinle',
-        message: 'Devam etmek için önce cümleyi dinlemelisin.',
+        title: t('lesson.listenFirstTitle'),
+        message: t('lesson.listenFirstMessage'),
         variant: 'info',
       });
       return;
@@ -1066,19 +1075,19 @@ function GuidedLessonScreenContent({
   const stepInstruction = useMemo(() => {
     switch (currentStep) {
       case 'listen_only':
-        return 'İlk dinlemede anlamaya çalışma; ritmi ve vurguyu yakala.';
+        return t('lesson.instructListen');
       case 'study':
-        return "Anlamı ve vurguyu incele, sonra shadowing'e geç.";
+        return t('lesson.instructStudy');
       default:
         return null;
     }
-  }, [currentStep]);
+  }, [currentStep, t]);
 
   const renderStepFooter = () => {
     if (currentStep === 'listen_only') {
       return (
         <AppButton
-          title="Dinledim"
+          title={t('lesson.ctaListened')}
           size="compact"
           elevated
           onPress={handleListenStepComplete}
@@ -1087,7 +1096,7 @@ function GuidedLessonScreenContent({
     }
     if (currentStep === 'study') {
       return (
-        <AppButton title="Shadowing'e geç" size="compact" elevated onPress={advanceStep} />
+        <AppButton title={t('lesson.ctaShadowing')} size="compact" elevated onPress={advanceStep} />
       );
     }
     if (isShadowingStep(currentStep)) {
@@ -1095,7 +1104,7 @@ function GuidedLessonScreenContent({
         <View style={styles.shadowFooter}>
           {hasBlindNext ? (
             <AppButton
-              title="Kör shadowing'e geç"
+              title={t('lesson.ctaBlindShadowing')}
               variant="outline"
               size="compact"
               onPress={handleContinueToBlind}
@@ -1138,10 +1147,10 @@ function GuidedLessonScreenContent({
       {showSession ? (
         <View style={styles.sessionRow}>
           <View style={styles.sessionBadge}>
-            <Text style={styles.sessionBadgeText}>Bugünkü görev</Text>
+            <Text style={styles.sessionBadgeText}>{t('lesson.sessionBadge')}</Text>
           </View>
           <Text style={styles.sessionProgress}>
-            Pratik {practiceIndex + 1} / {totalLessons}
+            {t('lesson.sessionProgress', { current: practiceIndex + 1, total: totalLessons })}
           </Text>
         </View>
       ) : null}
@@ -1221,7 +1230,7 @@ function GuidedLessonScreenContent({
             <View style={styles.rhythmStrip}>
               <View style={styles.rhythmHeader}>
                 <Ionicons name="pulse-outline" size={12} color={colors.secondary} />
-                <Text style={styles.rhythmLabel}>Duraklamalı ritim</Text>
+                <Text style={styles.rhythmLabel}>{t('lesson.pauseRhythm')}</Text>
               </View>
               <Text style={styles.rhythmText}>{pauseMarkedText}</Text>
             </View>
@@ -1236,11 +1245,11 @@ function GuidedLessonScreenContent({
             ) : null}
           </LinearGradient>
 
-          <Text style={styles.sectionTitle}>Öğrenme notları</Text>
-          {STUDY_NOTE_SECTIONS.map((section) => (
+          <Text style={styles.sectionTitle}>{t('lesson.learningNotes')}</Text>
+          {STUDY_NOTE_SECTION_DEFS.map((section) => (
             <AccordionCard
               key={section.key}
-              title={section.title}
+              title={t(section.titleKey)}
               content={noteContent[section.key]}
               icon={section.icon}
               expanded={expandedNotes.has(section.key)}

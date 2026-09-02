@@ -5,3 +5,4 @@ export { PremiumScoreRing } from './PremiumScoreRing';
 export type { PremiumScoreRingProps } from './PremiumScoreRing';
 export { PremiumMetricBar } from './PremiumMetricBar';
 export type { PremiumMetricBarProps, PremiumMetricTone } from './PremiumMetricBar';
+export * from './result';

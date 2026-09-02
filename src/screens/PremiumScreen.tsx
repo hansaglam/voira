@@ -10,15 +10,24 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import type { PurchasesPackage } from 'react-native-purchases';
-import { RootScreenProps } from '../navigation/types';
+import { PremiumScreenProps, OnboardingSpeakPlusParams } from '../navigation/types';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { AppCard } from '../components/AppCard';
 import { VoiraLogo } from '../components/VoiraLogo';
 import { PremiumDebugPanel } from '../components/PremiumDebugPanel';
-import { PremiumFeatureItem } from '../components/PremiumFeatureItem';
+import { PaywallPlanCard } from '../components/premium';
 import { usePremium } from '../context/PremiumContext';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
+import { trackOnboardingEvent } from '../services/analytics/onboardingAnalytics';
+import {
+  trackPaywallEvent,
+  type PaywallPackageType,
+  type PaywallSource,
+} from '../services/analytics/paywallAnalytics';
+import { onboardingSpeakPlusParamsToFinishPayload } from '../services/onboarding/onboardingSpeakPlusFlow';
 import { isRegisteredUser } from '../utils/authAccess';
 import {
   ACCOUNT_REQUIRED_COPY,
@@ -27,6 +36,7 @@ import {
   showRestoreRequiresSignInAlert,
 } from '../utils/premiumAccountGate';
 import type { PremiumPackageOption } from '../services/premium';
+import { selectDefaultPackage } from '../services/premium';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '../constants/legalLinks';
 import { openExternalLink } from '../utils/openExternalLink';
 import { showAppDialog, showAppFeedback } from '../components/dialog';
@@ -35,35 +45,14 @@ import { getPremiumCancelNote } from '../utils/billingCopy';
 import { getStoreAccountLabel } from '../utils/storeSubscriptions';
 import { colors, spacing, borderRadius, layout } from '../theme';
 
-type Props = RootScreenProps<'Premium'>;
-
 const CTA_RADIUS = 18;
 const CTA_HEIGHT = 52;
 
-const BENEFIT_CHIPS = [
-  { icon: 'library-outline' as const, label: 'Tüm premium dersler' },
-  { icon: 'analytics-outline' as const, label: 'Gelişmiş analiz' },
-  { icon: 'bookmark-outline' as const, label: 'Kelime Defterini genişlet' },
-];
-
-const SPEAKPLUS_VALUE_ITEMS = [
-  'Premium ders paketlerine eriş',
-  'Telaffuz, doğruluk ve akıcılık skorlarını detaylı gör',
-  'Kelime Defterini genişlet',
-  'Zayıf kelimelerini daha düzenli takip et',
-  'Gelişimini haftalık olarak izle',
-];
-
-function BenefitChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
-  return (
-    <View style={styles.benefitChip}>
-      <Ionicons name={icon} size={13} color={colors.secondary} />
-      <Text style={styles.benefitChipLabel} numberOfLines={1}>
-        {label}
-      </Text>
-    </View>
-  );
-}
+const BENEFIT_DEFS = [
+  { titleKey: 'premium.benefit1Title', bodyKey: 'premium.benefit1Body' },
+  { titleKey: 'premium.benefit2Title', bodyKey: 'premium.benefit2Body' },
+  { titleKey: 'premium.benefit3Title', bodyKey: 'premium.benefit3Body' },
+] as const;
 
 function PremiumCtaButton({
   title,
@@ -76,12 +65,16 @@ function PremiumCtaButton({
   disabled?: boolean;
   loading?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.88}
-      style={[styles.ctaTouchable, disabled && styles.ctaDisabled]}
+      style={[styles.ctaTouchable, disabled && !loading && styles.ctaDisabled]}
       disabled={disabled || loading}
+      accessibilityRole="button"
+      accessibilityLabel={loading ? t('premium.ctaProcessing') : title}
+      accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
     >
       <LinearGradient
         colors={[colors.gradientStart, colors.gradientEnd]}
@@ -90,7 +83,10 @@ function PremiumCtaButton({
         style={styles.ctaGradient}
       >
         {loading ? (
-          <Text style={styles.ctaText}>İşleniyor...</Text>
+          <View style={styles.ctaLoadingRow}>
+            <ActivityIndicator size="small" color={colors.textPrimary} />
+            <Text style={styles.ctaText}>{t('premium.ctaProcessing')}</Text>
+          </View>
         ) : (
           <Text style={styles.ctaText}>{title}</Text>
         )}
@@ -99,39 +95,15 @@ function PremiumCtaButton({
   );
 }
 
-function PackageCard({
-  option,
-  selected,
-  onSelect,
-}: {
-  option: PremiumPackageOption;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const periodSuffix = option.period === 'yearly' ? '/ yıl' : '/ ay';
-
+function BenefitRow({ title, body }: { title: string; body: string }) {
   return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      onPress={onSelect}
-      style={[styles.packageCard, selected && styles.packageCardSelected]}
-    >
-      <View style={styles.packageHeader}>
-        <Text style={[styles.packageLabel, selected && styles.packageLabelSelected]}>
-          {option.labelTr}
-        </Text>
-        {option.period === 'yearly' ? (
-          <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>En avantajlı</Text>
-          </View>
-        ) : null}
+    <View style={styles.benefitRow}>
+      <View style={styles.benefitDot} />
+      <View style={styles.benefitTextCol}>
+        <Text style={styles.benefitTitle}>{title}</Text>
+        <Text style={styles.benefitBody}>{body}</Text>
       </View>
-      {/* Store-localized price only — never hardcode or approximate prices here. */}
-      <Text style={[styles.packagePrice, selected && styles.packagePriceSelected]}>
-        {option.priceString || 'Fiyat yükleniyor...'}
-      </Text>
-      <Text style={styles.packagePeriod}>{periodSuffix}</Text>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -144,6 +116,7 @@ function AccountRequiredFooter({
   onSignIn: () => void;
   onContinueAsGuest: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={styles.footerShell}>
       <LinearGradient
@@ -157,14 +130,14 @@ function AccountRequiredFooter({
         pointerEvents="none"
       />
       <View style={styles.footerPanel}>
-        <PremiumCtaButton title="Hesap oluştur" onPress={onCreateAccount} />
+        <PremiumCtaButton title={t('premium.authCreate')} onPress={onCreateAccount} />
         <TouchableOpacity
           onPress={onSignIn}
           activeOpacity={0.65}
           style={styles.secondaryAuthTouchable}
           hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
         >
-          <Text style={styles.secondaryAuthText}>Giriş yap</Text>
+          <Text style={styles.secondaryAuthText}>{t('premium.authSignIn')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={onContinueAsGuest}
@@ -172,7 +145,7 @@ function AccountRequiredFooter({
           style={styles.skipTouchable}
           hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
         >
-          <Text style={styles.skipText}>Misafir olarak devam et</Text>
+          <Text style={styles.skipText}>{t('premium.authGuestContinue')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -190,6 +163,8 @@ function PremiumFooter({
   loading,
   restoring,
   activeSubscriber = false,
+  skipLabel,
+  showSkip = false,
 }: {
   ctaTitle: string;
   onPrimary: () => void;
@@ -201,7 +176,11 @@ function PremiumFooter({
   loading?: boolean;
   restoring?: boolean;
   activeSubscriber?: boolean;
+  skipLabel?: string;
+  showSkip?: boolean;
 }) {
+  const { t } = useTranslation();
+  const resolvedSkipLabel = skipLabel ?? t('premium.skip');
   return (
     <View style={styles.footerShell}>
       <LinearGradient
@@ -233,26 +212,28 @@ function PremiumFooter({
               {restoring ? (
                 <ActivityIndicator size="small" color={colors.textMuted} />
               ) : (
-                <Text style={styles.restoreText}>Satın alımları geri yükle</Text>
+                <Text style={styles.restoreText}>{t("premium.restore")}</Text>
               )}
             </TouchableOpacity>
             <View style={styles.legalRow}>
               <TouchableOpacity onPress={onPrivacy} hitSlop={8}>
-                <Text style={styles.legalLink}>Gizlilik Politikası</Text>
+                <Text style={styles.legalLink}>{t("premium.legalPrivacy")}</Text>
               </TouchableOpacity>
               <Text style={styles.legalDivider}>·</Text>
               <TouchableOpacity onPress={onTerms} hitSlop={8}>
-                <Text style={styles.legalLink}>Kullanım Şartları</Text>
+                <Text style={styles.legalLink}>{t("premium.legalTerms")}</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={onSkip}
-              activeOpacity={0.65}
-              style={styles.skipTouchable}
-              hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
-            >
-              <Text style={styles.skipText}>Şimdilik devam et</Text>
-            </TouchableOpacity>
+            {showSkip ? (
+              <TouchableOpacity
+                onPress={onSkip}
+                activeOpacity={0.65}
+                style={styles.skipTouchable}
+                hitSlop={{ top: 6, bottom: 6, left: 12, right: 12 }}
+              >
+                <Text style={styles.skipText}>{resolvedSkipLabel}</Text>
+              </TouchableOpacity>
+            ) : null}
           </>
         ) : null}
       </View>
@@ -260,18 +241,41 @@ function PremiumFooter({
   );
 }
 
+function resolvePaywallCtaTitle(
+  t: ReturnType<typeof useTranslation>['t'],
+  selectedOption: PremiumPackageOption | undefined,
+  isPremium: boolean,
+): string {
+  if (isPremium) return t('premium.ctaContinue');
+  if (selectedOption?.hasFreeTrial && selectedOption.freeTrialDays != null) {
+    return t('premium.ctaStartTrialDays', { days: selectedOption.freeTrialDays });
+  }
+  return t('premium.ctaStart');
+}
+
 function defaultSelectedPackage(
   options: PremiumPackageOption[],
 ): PurchasesPackage | null {
-  if (options.length === 0) return null;
-  const yearly = options.find((option) => option.period === 'yearly');
-  return (yearly ?? options[0]).package;
+  return selectDefaultPackage(options);
 }
 
-export function PremiumScreen({ navigation }: Props) {
+type Props = PremiumScreenProps;
+
+export function PremiumScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { completeOnboarding } = useUser();
   const registered = isRegisteredUser(user);
+  const onboardingParams =
+    route?.name === 'OnboardingSpeakPlus'
+      ? (route.params as OnboardingSpeakPlusParams)
+      : null;
+  const isOnboardingFlow = onboardingParams != null;
+  const paywallSource: PaywallSource = isOnboardingFlow
+    ? 'onboarding'
+    : ((route?.params as { source?: PaywallSource } | undefined)?.source ?? 'default');
+  const paywallViewedRef = React.useRef(false);
   const {
     isPremium,
     isLoadingPremium,
@@ -330,6 +334,41 @@ export function PremiumScreen({ navigation }: Props) {
   }, [refreshCustomerInfo]);
 
   useEffect(() => {
+    if (paywallViewedRef.current) return;
+    paywallViewedRef.current = true;
+    trackPaywallEvent('paywall_viewed', { source: paywallSource });
+    if (isOnboardingFlow) {
+      trackOnboardingEvent('onboarding_paywall_viewed', {
+        goal: onboardingParams?.primaryGoal ?? null,
+      });
+    }
+  }, [isOnboardingFlow, onboardingParams?.primaryGoal, paywallSource]);
+
+  const finishOnboardingFromPaywall = React.useCallback(async () => {
+    if (!onboardingParams) return;
+    const payload = onboardingSpeakPlusParamsToFinishPayload(onboardingParams);
+    await completeOnboarding('Home', {
+      primaryGoal: payload.primaryGoal,
+      level: payload.level as import('../types').EnglishLevel,
+      dailyMinutes: payload.dailyMinutes,
+      speakingPriorities: payload.speakingPriorities,
+      lessonParams: {
+        lessonId: payload.lessonId,
+        source: 'library',
+        categoryId: payload.categoryId,
+      },
+    });
+  }, [completeOnboarding, onboardingParams]);
+
+  const handleOnboardingFreeContinue = React.useCallback(() => {
+    trackPaywallEvent('paywall_free_continue', { source: 'onboarding' });
+    trackOnboardingEvent('onboarding_paywall_free_continue', {
+      goal: onboardingParams?.primaryGoal ?? null,
+    });
+    void finishOnboardingFromPaywall();
+  }, [finishOnboardingFromPaywall, onboardingParams?.primaryGoal]);
+
+  useEffect(() => {
     setSelectedPackage(defaultSelectedPackage(packageOptions));
   }, [packageOptions]);
 
@@ -339,37 +378,104 @@ export function PremiumScreen({ navigation }: Props) {
     [packageOptions, selectedPackage?.identifier],
   );
 
-  const handleClose = () => navigation.goBack();
+  const selectedOption = useMemo(
+    () =>
+      packageOptions.find(
+        (option) => option.package.identifier === selectedPackage?.identifier,
+      ),
+    [packageOptions, selectedPackage?.identifier],
+  );
+
+  const onPlanSelect = (option: PremiumPackageOption) => {
+    setSelectedPackage(option.package);
+    trackPaywallEvent('paywall_plan_selected', {
+      source: paywallSource,
+      packageType: option.period,
+    });
+  };
+
+  const handleClose = () => {
+    if (isOnboardingFlow) {
+      navigation.goBack();
+      return;
+    }
+    navigation.goBack();
+  };
 
   const handleGoToAuth = () => navigateToProfileAuth(navigation);
 
   const handlePurchase = async () => {
-    if (!registered) return;
+    if (!registered && !isOnboardingFlow) return;
     if (!selectedPackage) return;
+
+    if (isOnboardingFlow) {
+      trackOnboardingEvent('onboarding_paywall_subscribe_tapped', {
+        goal: onboardingParams?.primaryGoal ?? null,
+        period: selectedPeriod ?? null,
+      });
+    }
+    trackPaywallEvent('paywall_purchase_tapped', {
+      source: paywallSource,
+      packageType: (selectedPeriod as PaywallPackageType | undefined) ?? null,
+    });
 
     const result = await purchasePackage(selectedPackage);
     if (result === 'unlocked') {
+      trackPaywallEvent('paywall_purchase_success', {
+        source: paywallSource,
+        packageType: (selectedPeriod as PaywallPackageType | undefined) ?? null,
+      });
+      if (isOnboardingFlow) {
+        trackOnboardingEvent('onboarding_paywall_purchase_success', {
+          goal: onboardingParams?.primaryGoal ?? null,
+        });
+        showSuccessFeedback(
+          t('premium.titleActive'),
+          t('premiumDialogs.purchaseSuccessBody'),
+          t('common.continue'),
+          () => {
+            void finishOnboardingFromPaywall();
+          },
+        );
+        return;
+      }
       showSuccessFeedback(
-        'SpeakPlus aktif',
-        'Premium derslere ve gelişmiş geri bildirimlere erişimin açıldı.',
-        'Devam et',
+        t('premium.titleActive'),
+        t('premiumDialogs.purchaseSuccessBody'),
+        t('common.continue'),
         handleClose,
       );
       return;
     }
+    if (result === 'cancelled') {
+      trackPaywallEvent('paywall_purchase_cancelled', {
+        source: paywallSource,
+        packageType: (selectedPeriod as PaywallPackageType | undefined) ?? null,
+      });
+      return;
+    }
+    if (result === 'failed') {
+      trackPaywallEvent('paywall_purchase_failed', {
+        source: paywallSource,
+        packageType: (selectedPeriod as PaywallPackageType | undefined) ?? null,
+      });
+      return;
+    }
     if (result === 'already_subscribed') {
       showAppDialog({
-        title: 'Aktif abonelik var',
-        message: `Bu ${getStoreAccountLabel()} hesabında aktif abonelik görünüyor. Satın alımları geri yüklemeyi dene.`,
+        title: t('premiumDialogs.alreadySubscribedTitle'),
+        message: t('premiumDialogs.alreadySubscribedBody', {
+          store: getStoreAccountLabel(),
+        }),
         variant: 'info',
         primaryButton: {
           id: 'restore',
-          label: 'Satın alımları geri yükle',
+          label: t('premium.restore'),
           variant: 'primary',
         },
         tertiaryButton: {
           id: 'cancel',
-          label: 'Vazgeç',
+          label: t('premium.cancel'),
           variant: 'tertiary',
         },
         onAction: (id) => {
@@ -387,37 +493,44 @@ export function PremiumScreen({ navigation }: Props) {
       return;
     }
 
+    trackPaywallEvent('paywall_restore_tapped', { source: paywallSource });
+
     const result = await restorePurchases();
     if (result === 'restored') {
+      trackPaywallEvent('paywall_restore_success', { source: paywallSource, restored: true });
+      if (isOnboardingFlow) {
+        trackOnboardingEvent('onboarding_paywall_purchase_success', {
+          goal: onboardingParams?.primaryGoal ?? null,
+          restored: true,
+        });
+        void finishOnboardingFromPaywall();
+        return;
+      }
       showSuccessFeedback(
-        'Satın almalar geri yüklendi',
-        'SpeakPlus erişimin hesabınla eşleştirildi.',
+        t('premiumDialogs.restoreSuccessTitle'),
+        t('premiumDialogs.restoreSuccessBody'),
       );
       return;
     }
     if (result === 'not_found') {
       showAppFeedback({
-        title: 'Abonelik bulunamadı',
-        message: `Bu ${getStoreAccountLabel()} hesabında abonelik bulunamadı veya mevcut uygulama hesabına bağlanamadı.`,
+        title: t('premiumDialogs.restoreNotFoundTitle'),
+        message: t('premiumDialogs.restoreNotFoundBody', {
+          store: getStoreAccountLabel(),
+        }),
         variant: 'warning',
       });
     }
     if (result === 'error') {
       showAppFeedback({
-        title: 'Geri yükleme başarısız',
-        message: 'Satın alımlar geri yüklenemedi. Lütfen tekrar dene.',
+        title: t('premiumDialogs.restoreErrorTitle'),
+        message: t('premiumDialogs.restoreErrorBody'),
         variant: 'error',
       });
     }
   };
 
-  const ctaTitle = isPremium
-    ? 'Devam et'
-    : selectedPeriod === 'yearly'
-      ? "Yıllık SpeakPlus'u Başlat"
-      : selectedPeriod === 'monthly'
-        ? "Aylık SpeakPlus'u Başlat"
-        : "SpeakPlus'u Başlat";
+  const ctaTitle = resolvePaywallCtaTitle(t, selectedOption, isPremium);
   const isPackagesLoading = isLoadingPremium || isOfferingsLoading;
   const showOfferingsFallback =
     registered && !isPackagesLoading && !isPremium && packageOptions.length === 0;
@@ -429,7 +542,7 @@ export function PremiumScreen({ navigation }: Props) {
     !isPremium &&
     hasMonthlyOption &&
     !hasYearlyOption;
-  const showGuestAccountGate = !registered && !isPremium;
+  const showGuestAccountGate = !isOnboardingFlow && !registered && !isPremium;
   const footerClearance = showGuestAccountGate
     ? CTA_HEIGHT + 10 + 22 + 34 + insets.bottom + spacing.lg + 48
     : CTA_HEIGHT + 10 + 18 + 12 + 34 + insets.bottom + spacing.lg + 52;
@@ -443,9 +556,11 @@ export function PremiumScreen({ navigation }: Props) {
   ) : (
     <PremiumFooter
       ctaTitle={ctaTitle}
-      onPrimary={isPremium ? handleClose : handlePurchase}
+      onPrimary={isPremium ? (isOnboardingFlow ? handleOnboardingFreeContinue : handleClose) : handlePurchase}
       onRestore={handleRestore}
-      onSkip={handleClose}
+      onSkip={isOnboardingFlow ? handleOnboardingFreeContinue : handleClose}
+      skipLabel={isOnboardingFlow ? t('premium.onboardingFreeContinue') : undefined}
+      showSkip={isOnboardingFlow}
       onPrivacy={() => void openExternalLink(PRIVACY_POLICY_URL)}
       onTerms={() => void openExternalLink(TERMS_OF_USE_URL)}
       disabled={!isPremium && (!selectedPackage || packageOptions.length === 0)}
@@ -462,15 +577,18 @@ export function PremiumScreen({ navigation }: Props) {
           <Ionicons name="close" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
         <View style={styles.centerState}>
-          <Text style={styles.unconfiguredTitle}>RevenueCat yapılandırılmamış.</Text>
+          <Text style={styles.unconfiguredTitle}>{t('premium.unconfigured')}</Text>
           <Text style={styles.unconfiguredBody}>
-            Gerçek abonelik akışı için EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ve
-            EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY değerlerini ayarlayın. Expo Go yerine
-            native dev build kullanın (npx expo run:android / run:ios).
+            {t('premium.unconfiguredBody')}
           </Text>
           <TouchableOpacity onPress={handleClose} style={styles.backLink}>
-            <Text style={styles.backLinkText}>Geri dön</Text>
+            <Text style={styles.backLinkText}>{t('common.back')}</Text>
           </TouchableOpacity>
+          {isOnboardingFlow ? (
+            <TouchableOpacity onPress={handleOnboardingFreeContinue} style={styles.backLink}>
+              <Text style={styles.backLinkText}>{t('premium.onboardingFreeContinue')}</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </ScreenContainer>
     );
@@ -491,31 +609,40 @@ export function PremiumScreen({ navigation }: Props) {
 
       <View style={styles.hero}>
         <VoiraLogo size={48} style={styles.heroLogo} />
-        <Text style={styles.brand}>VOIRA SPEAKPLUS</Text>
+        <Text style={styles.brand}>{t('premium.brand')}</Text>
         {isPremium ? (
           <>
-            <Text style={styles.title}>SpeakPlus aktif</Text>
+            <Text style={styles.title}>{t("premium.titleActive")}</Text>
+            <Text style={styles.subtitle}>{t('premium.subtitleActive')}</Text>
+          </>
+        ) : isOnboardingFlow && onboardingParams ? (
+          <>
+            <Text style={styles.title}>
+              {t(`premium.onboardingTitle_${onboardingParams.primaryGoal}`, {
+                defaultValue: t('premium.onboardingTitleDefault'),
+              })}
+            </Text>
             <Text style={styles.subtitle}>
-              Premium derslere ve gelişmiş geri bildirimlere erişimin var.
+              {t('premium.onboardingSubtitle', {
+                minutes: onboardingParams.dailyMinutes,
+                priority: onboardingParams.topPriority
+                  ? t(`onboarding.priority_${onboardingParams.topPriority}`)
+                  : t('onboarding.planFocusFallback'),
+              })}
             </Text>
           </>
         ) : (
           <>
-            <Text style={styles.title}>İngilizce konuşmanı bir üst seviyeye taşı</Text>
-            <Text style={styles.subtitle}>
-              Premium dersler, gelişmiş telaffuz analizi ve kelime bazlı geri bildirimlerle daha
-              düzenli pratik yap.
-            </Text>
+            <Text style={styles.title}>{t("premium.titleUpsell")}</Text>
+            <Text style={styles.subtitle}>{t('premium.subtitleUpsell')}</Text>
           </>
         )}
       </View>
 
       {isPremium ? (
         <AppCard style={styles.activeCard}>
-          <Text style={styles.activeTitle}>SpeakPlus aktif</Text>
-          <Text style={styles.activeBody}>
-            Premium derslere ve gelişmiş geri bildirimlere erişimin var.
-          </Text>
+          <Text style={styles.activeTitle}>{t("premium.titleActive")}</Text>
+          <Text style={styles.activeBody}>{t('premium.subtitleActive')}</Text>
         </AppCard>
       ) : showGuestAccountGate ? (
         <AppCard style={styles.accountRequiredCard}>
@@ -527,49 +654,46 @@ export function PremiumScreen({ navigation }: Props) {
         </AppCard>
       ) : (
         <>
-          <View style={styles.benefitChipRow}>
-            {BENEFIT_CHIPS.map((chip) => (
-              <BenefitChip key={chip.label} icon={chip.icon} label={chip.label} />
+          <View style={styles.benefitsSection}>
+            {BENEFIT_DEFS.map((benefit) => (
+              <BenefitRow
+                key={benefit.titleKey}
+                title={t(benefit.titleKey)}
+                body={t(benefit.bodyKey)}
+              />
             ))}
           </View>
 
           {isPackagesLoading ? (
             <AppCard style={styles.loadingCard}>
               <ActivityIndicator color={colors.primary} style={styles.loadingSpinner} />
-              <Text style={styles.loadingTitle}>SpeakPlus seçenekleri hazırlanıyor...</Text>
-              <Text style={styles.loadingBody}>
-                Aylık ve yıllık paketler mağazadan alınıyor.
-              </Text>
+              <Text style={styles.loadingTitle}>{t('premium.loadingTitle')}</Text>
+              <Text style={styles.loadingBody}>{t('premium.loadingBody')}</Text>
             </AppCard>
           ) : null}
 
           {!isPackagesLoading && packageOptions.length > 0 ? (
             <>
-              <View style={styles.packageRow}>
+              <View style={styles.planList}>
                 {packageOptions.map((option) => (
-                  <PackageCard
+                  <PaywallPlanCard
                     key={option.package.identifier}
                     option={option}
                     selected={selectedPeriod === option.period}
-                    onSelect={() => setSelectedPackage(option.package)}
+                    onSelect={() => onPlanSelect(option)}
                   />
                 ))}
               </View>
               {showPartialYearlyHint ? (
-                <Text style={styles.partialHint}>
-                  Yıllık paket şu anda kullanılamıyor. Aylık SpeakPlus ile devam edebilirsin.
-                </Text>
+                <Text style={styles.partialHint}>{t('premium.partialYearlyHint')}</Text>
               ) : null}
             </>
           ) : null}
 
           {showOfferingsFallback ? (
             <AppCard style={styles.fallbackCard}>
-              <Text style={styles.fallbackTitle}>Paketler yüklenemedi</Text>
-              <Text style={styles.fallbackBody}>
-                SpeakPlus seçenekleri şu anda alınamıyor. Lütfen bağlantını kontrol edip tekrar
-                dene.
-              </Text>
+              <Text style={styles.fallbackTitle}>{t('premium.fallbackTitle')}</Text>
+              <Text style={styles.fallbackBody}>{t('premium.fallbackBody')}</Text>
               <TouchableOpacity
                 onPress={() => void refreshOfferings()}
                 style={styles.retryButton}
@@ -578,7 +702,7 @@ export function PremiumScreen({ navigation }: Props) {
                 {isOfferingsLoading ? (
                   <ActivityIndicator size="small" color={colors.primary} />
                 ) : (
-                  <Text style={styles.retryText}>Tekrar dene</Text>
+                  <Text style={styles.retryText}>{t('premium.retry')}</Text>
                 )}
               </TouchableOpacity>
             </AppCard>
@@ -589,18 +713,6 @@ export function PremiumScreen({ navigation }: Props) {
               <Text style={styles.errorText}>{errorMessage}</Text>
             </AppCard>
           ) : null}
-
-          <AppCard style={styles.featuresCard}>
-            <Text style={styles.sectionTitle}>SpeakPlus ile</Text>
-            {SPEAKPLUS_VALUE_ITEMS.map((feature, index) => (
-              <PremiumFeatureItem
-                key={feature}
-                text={feature}
-                compact
-                isLast={index === SPEAKPLUS_VALUE_ITEMS.length - 1}
-              />
-            ))}
-          </AppCard>
 
           {selectedPackage ? (
             <Text style={styles.cancelNote}>{getPremiumCancelNote()}</Text>
@@ -795,6 +907,40 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs + 2,
     marginBottom: spacing.md,
+  },
+  benefitsSection: {
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  benefitDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.primary,
+    marginTop: 7,
+  },
+  benefitTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  benefitTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  benefitBody: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  planList: {
+    marginBottom: spacing.xs,
   },
   benefitChip: {
     flexDirection: 'row',
@@ -1015,6 +1161,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  ctaLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   ctaText: {
     fontSize: 16,

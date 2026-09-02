@@ -8,7 +8,7 @@ import {
 } from '../types/learning';
 import { getExampleFeedback, getAllKeywords, resolveLessonPremium, isLastLessonSegment } from '../utils/lessonUtils';
 import { LessonSegment } from '../types/segment';
-import { lessons } from './lessons';
+import { contentCatalog } from './content/contentCatalog';
 import {
   ensureLessonArray,
   getSafeLessonField,
@@ -380,7 +380,7 @@ export function updateProgressFromResult(
   const safeProfile = normalizeLearningProfile(userProfile);
   const today = practiceResult.createdAt.slice(0, 10);
   const alreadyCompleted = safeProfile.completedLessonIds.includes(practiceResult.lessonId);
-  const lesson = lessons.find((item) => item.id === practiceResult.lessonId);
+  const lesson = contentCatalog.find((item) => item.id === practiceResult.lessonId);
   const shouldMarkLessonComplete =
     !lesson || isLastLessonSegment(lesson, practiceResult.segmentId);
   const newlyCompletingLesson = shouldMarkLessonComplete && !alreadyCompleted;

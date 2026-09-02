@@ -23,7 +23,13 @@ export function OnboardingHeader({
     <View style={styles.container}>
       <View style={styles.topRow}>
         {onBack ? (
-          <TouchableOpacity style={styles.backButton} onPress={onBack} activeOpacity={0.7}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={onBack}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
             <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         ) : (

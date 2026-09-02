@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import { colors, spacing } from '../../theme';
+import i18n from '../../i18n';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -36,8 +37,8 @@ function resolveScoreLabel(
   pronunciationAssessmentAvailable?: boolean,
 ): string {
   if (label) return label;
-  if (pronunciationAssessmentAvailable) return 'Gerçek Telaffuz Skoru';
-  return 'Konuşma Skoru';
+  if (pronunciationAssessmentAvailable) return i18n.t('analysis.ringRealPronunciation');
+  return i18n.t('analysis.ringSpeech');
 }
 
 function resolveScoreFontSize(size: number): number {

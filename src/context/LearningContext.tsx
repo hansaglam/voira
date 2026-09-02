@@ -22,6 +22,10 @@ import { Lesson } from '../types/lesson';
 import { LessonSegment } from '../types/segment';
 import { mapChallengesToWeakAreas } from '../data/learningAlgorithm';
 import {
+  sanitizeSpeakingPriorities,
+  type SpeakingPriority,
+} from '../services/personalization/personalSpeakingPlanTypes';
+import {
   AiSpeechAnalysisOutput,
   analysisOutputToPracticeResult,
   analyzeSpeechMock,
@@ -56,6 +60,16 @@ import {
 import { lessons } from '../data/lessons';
 import { getActiveSegment } from '../utils/lessonUtils';
 import type { RecordingValidationResult } from '../services/audio/recordingValidation';
+import { withStableAttemptId } from '../services/sync/attemptId';
+import {
+  attachProgressSyncAppStateListener,
+  enqueuePracticeAttemptForSync,
+  registerProgressSyncApplier,
+  shouldSyncProgressForUserId,
+  triggerProgressSyncIfAuthenticated,
+} from '../services/sync/progressSyncService';
+import { clearProgressSyncState } from '../services/sync/syncStateStorage';
+import { clearWeakWordsState, loadWeakWordsState } from '../services/weakWords/weakWordStorage';
 
 interface LearningContextType {
   learningProfile: UserLearningProfile;
@@ -97,13 +111,18 @@ interface LearningContextType {
   setName: (name: string) => void;
   setLevel: (level: EnglishLevel) => void;
   setGoals: (goals: string[]) => void;
+  setSpeakingPriorities: (priorities: SpeakingPriority[]) => void;
   setWeakAreasFromChallenges: (challengeIds: string[]) => void;
   setDailyMinutes: (minutes: number) => void;
   setPremium: (premium: boolean) => void;
   setUserId: (userId: string) => void;
   isLessonCompleted: (lessonId: string) => boolean;
   recordActiveLesson: (state: Omit<LastLessonState, 'updatedAt'>) => void;
+  /** Last unfinished / active lesson pointer for Home continue + recommendations. */
+  lastLessonState: LastLessonState | null;
   resetLocalPracticeData: () => void;
+  /** Non-blocking cloud sync for signed-in users (guest no-op). */
+  requestProgressSync: (options?: { forceGuestMigration?: boolean }) => Promise<void>;
 }
 
 const LearningContext = createContext<LearningContextType | undefined>(undefined);
@@ -148,10 +167,35 @@ export function LearningProvider({ children }: { children: ReactNode }) {
   }, [persistProgressSnapshot]);
 
   useEffect(() => {
+    registerProgressSyncApplier(({ profile, lastLessonState: lessonState, persisted }) => {
+      hydrateLearningSessionStore({
+        sessions: persisted.sessions,
+        results: persisted.results,
+        todaySessionKey: persisted.todaySessionKey,
+      });
+      learningProfileRef.current = profile;
+      lastLessonStateRef.current = lessonState;
+      setLearningProfile(profile);
+      setLastLessonState(lessonState);
+    });
+
+    const detach = attachProgressSyncAppStateListener(() => ({
+      profile: learningProfileRef.current,
+      lastLessonState: lastLessonStateRef.current,
+      isHydrated: isLearningHydratedRef.current,
+    }));
+
+    return () => {
+      detach();
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     void (async () => {
       const saved = await loadLearningProgress();
+      await loadWeakWordsState();
       if (cancelled) return;
 
       if (saved) {
@@ -196,6 +240,16 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isLearningHydrated) return;
+    if (!shouldSyncProgressForUserId(learningProfile.userId)) return;
+
+    void triggerProgressSyncIfAuthenticated({
+      profile: learningProfileRef.current,
+      lastLessonState: lastLessonStateRef.current,
+    });
+  }, [isLearningHydrated, learningProfile.userId]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
@@ -374,19 +428,27 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
   const submitPracticeResult = useCallback(
     (result: PracticeResult) => {
+      const stableResult = withStableAttemptId({
+        ...result,
+        updatedAt: result.updatedAt ?? new Date().toISOString(),
+        syncStatus: result.syncStatus ?? 'pending',
+      });
+
       const nextLastLessonState: LastLessonState = {
-        lessonId: result.lessonId,
-        source: result.mode === 'daily' ? 'dailySession' : 'library',
-        sessionId: result.sessionId,
-        segmentId: result.segmentId,
-        updatedAt: result.createdAt,
+        lessonId: stableResult.lessonId,
+        source: stableResult.mode === 'daily' ? 'dailySession' : 'library',
+        sessionId: stableResult.sessionId,
+        segmentId: stableResult.segmentId,
+        updatedAt: stableResult.createdAt,
       };
 
-      if (result.segmentId) {
-        const lesson = lessons.find((item) => item.id === result.lessonId);
+      if (stableResult.segmentId) {
+        const lesson = lessons.find((item) => item.id === stableResult.lessonId);
         if (lesson) {
           const sortedSegments = [...lesson.segments].sort((a, b) => a.order - b.order);
-          const segmentIndex = sortedSegments.findIndex((segment) => segment.id === result.segmentId);
+          const segmentIndex = sortedSegments.findIndex(
+            (segment) => segment.id === stableResult.segmentId,
+          );
           if (segmentIndex >= 0) {
             nextLastLessonState.segmentIndex = segmentIndex;
           }
@@ -396,13 +458,37 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       setLastLessonState(nextLastLessonState);
 
       setLearningProfile((prev) => {
-        const { profile } = recordPracticeResult(prev, result);
+        const { profile } = recordPracticeResult(prev, stableResult);
         learningProfileRef.current = profile;
         void persistProgressSnapshot(profile, nextLastLessonState);
+
+        if (shouldSyncProgressForUserId(profile.userId)) {
+          void enqueuePracticeAttemptForSync(stableResult).then(() =>
+            triggerProgressSyncIfAuthenticated({
+              profile,
+              lastLessonState: nextLastLessonState,
+            }),
+          );
+        }
+
         return profile;
       });
     },
     [persistProgressSnapshot],
+  );
+
+  const requestProgressSync = useCallback(
+    async (options?: { forceGuestMigration?: boolean }) => {
+      if (!shouldSyncProgressForUserId(learningProfileRef.current.userId)) {
+        return;
+      }
+      await triggerProgressSyncIfAuthenticated({
+        profile: learningProfileRef.current,
+        lastLessonState: lastLessonStateRef.current,
+        forceGuestMigration: options?.forceGuestMigration,
+      });
+    },
+    [],
   );
 
   const finishDailySession = useCallback(
@@ -427,6 +513,17 @@ export function LearningProvider({ children }: { children: ReactNode }) {
 
   const setGoals = useCallback((goals: string[]) => {
     setLearningProfile((p) => ({ ...p, goals }));
+  }, []);
+
+  const setSpeakingPriorities = useCallback((priorities: SpeakingPriority[]) => {
+    setLearningProfile((p) => {
+      const next = {
+        ...p,
+        speakingPriorities: sanitizeSpeakingPriorities(priorities),
+      };
+      learningProfileRef.current = next;
+      return next;
+    });
   }, []);
 
   const setWeakAreasFromChallenges = useCallback((challengeIds: string[]) => {
@@ -466,12 +563,15 @@ export function LearningProvider({ children }: { children: ReactNode }) {
     resetLearningSessionStore();
     setLastLessonState(null);
     lastLessonStateRef.current = null;
+    void clearProgressSyncState();
+    void clearWeakWordsState();
     setLearningProfile((prev) => {
       const profile = createDefaultLearningProfile({
         userId: prev.userId,
         name: prev.name,
         level: prev.level,
         goals: prev.goals,
+        speakingPriorities: prev.speakingPriorities,
         weakAreas: prev.weakAreas,
         dailyMinutes: prev.dailyMinutes,
         premium: prev.premium,
@@ -497,13 +597,16 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       setName,
       setLevel,
       setGoals,
+      setSpeakingPriorities,
       setWeakAreasFromChallenges,
       setDailyMinutes,
       setPremium,
       setUserId,
       isLessonCompleted,
       recordActiveLesson,
+      lastLessonState,
       resetLocalPracticeData,
+      requestProgressSync,
     }),
     [
       learningProfile,
@@ -519,13 +622,16 @@ export function LearningProvider({ children }: { children: ReactNode }) {
       setName,
       setLevel,
       setGoals,
+      setSpeakingPriorities,
       setWeakAreasFromChallenges,
       setDailyMinutes,
       setPremium,
       setUserId,
       isLessonCompleted,
+      lastLessonState,
       recordActiveLesson,
       resetLocalPracticeData,
+      requestProgressSync,
     ],
   );
 

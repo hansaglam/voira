@@ -6,7 +6,9 @@ export type UserGoal =
   | 'cafe_restaurant'
   | 'series_english'
   | 'media'
-  | 'pronunciation';
+  | 'pronunciation'
+  | 'work'
+  | 'fluency';
 
 export type { LessonSegment } from './segment';
 export type { VocabularyEntry, VocabularyItem } from './vocabulary';

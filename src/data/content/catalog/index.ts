@@ -12,6 +12,7 @@ import { productionCafeSpeakingLessons } from './productionCafeSpeakingLessons';
 import { productionTravelSpeakingLessons } from './productionTravelSpeakingLessons';
 import { productionJobSpeakingLessons } from './productionJobSpeakingLessons';
 import { productionPronunciationSpeakingLessons } from './productionPronunciationSpeakingLessons';
+import { speakPlusExpansionLessons } from './speakPlusExpansionLessons';
 
 const productionSpeakingLessons = [
   ...productionDailySpeakingLessons,
@@ -32,6 +33,7 @@ export const contentCatalog: Lesson[] = [
   ...pronunciationLessons,
   ...specialLessons,
   ...productionSpeakingLessons,
+  ...speakPlusExpansionLessons,
 ];
 
 export const CATALOG_COUNTS = {

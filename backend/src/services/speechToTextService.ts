@@ -1,8 +1,8 @@
-import OpenAI, { toFile } from 'openai';
+import { toFile } from 'openai';
 import { APIError } from 'openai';
 import { IS_DEV, OPENAI_API_KEY } from '../config.js';
-import { OPENAI_WHISPER_TIMEOUT_MS } from '../config/timeouts.js';
 import { PRACTICE_AUDIO_LANGUAGE } from '../i18n/coachPromptRules.js';
+import { getOpenAiWhisperClient } from './openai/openaiClient.js';
 import { analysisErrorLog } from '../utils/analysisDebugLog.js';
 import { normalizeForComparison } from '../utils/normalize.js';
 
@@ -29,14 +29,11 @@ const STT_FAILED_TR =
 const EMPTY_TRANSCRIPT_TR =
   'Konuşmanı net algılayamadım. Lütfen daha net şekilde tekrar söyle.';
 
-let openaiClient: OpenAI | null = null;
+let openaiClient: ReturnType<typeof getOpenAiWhisperClient> | null = null;
 
-function getOpenAIClient(): OpenAI {
+function getOpenAIClient() {
   if (!openaiClient) {
-    openaiClient = new OpenAI({
-      apiKey: OPENAI_API_KEY,
-      timeout: OPENAI_WHISPER_TIMEOUT_MS,
-    });
+    openaiClient = getOpenAiWhisperClient();
   }
   return openaiClient;
 }

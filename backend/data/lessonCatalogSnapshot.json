@@ -414,6 +414,69 @@
     ]
   },
   {
+    "lessonId": "spx-realworld-medical-clarification",
+    "title": "Clarifying a Medical Appointment",
+    "subtitle": "Describe timing and ask practical questions",
+    "category": "custom",
+    "categoryLabel": "Özel Dersler",
+    "isPremium": false,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-realworld-medical-clarification-s1",
+        "text": "The discomfort comes and goes, but it has been more frequent this week.",
+        "translationTr": "Rahatsızlık gelip gidiyor ancak bu hafta daha sık oldu."
+      },
+      {
+        "segmentId": "spx-realworld-medical-clarification-s2",
+        "text": "Could you explain what I should monitor before the follow-up?",
+        "translationTr": "Kontrolden önce neyi takip etmem gerektiğini açıklayabilir misiniz?"
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-realworld-essential-service",
+    "title": "Getting Help With an Essential Service",
+    "subtitle": "Explain an urgent practical issue clearly",
+    "category": "custom",
+    "categoryLabel": "Özel Dersler",
+    "isPremium": false,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-realworld-essential-service-s1",
+        "text": "The heating stopped working this morning, and the apartment is getting cold.",
+        "translationTr": "Isıtma bu sabah çalışmayı durdurdu ve daire soğuyor."
+      },
+      {
+        "segmentId": "spx-realworld-essential-service-s2",
+        "text": "Could you tell me when someone can inspect it and what I should do meanwhile?",
+        "translationTr": "Birinin ne zaman kontrol edebileceğini ve bu sırada ne yapmam gerektiğini söyler misiniz?"
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-realworld-service-complaint",
+    "title": "Making a Calm Service Complaint",
+    "subtitle": "Explain the gap and request a fair solution",
+    "category": "custom",
+    "categoryLabel": "Özel Dersler",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-realworld-service-complaint-s1",
+        "text": "I understand mistakes happen, but this is different from what was confirmed.",
+        "translationTr": "Hataların olabileceğini anlıyorum ancak bu teyit edilenden farklı."
+      },
+      {
+        "segmentId": "spx-realworld-service-complaint-s2",
+        "text": "Could we find a solution that reflects the delay and the extra cost?",
+        "translationTr": "Gecikmeyi ve ek maliyeti dikkate alan bir çözüm bulabilir miyiz?"
+      }
+    ]
+  },
+  {
     "lessonId": "custom-ai-confidence",
     "title": "Personal Confidence Goal",
     "subtitle": "Özgüven hedefi cümlesi",
@@ -426,6 +489,27 @@
         "segmentId": "custom-ai-s1",
         "text": "I want to sound more confident when I speak English.",
         "translationTr": "İngilizce konuşurken daha özgüvenli duymak istiyorum."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-realworld-contract-question",
+    "title": "Questioning a Contract Clearly",
+    "subtitle": "Ask about terms before agreeing",
+    "category": "custom",
+    "categoryLabel": "Özel Dersler",
+    "isPremium": true,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-realworld-contract-question-s1",
+        "text": "Before I agree, I'd like to clarify how the cancellation period works.",
+        "translationTr": "Kabul etmeden önce iptal süresinin nasıl işlediğini netleştirmek istiyorum."
+      },
+      {
+        "segmentId": "spx-realworld-contract-question-s2",
+        "text": "Does this fee apply in every case, or are there specific exceptions?",
+        "translationTr": "Bu ücret her durumda mı geçerli, yoksa belirli istisnalar var mı?"
       }
     ]
   },
@@ -522,6 +606,27 @@
         "segmentId": "daily-gonna-s1",
         "text": "What are you gonna do tonight?",
         "translationTr": "Bu akşam ne yapacaksın?"
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-daily-soft-disagreement",
+    "title": "Disagreeing Without Friction",
+    "subtitle": "Natural ways to offer a different view",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": false,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-daily-soft-disagreement-s1",
+        "text": "I see your point, but I read the situation a little differently.",
+        "translationTr": "Ne demek istediğini anlıyorum ama durumu biraz farklı yorumluyorum."
+      },
+      {
+        "segmentId": "spx-daily-soft-disagreement-s2",
+        "text": "That makes sense; my only concern is the timing.",
+        "translationTr": "Bu mantıklı; tek endişem zamanlama."
       }
     ]
   },
@@ -783,6 +888,27 @@
     ]
   },
   {
+    "lessonId": "spx-daily-repairing-misunderstanding",
+    "title": "Repairing a Misunderstanding",
+    "subtitle": "Clarify your meaning calmly",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-daily-repairing-misunderstanding-s1",
+        "text": "I may not have explained that clearly—what I meant was this.",
+        "translationTr": "Bunu net açıklamamış olabilirim; demek istediğim şuydu."
+      },
+      {
+        "segmentId": "spx-daily-repairing-misunderstanding-s2",
+        "text": "Sorry for the confusion; we're actually saying almost the same thing.",
+        "translationTr": "Karışıklık için üzgünüm; aslında neredeyse aynı şeyi söylüyoruz."
+      }
+    ]
+  },
+  {
     "lessonId": "daily-running-late",
     "title": "Running Late",
     "subtitle": "Geç kalma mesajı",
@@ -827,6 +953,27 @@
         "segmentId": "daily-pack-saying-you-dont-understand-s1",
         "text": "Sorry, I didn't quite understand that.",
         "translationTr": "Üzgünüm, onu tam olarak anlayamadım."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-daily-setting-boundaries",
+    "title": "Setting Polite Boundaries",
+    "subtitle": "Say no while keeping the conversation warm",
+    "category": "daily",
+    "categoryLabel": "Günlük Konuşma",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-daily-setting-boundaries-s1",
+        "text": "I can't make it tonight, but I'd love to join next time.",
+        "translationTr": "Bu akşam gelemem ama bir dahaki sefere katılmayı çok isterim."
+      },
+      {
+        "segmentId": "spx-daily-setting-boundaries-s2",
+        "text": "I appreciate the invitation; I just need a quiet evening.",
+        "translationTr": "Davet için teşekkür ederim; yalnızca sakin bir akşama ihtiyacım var."
       }
     ]
   },
@@ -963,6 +1110,27 @@
     ]
   },
   {
+    "lessonId": "spx-interview-leadership-example",
+    "title": "A Nuanced Leadership Example",
+    "subtitle": "Show judgment, not just responsibility",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": false,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-interview-leadership-example-s1",
+        "text": "I realized the team needed a clearer decision, so I narrowed the options and explained the trade-offs.",
+        "translationTr": "Ekibin daha net bir karara ihtiyacı olduğunu fark edip seçenekleri daralttım ve ödünleşimleri açıkladım."
+      },
+      {
+        "segmentId": "spx-interview-leadership-example-s2",
+        "text": "The result mattered, but the more useful lesson was how early alignment reduced rework.",
+        "translationTr": "Sonuç önemliydi ancak asıl ders erken uyumun tekrar işi azaltmasıydı."
+      }
+    ]
+  },
+  {
     "lessonId": "job-pack-asking-a-question",
     "title": "Asking a Question",
     "subtitle": "Mülakat sonunda soru sorma",
@@ -975,6 +1143,48 @@
         "segmentId": "job-pack-asking-a-question-s1",
         "text": "Could you tell me more about the team I would be working with?",
         "translationTr": "Çalışacağım ekip hakkında biraz daha bilgi verebilir misiniz?"
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-interview-asking-questions",
+    "title": "Asking Insightful Interview Questions",
+    "subtitle": "Learn what success really means in the role",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-interview-asking-questions-s1",
+        "text": "What would excellent performance look like after the first six months?",
+        "translationTr": "İlk altı ay sonunda mükemmel performans nasıl görünürdü?"
+      },
+      {
+        "segmentId": "spx-interview-asking-questions-s2",
+        "text": "What is the most important problem you hope this person will solve?",
+        "translationTr": "Bu kişinin çözmesini umduğunuz en önemli sorun nedir?"
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-work-remote-collaboration",
+    "title": "Clarifying Remote Collaboration",
+    "subtitle": "Confirm ownership and communication",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-work-remote-collaboration-s1",
+        "text": "Just to confirm, I'll own the draft and you'll review it by Thursday.",
+        "translationTr": "Netleştirmek için: taslak bende, sen de perşembeye kadar inceleyeceksin."
+      },
+      {
+        "segmentId": "spx-work-remote-collaboration-s2",
+        "text": "If anything changes, let's flag it in the team channel early.",
+        "translationTr": "Bir şey değişirse ekip kanalında erkenden belirtelim."
       }
     ]
   },
@@ -1043,6 +1253,27 @@
         "segmentId": "job-prod-email-followup-s3",
         "text": "Please let me know if you need any additional information.",
         "translationTr": "Ek bilgiye ihtiyacınız olursa lütfen bana bildirin."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-interview-career-change",
+    "title": "Explaining a Career Change",
+    "subtitle": "Connect past experience to a new direction",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-interview-career-change-s1",
+        "text": "My previous role taught me how to solve customer problems, and I want to apply that skill more strategically.",
+        "translationTr": "Önceki rolüm müşteri sorunlarını çözmeyi öğretti; bu beceriyi daha stratejik kullanmak istiyorum."
+      },
+      {
+        "segmentId": "spx-interview-career-change-s2",
+        "text": "This move is a deliberate next step rather than a complete change of direction.",
+        "translationTr": "Bu geçiş tamamen yön değiştirmekten çok bilinçli bir sonraki adım."
       }
     ]
   },
@@ -1142,6 +1373,27 @@
     ]
   },
   {
+    "lessonId": "spx-work-leading-update",
+    "title": "Leading a Concise Project Update",
+    "subtitle": "Frame progress, risk, and next action",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": false,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-work-leading-update-s1",
+        "text": "We're on track overall, although one dependency may affect Friday's deadline.",
+        "translationTr": "Genel olarak planlandığı gibi ilerliyoruz ancak bir bağımlılık cuma teslimini etkileyebilir."
+      },
+      {
+        "segmentId": "spx-work-leading-update-s2",
+        "text": "My recommendation is to confirm the scope today and review progress tomorrow.",
+        "translationTr": "Önerim kapsamı bugün netleştirip ilerlemeyi yarın gözden geçirmek."
+      }
+    ]
+  },
+  {
     "lessonId": "job-prod-polite-disagreement",
     "title": "Polite Disagreement",
     "subtitle": "Katılmadığını kibarca söyleme",
@@ -1190,6 +1442,27 @@
         "segmentId": "job-prod-professional-intro-s3",
         "text": "Nice to meet you all.",
         "translationTr": "Hepinizle tanıştığıma memnun oldum."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-work-pushing-back",
+    "title": "Pushing Back Constructively",
+    "subtitle": "Challenge a request with alternatives",
+    "category": "job_interview",
+    "categoryLabel": "İş Görüşmesi",
+    "isPremium": true,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-work-pushing-back-s1",
+        "text": "We can deliver that date, but we'd need to reduce the first release's scope.",
+        "translationTr": "O tarihte teslim edebiliriz ancak ilk sürümün kapsamını azaltmamız gerekir."
+      },
+      {
+        "segmentId": "spx-work-pushing-back-s2",
+        "text": "Could we agree on the essential outcome before adding more requirements?",
+        "translationTr": "Daha fazla gereksinim eklemeden önce temel sonuç üzerinde anlaşabilir miyiz?"
       }
     ]
   },
@@ -1414,6 +1687,27 @@
     ]
   },
   {
+    "lessonId": "spx-pronunciation-consonant-clusters",
+    "title": "Clear Consonant Clusters",
+    "subtitle": "Stay intelligible at natural speed",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-pronunciation-consonant-clusters-s1",
+        "text": "The next step starts with a short strengths assessment.",
+        "translationTr": "Sonraki adım kısa bir güçlü yön değerlendirmesiyle başlıyor."
+      },
+      {
+        "segmentId": "spx-pronunciation-consonant-clusters-s2",
+        "text": "Please send the updated project brief by six.",
+        "translationTr": "Lütfen güncellenmiş proje özetini altıya kadar gönder."
+      }
+    ]
+  },
+  {
     "lessonId": "rhythm-confidence-flow",
     "title": "Confidence Rhythm",
     "subtitle": "Özgüven ritmi",
@@ -1536,6 +1830,27 @@
         "segmentId": "pron-pack-linking-words-s1",
         "text": "Can I ask you a quick question?",
         "translationTr": "Sana kısa bir soru sorabilir miyim?"
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-pronunciation-word-stress",
+    "title": "Meaning Through Word Stress",
+    "subtitle": "Shift emphasis without sounding exaggerated",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-pronunciation-word-stress-s1",
+        "text": "I said we could finish it today—not that we had to.",
+        "translationTr": "Bugün bitirebileceğimizi söyledim; bitirmek zorunda olduğumuzu değil."
+      },
+      {
+        "segmentId": "spx-pronunciation-word-stress-s2",
+        "text": "She ordered the blue one, not the green one.",
+        "translationTr": "Yeşil olanı değil mavi olanı sipariş etti."
       }
     ]
   },
@@ -1760,6 +2075,27 @@
     ]
   },
   {
+    "lessonId": "spx-pronunciation-thought-through",
+    "title": "Thought Through: TH and Linking",
+    "subtitle": "Keep difficult sounds clear in connected speech",
+    "category": "pronunciation",
+    "categoryLabel": "Telaffuz Egzersizleri",
+    "isPremium": false,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-pronunciation-thought-through-s1",
+        "text": "I thought through three possible approaches.",
+        "translationTr": "Üç olası yaklaşımı ayrıntılı biçimde düşündüm."
+      },
+      {
+        "segmentId": "spx-pronunciation-thought-through-s2",
+        "text": "They thoroughly reviewed the theory before Thursday.",
+        "translationTr": "Perşembeden önce teoriyi ayrıntılı biçimde gözden geçirdiler."
+      }
+    ]
+  },
+  {
     "lessonId": "pron-pack-w-v-difference",
     "title": "W and V Basics",
     "subtitle": "W/V farkı — temel paket",
@@ -1856,6 +2192,69 @@
         "segmentId": "series-emotion-s1",
         "text": "I didn't think I'd see you again.",
         "translationTr": "Seni bir daha göreceğimi sanmıyordum."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-fluency-holding-floor",
+    "title": "Holding the Floor Naturally",
+    "subtitle": "Organize ideas while you keep speaking",
+    "category": "series_english",
+    "categoryLabel": "Dizi İngilizcesi",
+    "isPremium": false,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-fluency-holding-floor-s1",
+        "text": "There are two things I'd highlight; the first is the immediate impact.",
+        "translationTr": "İki noktayı vurgulamak isterim; ilki doğrudan etki."
+      },
+      {
+        "segmentId": "spx-fluency-holding-floor-s2",
+        "text": "Let me put that another way, because the distinction matters.",
+        "translationTr": "Bunu başka türlü ifade edeyim çünkü ayrım önemli."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-fluency-self-correction",
+    "title": "Natural Self-Correction",
+    "subtitle": "Repair a sentence without losing momentum",
+    "category": "series_english",
+    "categoryLabel": "Dizi İngilizcesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-fluency-self-correction-s1",
+        "text": "We launched in May—or rather, we began the pilot in May.",
+        "translationTr": "Mayısta yayına çıktık; daha doğrusu pilotu mayısta başlattık."
+      },
+      {
+        "segmentId": "spx-fluency-self-correction-s2",
+        "text": "The issue was cost—actually, reliability was the bigger concern.",
+        "translationTr": "Sorun maliyetti; aslında daha büyük endişe güvenilirlikti."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-fluency-story-pacing",
+    "title": "Pacing a Short Story",
+    "subtitle": "Use contrast and pauses to guide the listener",
+    "category": "series_english",
+    "categoryLabel": "Dizi İngilizcesi",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-fluency-story-pacing-s1",
+        "text": "At first, everything seemed routine; then one small detail changed the plan.",
+        "translationTr": "Başta her şey sıradan görünüyordu; sonra küçük bir ayrıntı planı değiştirdi."
+      },
+      {
+        "segmentId": "spx-fluency-story-pacing-s2",
+        "text": "By the time we understood what happened, the solution was surprisingly simple.",
+        "translationTr": "Ne olduğunu anladığımızda çözüm şaşırtıcı biçimde basitti."
       }
     ]
   },
@@ -2002,6 +2401,27 @@
     ]
   },
   {
+    "lessonId": "spx-travel-local-recommendation",
+    "title": "Asking for a Local Recommendation",
+    "subtitle": "Get advice beyond tourist spots",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-travel-local-recommendation-s1",
+        "text": "Is there somewhere nearby that locals actually go for dinner?",
+        "translationTr": "Yakınlarda yerel halkın gerçekten akşam yemeğine gittiği bir yer var mı?"
+      },
+      {
+        "segmentId": "spx-travel-local-recommendation-s2",
+        "text": "I'm looking for something relaxed rather than a formal restaurant.",
+        "translationTr": "Resmî bir restoran yerine daha rahat bir yer arıyorum."
+      }
+    ]
+  },
+  {
     "lessonId": "travel-pack-asking-for-directions",
     "title": "Asking for Directions",
     "subtitle": "Yol tarifi sorma — temel paket",
@@ -2124,6 +2544,27 @@
     ]
   },
   {
+    "lessonId": "spx-travel-solving-delay",
+    "title": "Handling a Travel Delay",
+    "subtitle": "Ask for practical alternatives",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": false,
+    "level": "advanced",
+    "segments": [
+      {
+        "segmentId": "spx-travel-solving-delay-s1",
+        "text": "Since the connection is delayed, what is the earliest alternative route?",
+        "translationTr": "Bağlantı geciktiğine göre en erken alternatif rota nedir?"
+      },
+      {
+        "segmentId": "spx-travel-solving-delay-s2",
+        "text": "Would the airline cover accommodation if I have to stay overnight?",
+        "translationTr": "Gece kalmam gerekirse havayolu konaklamayı karşılar mı?"
+      }
+    ]
+  },
+  {
     "lessonId": "travel-prod-hotel-checkin",
     "title": "Hotel Check-in",
     "subtitle": "Otelde giriş",
@@ -2214,6 +2655,27 @@
         "segmentId": "travel-pack-reporting-a-problem-s1",
         "text": "There seems to be a problem with my room.",
         "translationTr": "Odamla ilgili bir sorun var gibi görünüyor."
+      }
+    ]
+  },
+  {
+    "lessonId": "spx-travel-rental-car-issue",
+    "title": "Resolving a Rental Car Issue",
+    "subtitle": "Describe a problem and request action",
+    "category": "travel",
+    "categoryLabel": "Seyahat",
+    "isPremium": true,
+    "level": "intermediate",
+    "segments": [
+      {
+        "segmentId": "spx-travel-rental-car-issue-s1",
+        "text": "The warning light came on shortly after I left the airport.",
+        "translationTr": "Havalimanından ayrıldıktan kısa süre sonra uyarı ışığı yandı."
+      },
+      {
+        "segmentId": "spx-travel-rental-car-issue-s2",
+        "text": "Could you arrange a replacement car at this location?",
+        "translationTr": "Bu konuma yedek bir araç ayarlayabilir misiniz?"
       }
     ]
   },

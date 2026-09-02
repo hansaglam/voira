@@ -63,6 +63,9 @@ export type BackendAnalysisSuccessResponse = {
     word: string;
     accuracyScore?: number;
     errorType?: string;
+    issueType?: 'pronunciation' | 'missing' | 'insertion' | 'recognition_mismatch' | 'low_confidence';
+    severity?: 'severe' | 'borderline' | 'informational';
+    persistAsWeakWord?: boolean;
     feedbackTr?: string;
   }>;
   phonemeFeedback?: Array<{

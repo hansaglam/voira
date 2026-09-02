@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
-import { LegacyOnboardingScreenProps } from './legacyNavigation';
+import { useTranslation } from 'react-i18next';
+import { OnboardingScreenProps } from '../../navigation/types';
 import {
   ScreenContainer,
   OnboardingHeader,
@@ -8,43 +9,51 @@ import {
   SingleSelectChipGroup,
 } from '../../components';
 import { PRACTICE_DURATION_OPTIONS, ONBOARDING_TOTAL_STEPS } from '../../constants/options';
+import { tPracticeMinutesLabel } from '../../i18n/optionLabels';
 import { useUser } from '../../context/UserContext';
 import { spacing } from '../../theme';
 
-type Props = LegacyOnboardingScreenProps<'DailyPracticeSelection'>;
+type Props = OnboardingScreenProps<'DailyPracticeSelection'>;
 
 export function DailyPracticeSelectionScreen({ navigation }: Props) {
-  const { setDailyPracticeMinutes } = useUser();
-  const [selected, setSelected] = useState<number | null>(5);
+  const { t } = useTranslation();
+  const { profile, setDailyPracticeMinutes } = useUser();
+  const [selected, setSelected] = useState<number | null>(
+    profile.dailyPracticeMinutes === 5 ||
+      profile.dailyPracticeMinutes === 10 ||
+      profile.dailyPracticeMinutes === 15
+      ? profile.dailyPracticeMinutes
+      : null,
+  );
 
   return (
     <ScreenContainer
       contentStyle={styles.content}
       footer={
         <OnboardingBottomBar
+          ctaLabel={t('common.continue')}
           onContinue={() => {
-            if (selected !== null) {
-              setDailyPracticeMinutes(selected);
-              navigation.navigate('SpeakingChallenges');
-            }
+            if (selected === null) return;
+            setDailyPracticeMinutes(selected);
+            navigation.navigate('SpeakingPrioritySelection');
           }}
           disabled={selected === null}
         />
       }
     >
       <OnboardingHeader
-        title="Günde kaç dakika pratik yapmak istersin?"
-        subtitle="Küçük adımlar büyük gelişim getirir. 5 dakika bile yeterli."
-        step={3}
+        title={t('onboarding.dailyTitle')}
+        subtitle={t('onboarding.dailySubtitle')}
+        step={4}
         totalSteps={ONBOARDING_TOTAL_STEPS}
         onBack={() => navigation.goBack()}
       />
 
       <SingleSelectChipGroup
-        options={PRACTICE_DURATION_OPTIONS.map((o) => ({
-          id: String(o.minutes),
-          label: o.label,
-          icon: o.icon as keyof typeof import('@expo/vector-icons').Ionicons.glyphMap,
+        options={PRACTICE_DURATION_OPTIONS.map((option) => ({
+          id: String(option.minutes),
+          label: tPracticeMinutesLabel(t, option.minutes),
+          icon: option.icon,
         }))}
         selectedId={selected !== null ? String(selected) : null}
         onSelect={(id) => setSelected(Number(id))}
@@ -57,5 +66,6 @@ export function DailyPracticeSelectionScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   content: {
     paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
 });

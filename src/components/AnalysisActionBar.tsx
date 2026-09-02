@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppButton } from './AppButton';
 import { spacing } from '../theme';
 
@@ -14,20 +15,23 @@ interface AnalysisActionBarProps {
 export function AnalysisActionBar({
   onRetry,
   onNext,
-  primaryLabel = 'Devam et',
+  primaryLabel,
   emphasizeRetry = false,
 }: AnalysisActionBarProps) {
+  const { t } = useTranslation();
+  const nextLabel = primaryLabel ?? t('analysis.continue');
+
   return (
     <View style={styles.bar}>
       <AppButton
-        title="Tekrar dene"
+        title={t('analysis.retry')}
         variant={emphasizeRetry ? 'primary' : 'outline'}
         size="compact"
         onPress={onRetry}
         style={emphasizeRetry ? styles.emphasized : styles.secondary}
       />
       <AppButton
-        title={primaryLabel}
+        title={nextLabel}
         variant={emphasizeRetry ? 'outline' : 'primary'}
         size="compact"
         onPress={onNext}

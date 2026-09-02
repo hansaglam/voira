@@ -6,6 +6,8 @@ import { AppCard } from './AppCard';
 import { getLessonTypeBadge } from '../data/lessonLibrary';
 import { getActiveSegment, getLessonDifficulty } from '../utils/lessonUtils';
 import { colors, spacing, typography, borderRadius } from '../theme';
+import { useTranslation } from 'react-i18next';
+import { localizedLessonTitle } from '../utils/lessonLocalization';
 
 interface LessonCardProps {
   lesson: Lesson;
@@ -13,6 +15,7 @@ interface LessonCardProps {
 }
 
 export function LessonCard({ lesson, onPress }: LessonCardProps) {
+  const { i18n } = useTranslation();
   const segment = getActiveSegment(lesson);
   const difficulty = getLessonDifficulty(lesson);
 
@@ -21,7 +24,7 @@ export function LessonCard({ lesson, onPress }: LessonCardProps) {
       <AppCard style={styles.card}>
         <View style={styles.row}>
           <View style={styles.content}>
-            <Text style={typography.h3}>{lesson.title}</Text>
+            <Text style={typography.h3}>{localizedLessonTitle(lesson, i18n.language)}</Text>
             <Text style={[typography.body, styles.sentence]} numberOfLines={1}>
               "{segment.text}"
             </Text>

@@ -6,6 +6,7 @@ import type {
   PhonemeFeedback,
   WordPronunciationFeedback,
 } from '../audioAnalysis/audioAnalysisTypes';
+import { createPracticeAttemptId } from '../sync/attemptId';
 
 /** Analysis context — extends practice mode with custom AI lessons. */
 export type AiAnalysisMode = PracticeMode | 'custom';
@@ -98,8 +99,21 @@ export function analysisOutputToPracticeResult(
   mode: PracticeMode,
   sessionId?: string,
 ): PracticeResult {
+  const attemptId = createPracticeAttemptId(lessonId);
+  const createdAt = new Date().toISOString();
+  const pronunciationWeakEvents = (output.wordPronunciationFeedback ?? [])
+    .filter((item) => !item.issueType || item.issueType === 'pronunciation')
+    .filter((item) => item.persistAsWeakWord !== false)
+    .filter((item) => item.severity === 'severe' || item.severity === 'borderline' || item.severity == null)
+    .map((item) => ({
+      word: item.word,
+      severity: (item.severity === 'severe' ? 'severe' : 'borderline') as 'severe' | 'borderline',
+      score: item.accuracyScore,
+    }));
+
   return {
-    resultId: `result-${Date.now()}-${lessonId}`,
+    resultId: attemptId,
+    attemptId,
     lessonId,
     segmentId,
     sessionId,
@@ -111,9 +125,12 @@ export function analysisOutputToPracticeResult(
     nativeScore: output.nativeScore,
     correctWords: output.correctWords,
     wordsToImprove: output.wordsToImprove,
+    pronunciationWeakEvents,
     weakAreasDetected: output.weakAreasDetected,
     aiCoachCommentTr: output.aiCoachCommentTr,
     nextFocusTr: output.nextFocusTr,
-    createdAt: new Date().toISOString(),
+    createdAt,
+    updatedAt: createdAt,
+    syncStatus: 'pending',
   };
 }

@@ -62,6 +62,8 @@ export interface LessonInput {
   id: string;
   title: string;
   subtitle: string;
+  titleTr?: string;
+  subtitleTr?: string;
   type: ContentLessonType;
   category: LessonCategory;
   level: LessonLevel;
@@ -129,6 +131,8 @@ export function createLesson(input: LessonInput): Lesson {
     id: input.id,
     title: input.title,
     subtitle: input.subtitle,
+    titleTr: input.titleTr,
+    subtitleTr: input.subtitleTr,
     type: input.type,
     category: input.category,
     level: input.level,

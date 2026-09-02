@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../theme';
+import { useTranslation } from 'react-i18next';
 
 interface LessonSegmentNavigatorProps {
   segmentIndex: number;
@@ -18,6 +19,7 @@ export function LessonSegmentNavigator({
   onNext,
   onSelectSegment,
 }: LessonSegmentNavigatorProps) {
+  const { t } = useTranslation();
   if (segmentTotal <= 1) return null;
 
   const isFirst = segmentIndex === 0;
@@ -26,7 +28,7 @@ export function LessonSegmentNavigator({
   return (
     <View style={styles.wrapper}>
       <View style={styles.headerRow}>
-        <Text style={styles.sectionLabel}>Bölüm {segmentIndex + 1} / {segmentTotal}</Text>
+        <Text style={styles.sectionLabel}>{t('lesson.segmentProgress', { current: segmentIndex + 1, total: segmentTotal })}</Text>
       </View>
 
       <View style={styles.chipRow}>
@@ -38,7 +40,7 @@ export function LessonSegmentNavigator({
               onPress={() => onSelectSegment(i)}
               style={[styles.chip, active && styles.chipActive]}
               accessibilityRole="button"
-              accessibilityLabel={`Bölüm ${i + 1}`}
+              accessibilityLabel={t('lesson.segmentLabel', { number: i + 1 })}
               accessibilityState={{ selected: active }}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{i + 1}</Text>
@@ -53,6 +55,9 @@ export function LessonSegmentNavigator({
           onPress={onPrevious}
           disabled={isFirst}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={t('lesson.previousSegment')}
+          accessibilityState={{ disabled: isFirst }}
         >
           <Ionicons
             name="chevron-back"
@@ -60,7 +65,7 @@ export function LessonSegmentNavigator({
             color={isFirst ? colors.textMuted : colors.textSecondary}
           />
           <Text style={[styles.navButtonText, isFirst && styles.navButtonTextDisabled]}>
-            Önceki
+            {t('lesson.previousSegment')}
           </Text>
         </TouchableOpacity>
 
@@ -69,9 +74,12 @@ export function LessonSegmentNavigator({
           onPress={onNext}
           disabled={isLast}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={isLast ? t('lesson.finishLesson') : t('lesson.nextSegment')}
+          accessibilityState={{ disabled: isLast }}
         >
           <Text style={[styles.navButtonText, isLast && styles.navButtonTextFinish]}>
-            {isLast ? 'Dersi Bitir' : 'Sonraki'}
+            {isLast ? t('lesson.finishLesson') : t('lesson.nextSegment')}
           </Text>
           {!isLast ? (
             <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />

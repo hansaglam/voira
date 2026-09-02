@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform, TouchableOpacity, Text } from 'react-native
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { TAB_CONFIG } from './tabBarConfig';
 import type { MainTabParamList } from './types';
 import { colors, spacing, layout } from '../theme';
@@ -17,6 +18,7 @@ export function getPersistentTabBarHeight(insetBottom: number): number {
 }
 
 export function PersistentBottomNav({ activeTab }: PersistentBottomNavProps) {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, layout.tabBarBottomInset);
@@ -60,7 +62,9 @@ export function PersistentBottomNav({ activeTab }: PersistentBottomNavProps) {
                 size={21}
                 color={isFocused ? colors.primary : colors.textMuted}
               />
-              <Text style={[styles.label, isFocused && styles.labelFocused]}>{config.label}</Text>
+              <Text style={[styles.label, isFocused && styles.labelFocused]}>
+                {t(`tabs.${config.labelKey}`)}
+              </Text>
             </TouchableOpacity>
           );
         })}

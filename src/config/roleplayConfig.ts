@@ -1,0 +1,1 @@
+export const ROLEPLAY_REQUEST_TIMEOUT_MS = 25_000;

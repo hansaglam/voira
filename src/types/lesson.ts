@@ -68,6 +68,9 @@ export interface Lesson {
   id: string;
   title: string;
   subtitle: string;
+  /** Optional Turkish display metadata; English remains canonical. */
+  titleTr?: string;
+  subtitleTr?: string;
   type: ContentLessonType;
   category: LessonCategory;
   level: LessonLevel;

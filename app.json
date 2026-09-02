@@ -2,16 +2,11 @@
   "expo": {
     "name": "Voira",
     "slug": "echospeak",
-    "version": "1.0.12",
+    "version": "1.0.14",
     "orientation": "portrait",
     "scheme": "echospeak",
     "icon": "./assets/brand/voira-app-icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/brand/voira-splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D1334"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ethemsincar.echospeak",
@@ -31,7 +26,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "package": "com.ethemsincar.echospeak",
-      "versionCode": 13,
+      "versionCode": 15,
       "intentFilters": [
         {
           "action": "VIEW",
@@ -43,7 +38,10 @@
               "pathPrefix": "/callback"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         },
         {
           "action": "VIEW",
@@ -52,7 +50,10 @@
               "scheme": "echospeak"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -67,7 +68,19 @@
           "enableBackgroundPlayback": false,
           "enableBackgroundRecording": false
         }
-      ]
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/voira-splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0D1334"
+        }
+      ],
+      "expo-localization",
+      "expo-font",
+      "expo-asset"
     ]
   }
 }

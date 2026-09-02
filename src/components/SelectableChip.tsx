@@ -15,20 +15,26 @@ type ChipSize = 'default' | 'large';
 
 interface SelectableChipProps {
   label: string;
+  description?: string;
   selected: boolean;
   onPress: () => void;
   icon?: keyof typeof Ionicons.glyphMap | string;
   size?: ChipSize;
   style?: ViewStyle;
+  accessibilityLabel?: string;
+  disabled?: boolean;
 }
 
 export function SelectableChip({
   label,
+  description,
   selected,
   onPress,
   icon,
   size = 'default',
   style,
+  accessibilityLabel,
+  disabled = false,
 }: SelectableChipProps) {
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -51,28 +57,42 @@ export function SelectableChip({
   };
 
   const isLarge = size === 'large';
+  const a11yLabel = accessibilityLabel
+    ?? (description ? `${label}. ${description}` : label);
 
   const content = (
     <>
-      {icon && (
+      {icon ? (
         <Ionicons
           name={icon as keyof typeof Ionicons.glyphMap}
           size={isLarge ? 20 : 16}
           color={selected ? colors.textPrimary : colors.textSecondary}
         />
-      )}
-      <Text
-        style={[
-          styles.label,
-          isLarge && styles.labelLarge,
-          selected && styles.labelSelected,
-        ]}
-      >
-        {label}
-      </Text>
-      {selected && (
-        <Ionicons name="checkmark-circle" size={16} color={colors.textPrimary} />
-      )}
+      ) : null}
+      <View style={styles.textCol}>
+        <Text
+          style={[
+            styles.label,
+            isLarge && styles.labelLarge,
+            selected && styles.labelSelected,
+          ]}
+        >
+          {label}
+        </Text>
+        {description ? (
+          <Text
+            style={[
+              styles.description,
+              selected && styles.descriptionSelected,
+            ]}
+          >
+            {description}
+          </Text>
+        ) : null}
+      </View>
+      {selected ? (
+        <Ionicons name="checkmark-circle" size={18} color={colors.textPrimary} />
+      ) : null}
     </>
   );
 
@@ -80,9 +100,13 @@ export function SelectableChip({
     <Animated.View style={[{ transform: [{ scale }] }, style]}>
       <TouchableOpacity
         onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={0.9}
+        onPressIn={disabled ? undefined : handlePressIn}
+        onPressOut={disabled ? undefined : handlePressOut}
+        activeOpacity={disabled ? 1 : 0.9}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ selected, disabled }}
+        accessibilityLabel={a11yLabel}
       >
         {selected ? (
           <LinearGradient
@@ -94,7 +118,14 @@ export function SelectableChip({
             {content}
           </LinearGradient>
         ) : (
-          <View style={[styles.chip, isLarge && styles.chipLarge, styles.chipUnselected]}>
+          <View
+            style={[
+              styles.chip,
+              isLarge && styles.chipLarge,
+              styles.chipUnselected,
+              disabled && styles.chipDisabled,
+            ]}
+          >
             {content}
           </View>
         )}
@@ -111,13 +142,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md + 2,
     paddingVertical: spacing.sm + 4,
     borderRadius: borderRadius.full,
+    minHeight: 44,
   },
   chipLarge: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md + 2,
     borderRadius: borderRadius.lg,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     minWidth: '100%',
+    minHeight: 56,
   },
   chipSelected: {
     shadowColor: colors.primary,
@@ -130,6 +163,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 1.5,
     borderColor: colors.borderLight,
+  },
+  chipDisabled: {
+    opacity: 0.45,
+  },
+  textCol: {
+    flex: 1,
+    gap: 2,
   },
   label: {
     ...typography.captionBright,
@@ -144,5 +184,13 @@ const styles = StyleSheet.create({
   labelSelected: {
     color: colors.textPrimary,
     fontWeight: '600',
+  },
+  description: {
+    ...typography.caption,
+    color: colors.textMuted,
+    lineHeight: 18,
+  },
+  descriptionSelected: {
+    color: 'rgba(255,255,255,0.82)',
   },
 });

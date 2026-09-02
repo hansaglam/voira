@@ -256,11 +256,6 @@ export function logAzureRestResponseSummary(
   if (isAnalysisDebugEnabled()) {
     console.log('[EchoSpeak Pronunciation REST] responseSummary', summary);
 
-    if (options.responseText.trim()) {
-      console.log('[EchoSpeak Pronunciation REST] responsePreview', {
-        preview: sanitizeAzureRestBodyPreview(options.responseText),
-      });
-    }
   }
 
   return summary;

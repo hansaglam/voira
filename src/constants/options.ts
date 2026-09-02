@@ -1,26 +1,67 @@
-import { EnglishLevel, UserGoal } from '../types';
+import type { EnglishLevel, UserGoal } from '../types';
+import type {
+  PrimarySpeakingGoal,
+  SpeakingPriority,
+} from '../services/personalization/personalSpeakingPlanTypes';
+import { MAX_SPEAKING_PRIORITIES } from '../services/personalization/personalSpeakingPlanTypes';
 
-export const PRIMARY_GOAL_OPTIONS = [
-  { id: 'daily_conversation', label: 'Günlük konuşma', icon: 'chatbubbles-outline' },
-  { id: 'cafe_restaurant', label: 'Kafe, restoran & alışveriş', icon: 'cafe-outline' },
-  { id: 'travel', label: 'Seyahat', icon: 'airplane-outline' },
-  { id: 'job_interview', label: 'İş görüşmesi', icon: 'briefcase-outline' },
-  { id: 'pronunciation', label: 'Telaffuz', icon: 'mic-outline' },
-  { id: 'series_english', label: 'Dizi ve podcast İngilizcesi', icon: 'headset-outline' },
-] as const;
+export const ONBOARDING_TOTAL_STEPS = 6;
 
-export type PrimaryGoalId = (typeof PRIMARY_GOAL_OPTIONS)[number]['id'];
+export const PRIMARY_GOAL_OPTIONS: {
+  id: PrimarySpeakingGoal;
+  icon: string;
+}[] = [
+  { id: 'daily_conversation', icon: 'chatbubbles-outline' },
+  { id: 'travel', icon: 'airplane-outline' },
+  { id: 'work', icon: 'people-outline' },
+  { id: 'job_interview', icon: 'briefcase-outline' },
+  { id: 'pronunciation', icon: 'mic-outline' },
+  { id: 'fluency', icon: 'water-outline' },
+];
 
-export const PRIMARY_GOAL_LABELS: Record<PrimaryGoalId, string> = {
+export type PrimaryGoalId = PrimarySpeakingGoal;
+
+export const SPEAKING_PRIORITY_OPTIONS: {
+  id: SpeakingPriority;
+  icon: string;
+}[] = [
+  { id: 'pronunciation', icon: 'mic-outline' },
+  { id: 'fluency', icon: 'water-outline' },
+  { id: 'vocabulary', icon: 'book-outline' },
+  { id: 'grammar', icon: 'construct-outline' },
+  { id: 'confidence', icon: 'heart-outline' },
+  { id: 'listening_response', icon: 'ear-outline' },
+];
+
+export { MAX_SPEAKING_PRIORITIES };
+
+export const LEVEL_OPTIONS: {
+  id: EnglishLevel;
+  icon: string;
+}[] = [
+  { id: 'beginner', icon: 'leaf-outline' },
+  { id: 'intermediate', icon: 'trending-up-outline' },
+  { id: 'advanced', icon: 'rocket-outline' },
+  { id: 'unsure', icon: 'help-circle-outline' },
+];
+
+export const PRACTICE_DURATION_OPTIONS = [
+  { minutes: 5 as const, icon: 'timer-outline' },
+  { minutes: 10 as const, icon: 'time-outline' },
+  { minutes: 15 as const, icon: 'hourglass-outline' },
+];
+
+/** @deprecated legacy labels retained for older screens */
+export const PRIMARY_GOAL_LABELS: Record<string, string> = {
   daily_conversation: 'Günlük konuşma',
   cafe_restaurant: 'Kafe, restoran & alışveriş',
   travel: 'Seyahat',
   job_interview: 'İş görüşmesi',
   pronunciation: 'Telaffuz',
   series_english: 'Dizi ve podcast İngilizcesi',
+  work: 'İş / toplantılar',
+  fluency: 'Akıcılık / özgüven',
 };
-
-export const ONBOARDING_TOTAL_STEPS = 3;
 
 export const PERSONALIZATION_CHALLENGE_OPTIONS = [
   { id: 'speaking_nervous', label: 'Konuşurken heyecanlanıyorum', icon: 'heart-outline' },
@@ -32,13 +73,6 @@ export const PERSONALIZATION_CHALLENGE_OPTIONS = [
   { id: 'pronunciation_rhythm', label: 'Ritim ve vurgu', icon: 'pulse-outline' },
   { id: 'pronunciation_endings', label: 'Kelime sonlarını yutuyorum', icon: 'ellipsis-horizontal-outline' },
 ] as const;
-
-export const LEVEL_OPTIONS: { id: EnglishLevel; label: string; icon: string }[] = [
-  { id: 'beginner', label: 'Başlangıç', icon: 'leaf-outline' },
-  { id: 'intermediate', label: 'Orta', icon: 'trending-up-outline' },
-  { id: 'advanced', label: 'İleri', icon: 'rocket-outline' },
-  { id: 'unsure', label: 'Emin değilim', icon: 'help-circle-outline' },
-];
 
 export const GOAL_CONVERSATION_OPTIONS = [
   { id: 'daily_conversation', label: 'Günlük konuşma', icon: 'chatbubbles-outline' },
@@ -83,12 +117,6 @@ export const SPEAKING_CHALLENGE_SECTIONS = [
   },
 ] as const;
 
-export const PRACTICE_DURATION_OPTIONS = [
-  { minutes: 5, label: '5 dakika', icon: 'timer-outline' },
-  { minutes: 10, label: '10 dakika', icon: 'time-outline' },
-  { minutes: 15, label: '15 dakika', icon: 'hourglass-outline' },
-];
-
 export const PREMIUM_FEATURES = [
   'Daha fazla shadowing pratiği',
   'Detaylı AI telaffuz analizi',
@@ -114,6 +142,8 @@ export const GOAL_ID_TO_USER_GOAL: Partial<Record<string, UserGoal>> = {
   series_english: 'series_english',
   media: 'media',
   pronunciation: 'pronunciation',
+  work: 'work',
+  fluency: 'fluency',
 };
 
 export const GOAL_LABELS: Record<UserGoal, string> = {
@@ -124,6 +154,8 @@ export const GOAL_LABELS: Record<UserGoal, string> = {
   series_english: 'Dizi ve podcast İngilizcesi',
   media: 'Dizi ve podcastleri anlamak',
   pronunciation: 'Telaffuz',
+  work: 'İş / toplantılar',
+  fluency: 'Akıcılık',
 };
 
 /** @deprecated use GOAL_CONVERSATION_OPTIONS */

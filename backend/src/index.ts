@@ -18,6 +18,7 @@ import { adminAudioRouter } from './routes/adminAudio.js';
 import { adminAudioPageRouter } from './routes/adminAudioPage.js';
 import { accountDeleteRouter } from './routes/accountDelete.js';
 import { analyzeSpeechRouter } from './routes/analyzeSpeech.js';
+import { roleplayRouter } from './routes/roleplay.js';
 import { audioRegistryRouter } from './routes/audioRegistry.js';
 import {
   isSupabaseAdminConfigured,
@@ -86,6 +87,7 @@ app.use(
 );
 
 app.use('/api', analyzeSpeechRouter);
+app.use('/api', roleplayRouter);
 app.use('/api', accountDeleteRouter);
 app.use('/api', adminAudioRouter);
 app.use('/api', audioRegistryRouter);

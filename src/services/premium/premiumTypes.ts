@@ -17,14 +17,24 @@ export interface PremiumRestoreResult {
   hasEntitlement: boolean;
 }
 
-export type PremiumPackagePeriod = 'monthly' | 'yearly';
+export type PremiumPackagePeriod = 'weekly' | 'monthly' | 'yearly';
 
 export interface PremiumPackageOption {
   period: PremiumPackagePeriod;
-  labelTr: string;
   package: PurchasesPackage;
+  /** Store-localized full period price — never hardcode. */
   priceString: string;
-  subscriptionPeriodLabel: string;
+  currencyCode: string | null;
+  /** Numeric store price when RevenueCat exposes it. */
+  price: number | null;
+  /** True only when store intro offer is a zero-price trial. */
+  hasFreeTrial: boolean;
+  /** Trial length in days when hasFreeTrial is true. */
+  freeTrialDays: number | null;
+  /** Annual savings vs 12× monthly — yearly option only. */
+  savingsPercent: number | null;
+  /** Annual price / 12 formatted — yearly option only. */
+  monthlyEquivalentPriceString: string | null;
 }
 
 export const OFFERINGS_SAFE_ERROR_MESSAGE =

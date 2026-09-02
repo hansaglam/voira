@@ -9,17 +9,14 @@ import {
   Easing,
   Pressable,
   LayoutAnimation,
-  UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { PremiumMetricBar } from './PremiumMetricBar';
 import { PremiumScoreRing } from './PremiumScoreRing';
 import { colors, spacing, borderRadius } from '../../theme';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import i18n from '../../i18n';
 
 const CARD_ENTRANCE_MS = 420;
 const CARD_TRANSLATE_Y = 10;
@@ -50,17 +47,24 @@ type MetricKey =
   | 'confidenceScore';
 
 type MetricRow = {
-  label: string;
+  labelKey:
+    | 'pronunciation'
+    | 'accuracy'
+    | 'fluency'
+    | 'completeness'
+    | 'prosody'
+    | 'rhythm'
+    | 'confidence';
   key: MetricKey;
   tone: 'primary' | 'purple' | 'amber';
   delay: number;
 };
 
 const TEXT_MATCH_METRIC_ROWS: MetricRow[] = [
-  { label: 'Telaffuz', key: 'pronunciationScore', tone: 'primary', delay: 200 },
-  { label: 'Akıcılık', key: 'fluencyScore', tone: 'purple', delay: 300 },
-  { label: 'Ritim', key: 'rhythmScore', tone: 'amber', delay: 400 },
-  { label: 'Özgüven', key: 'confidenceScore', tone: 'primary', delay: 500 },
+  { labelKey: 'pronunciation', key: 'pronunciationScore', tone: 'primary', delay: 200 },
+  { labelKey: 'fluency', key: 'fluencyScore', tone: 'purple', delay: 300 },
+  { labelKey: 'rhythm', key: 'rhythmScore', tone: 'amber', delay: 400 },
+  { labelKey: 'confidence', key: 'confidenceScore', tone: 'primary', delay: 500 },
 ];
 
 function buildMetricRows(
@@ -72,15 +76,15 @@ function buildMetricRows(
   }
 
   const rows: MetricRow[] = [
-    { label: 'Telaffuz', key: 'pronunciationScore', tone: 'primary', delay: 200 },
-    { label: 'Doğruluk', key: 'accuracyScore', tone: 'purple', delay: 300 },
-    { label: 'Akıcılık', key: 'fluencyScore', tone: 'amber', delay: 400 },
-    { label: 'Tamamlama', key: 'completenessScore', tone: 'primary', delay: 500 },
+    { labelKey: 'pronunciation', key: 'pronunciationScore', tone: 'primary', delay: 200 },
+    { labelKey: 'accuracy', key: 'accuracyScore', tone: 'purple', delay: 300 },
+    { labelKey: 'fluency', key: 'fluencyScore', tone: 'amber', delay: 400 },
+    { labelKey: 'completeness', key: 'completenessScore', tone: 'primary', delay: 500 },
   ];
 
   if (typeof prosodyScore === 'number') {
     rows.push({
-      label: 'Vurgu / Tonlama',
+      labelKey: 'prosody',
       key: 'prosodyScore',
       tone: 'purple',
       delay: 600,
@@ -164,28 +168,35 @@ export function getScoreFeedback(
 ): { title: string; subtitle: string } {
   if (score <= 39) {
     return {
-      title: 'Tekrar denemeye değer',
-      subtitle: 'Cümleyi daha yavaş ve net söyleyerek tekrar dene.',
+      title: i18n.t('analysis.bandRetryTitle'),
+      subtitle: i18n.t('analysis.bandRetrySubtitle'),
     };
   }
 
   if (score <= 59) {
     return {
-      title: 'Temel cümleyi kurdun',
-      subtitle: 'Daha net telaffuz ve akıcılık için bir kez daha dene.',
+      title: i18n.t('analysis.bandBuildingTitle'),
+      subtitle: i18n.t('analysis.bandBuildingSubtitle'),
     };
   }
 
   if (score <= 79) {
     return {
-      title: 'İyi gidiyorsun',
-      subtitle: 'Telaffuzunu biraz daha netleştirerek daha yüksek skor alabilirsin.',
+      title: i18n.t('analysis.bandGrowingTitle'),
+      subtitle: i18n.t('analysis.bandGrowingSubtitle'),
+    };
+  }
+
+  if (score <= 89) {
+    return {
+      title: i18n.t('analysis.bandGoodTitle'),
+      subtitle: i18n.t('analysis.bandGoodSubtitle'),
     };
   }
 
   return {
-    title: 'Harika konuşma',
-    subtitle: 'Telaffuzun ve akıcılığın oldukça iyi görünüyor.',
+    title: i18n.t('analysis.bandExcellentTitle'),
+    subtitle: i18n.t('analysis.bandExcellentSubtitle'),
   };
 }
 
@@ -228,6 +239,7 @@ export function AnimatedScoreCard({
   pronunciationAssessmentAvailable,
   isWrongSentence = false,
 }: AnimatedScoreCardProps) {
+  const { t } = useTranslation();
   const [reduceMotion, setReduceMotion] = useState(false);
   const [motionPrefReady, setMotionPrefReady] = useState(false);
   /** Defaults open on first analysis view; stays closed only for this screen session. */
@@ -370,6 +382,7 @@ export function AnimatedScoreCard({
         <View style={styles.hero}>
           <PremiumScoreRing
             score={nativeScore}
+            label={t('analysis.speakingScoreLabel')}
             analysisMode={analysisMode}
             pronunciationAssessmentAvailable={pronunciationAssessmentAvailable}
             animate={shouldAnimate}
@@ -387,13 +400,13 @@ export function AnimatedScoreCard({
             onPress={handleToggleDetails}
             accessibilityRole="button"
             accessibilityState={{ expanded: detailsExpanded }}
-            accessibilityLabel="Detaylı skorlar"
+            accessibilityLabel={t('analysis.detailsTitle')}
             style={({ pressed }) => [
               styles.detailsHeader,
               pressed && styles.detailsHeaderPressed,
             ]}
           >
-            <Text style={styles.detailsTitle}>Detaylı skorlar</Text>
+            <Text style={styles.detailsTitle}>{t('analysis.detailsTitle')}</Text>
             <Animated.View style={{ transform: [{ rotate: chevronRotation }] }}>
               <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
             </Animated.View>
@@ -403,8 +416,8 @@ export function AnimatedScoreCard({
             <View style={styles.metrics}>
               {metricRows.map((metric) => (
                 <PremiumMetricBar
-                  key={metric.label}
-                  label={metric.label}
+                  key={metric.labelKey}
+                  label={t(`analysis.${metric.labelKey}`)}
                   value={metricValues[metric.key]}
                   tone={metric.tone}
                   delay={shouldAnimate ? metric.delay : 0}
@@ -416,8 +429,8 @@ export function AnimatedScoreCard({
             <View style={styles.summaryRow}>
               {summaryRows.map((metric) => (
                 <ScoreSummaryChip
-                  key={metric.label}
-                  label={metric.label}
+                  key={metric.labelKey}
+                  label={t(`analysis.${metric.labelKey}`)}
                   value={metricValues[metric.key]}
                   tone={metric.tone}
                 />

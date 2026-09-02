@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { OnboardingScreenProps } from '../../navigation/types';
 import {
   ScreenContainer,
@@ -8,24 +9,105 @@ import {
   OnboardingBottomBar,
   AppCard,
 } from '../../components';
-import { GOAL_LABELS, ONBOARDING_TOTAL_STEPS } from '../../constants/options';
+import { ONBOARDING_TOTAL_STEPS } from '../../constants/options';
+import {
+  tCoachSummary,
+  tLevelLabel,
+  tPlanChipMinutes,
+  tPrimaryGoalLabel,
+  tSpeakingPriorityLabel,
+  tWeekDayFocus,
+  tWeekDayTitle,
+} from '../../i18n/optionLabels';
 import { useUser } from '../../context/UserContext';
-import { resolveStarterLesson } from '../../data/onboardingStarterLessons';
-import { CATEGORY_LABELS } from '../../types/lesson';
+import { usePremium } from '../../context/PremiumContext';
+import { getLessonById, getLessonsByCategory } from '../../data/lessons';
+import {
+  buildPersonalSpeakingPlan,
+  resolvePlanLessonOrFallback,
+} from '../../services/personalization/personalSpeakingPlanService';
+import { trackOnboardingEvent } from '../../services/analytics/onboardingAnalytics';
+import { shouldShowOnboardingSpeakPlus } from '../../services/onboarding/onboardingSpeakPlusFlow';
+import { sanitizeDailyMinutes } from '../../services/personalization/personalSpeakingPlanTypes';
 import { colors, spacing, typography, borderRadius } from '../../theme';
 
 type Props = OnboardingScreenProps<'FirstPracticePreview'>;
 
 export function FirstPracticePreviewScreen({ navigation }: Props) {
-  const { primaryGoal, profile, completeOnboarding } = useUser();
-  const goalId = primaryGoal ?? profile.goals[0] ?? 'daily_conversation';
+  const { t } = useTranslation();
+  const { isPremium } = usePremium();
+  const {
+    primaryGoal,
+    profile,
+    speakingPriorities,
+    completeOnboarding,
+  } = useUser();
+  const planViewedRef = useRef(false);
 
-  const preview = useMemo(() => resolveStarterLesson(goalId), [goalId]);
-  const { lesson, benefitTr } = preview;
+  const goalId = primaryGoal ?? profile.goals[0] ?? 'daily_conversation';
+  const dailyMinutes = sanitizeDailyMinutes(profile.dailyPracticeMinutes);
+
+  const plan = useMemo(
+    () =>
+      buildPersonalSpeakingPlan({
+        primaryGoal: goalId,
+        level: profile.level,
+        dailyMinutes,
+        priorities: speakingPriorities,
+        hasWeakWordHistory: false,
+        resolveLessonById: getLessonById,
+        listLessonsByCategory: getLessonsByCategory,
+      }),
+    [dailyMinutes, goalId, profile.level, speakingPriorities],
+  );
+
+  const lesson = useMemo(
+    () => resolvePlanLessonOrFallback(plan, getLessonById),
+    [plan],
+  );
+
+  const day1 = plan.firstWeekDays[0];
+
+  useEffect(() => {
+    if (planViewedRef.current) return;
+    planViewedRef.current = true;
+    trackOnboardingEvent('onboarding_plan_viewed', {
+      goal: plan.primaryGoal,
+      level: plan.level,
+      minutes: plan.dailyMinutes,
+      summary: plan.coachSummaryId,
+    });
+  }, [plan.coachSummaryId, plan.dailyMinutes, plan.level, plan.primaryGoal]);
+
+  const finishPayload = {
+    primaryGoal: plan.primaryGoal,
+    level: plan.level,
+    dailyMinutes: plan.dailyMinutes,
+    speakingPriorities: plan.priorities,
+    lessonId: lesson.id,
+    categoryId: lesson.category,
+    coachSummaryId: plan.coachSummaryId,
+    topPriority: plan.priorities[0],
+  };
 
   const handleStartPractice = () => {
+    trackOnboardingEvent('onboarding_plan_created', {
+      goal: plan.primaryGoal,
+      level: plan.level,
+      minutes: plan.dailyMinutes,
+      lessonId: lesson.id,
+    });
+
+    if (shouldShowOnboardingSpeakPlus(isPremium)) {
+      navigation.navigate('OnboardingSpeakPlus', finishPayload);
+      return;
+    }
+
     void completeOnboarding('Home', {
-      primaryGoal: goalId,
+      primaryGoal: plan.primaryGoal,
+      level: plan.level,
+      dailyMinutes: plan.dailyMinutes,
+      speakingPriorities: plan.priorities,
       lessonParams: {
         lessonId: lesson.id,
         source: 'library',
@@ -34,51 +116,69 @@ export function FirstPracticePreviewScreen({ navigation }: Props) {
     });
   };
 
+  const preferenceChips = [
+    tPrimaryGoalLabel(t, plan.primaryGoal),
+    tLevelLabel(t, plan.level),
+    tPlanChipMinutes(t, plan.dailyMinutes),
+    ...(plan.priorities.length
+      ? plan.priorities.map((id) => tSpeakingPriorityLabel(t, id))
+      : []),
+  ];
+
   return (
     <ScreenContainer
       contentStyle={styles.content}
       footer={
         <OnboardingBottomBar
-          ctaLabel="İlk pratiğe başla"
+          ctaLabel={t('onboarding.previewCta')}
           onContinue={handleStartPractice}
         />
       }
     >
       <OnboardingHeader
-        title="İlk pratiğin hazır"
-        subtitle="Seçtiğin hedefe uygun bir başlangıç dersi."
-        step={3}
+        title={t('onboarding.previewTitle')}
+        subtitle={t('onboarding.previewSubtitle')}
+        step={6}
         totalSteps={ONBOARDING_TOTAL_STEPS}
         onBack={() => navigation.goBack()}
       />
 
-      <AppCard style={styles.previewCard}>
-        <View style={styles.categoryPill}>
-          <Text style={styles.categoryText}>
-            {GOAL_LABELS[goalId as keyof typeof GOAL_LABELS] ??
-              CATEGORY_LABELS[lesson.category]}
-          </Text>
-        </View>
+      <AppCard style={styles.coachCard}>
+        <Text style={styles.coachLabel}>{t('onboarding.coachSummaryLabel')}</Text>
+        <Text style={styles.coachBody}>{tCoachSummary(t, plan.coachSummaryId)}</Text>
+      </AppCard>
 
-        <Text style={styles.lessonTitle}>{lesson.title}</Text>
-        <Text style={styles.benefitText}>{benefitTr}</Text>
+      <View style={styles.chipRow} accessibilityRole="summary">
+        {preferenceChips.map((label) => (
+          <View key={label} style={styles.chip} accessibilityLabel={label}>
+            <Text style={styles.chipText}>{label}</Text>
+          </View>
+        ))}
+      </View>
 
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.metaText}>{lesson.estimatedMinutes} dk</Text>
+      <Text style={styles.weekTitle}>{t('onboarding.planWeekTitle')}</Text>
+      <AppCard style={styles.weekCard}>
+        {plan.firstWeekDays.map((item) => (
+          <View key={`${item.day}-${item.titleId}`} style={styles.weekRow}>
+            <View style={styles.dayBadge}>
+              <Text style={styles.dayBadgeText}>
+                {t('onboarding.planDay', { day: item.day })}
+              </Text>
+            </View>
+            <View style={styles.weekTextCol}>
+              <Text style={styles.weekTitleText}>{tWeekDayTitle(t, item.titleId)}</Text>
+              <Text style={styles.weekFocus}>{tWeekDayFocus(t, item.focusId)}</Text>
+            </View>
           </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="layers-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.metaText}>{CATEGORY_LABELS[lesson.category]}</Text>
-          </View>
-        </View>
+        ))}
       </AppCard>
 
       <View style={styles.hintCard}>
         <Ionicons name="headset-outline" size={18} color={colors.secondary} />
         <Text style={styles.hintText}>
-          Önce örnek sesi dinle, sonra aynı ritimde kaydet.
+          {t('onboarding.previewHintLesson', {
+            title: day1 ? tWeekDayTitle(t, day1.titleId) : lesson.title,
+          })}
         </Text>
       </View>
     </ScreenContainer>
@@ -90,45 +190,84 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
   },
-  previewCard: {
-    padding: spacing.lg,
+  coachCard: {
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderColor: 'rgba(139, 92, 246, 0.22)',
+    borderWidth: 1,
+  },
+  coachLabel: {
+    ...typography.label,
+    color: colors.secondary,
+    marginBottom: spacing.xs,
+    letterSpacing: 0.8,
+  },
+  coachBody: {
+    ...typography.bodyEmphasis,
+    color: colors.textPrimary,
+    lineHeight: 24,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  categoryPill: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(91, 95, 239, 0.12)',
+  chip: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 6,
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  weekTitle: {
+    ...typography.label,
+    color: colors.textMuted,
+    letterSpacing: 1.1,
+    marginBottom: spacing.sm,
+  },
+  weekCard: {
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  dayBadge: {
+    backgroundColor: 'rgba(91, 95, 239, 0.14)',
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    marginBottom: spacing.sm,
+    minWidth: 58,
+    alignItems: 'center',
+    marginTop: 2,
   },
-  categoryText: {
+  dayBadgeText: {
     ...typography.captionBright,
     color: colors.secondary,
     fontWeight: '600',
   },
-  lessonTitle: {
-    ...typography.h2,
-    marginBottom: spacing.sm,
+  weekTextCol: {
+    flex: 1,
+    gap: 2,
   },
-  benefitText: {
-    ...typography.bodyLarge,
-    color: colors.textSecondary,
-    lineHeight: 24,
-    marginBottom: spacing.md,
+  weekTitleText: {
+    ...typography.bodyEmphasis,
+    color: colors.textPrimary,
   },
-  metaRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
+  weekFocus: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   hintCard: {
     flexDirection: 'row',

@@ -10,10 +10,10 @@ import {
   ScrollView,
   Pressable,
   LayoutAnimation,
-  UIManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { TabScreenProps } from '../navigation/types';
 import { ScreenContainer, AppCard, SectionHeader, AppButton } from '../components';
 import { VoiraDialog } from '../components/dialog';
@@ -25,7 +25,7 @@ import { useAuth } from '../context/AuthContext';
 import { usePremium } from '../context/PremiumContext';
 import { useLearning } from '../context/LearningContext';
 import { useVocabulary } from '../hooks/useVocabulary';
-import { LEVEL_LABELS, GOAL_LABELS } from '../constants/options';
+import { tLevelLabel, tUserGoalLabel } from '../i18n/optionLabels';
 import { getAllPracticeResults } from '../data/learningSessionStore';
 import { buildProgressSummary } from '../services/progress';
 import { lessons } from '../data/lessons';
@@ -44,10 +44,12 @@ import {
   getUserDisplayName,
   validateDisplayName,
 } from '../utils/userDisplayName';
-
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import {
+  getUiLanguage,
+  setUiLanguage,
+  SUPPORTED_UI_LANGUAGES,
+  type UiLanguage,
+} from '../i18n';
 
 const APP_VERSION = '1.0.12';
 
@@ -57,33 +59,40 @@ type ProfileInfoRoute = 'Support' | 'About' | 'Vocabulary';
 
 type SettingsItem = {
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
+  labelKey:
+    | 'settingsVocabulary'
+    | 'settingsSupport'
+    | 'settingsPrivacy'
+    | 'settingsTerms'
+    | 'settingsAbout'
+    | 'settingsManageSub';
   route?: ProfileInfoRoute;
   externalUrl?: string;
   comingSoon?: boolean;
-  subtitle?: string;
+  subtitleKey?: 'settingsVocabularySub';
+  manageSubscription?: boolean;
 };
 
 const SETTINGS_ITEMS: SettingsItem[] = [
   {
     icon: 'bookmark-outline',
-    label: 'Kelime Defterim',
+    labelKey: 'settingsVocabulary',
     route: 'Vocabulary',
-    subtitle: 'Kaydettiğin kelime ve ifadeler',
+    subtitleKey: 'settingsVocabularySub',
   },
-  { icon: 'mail-outline', label: 'Destek', route: 'Support' },
+  { icon: 'mail-outline', labelKey: 'settingsSupport', route: 'Support' },
   {
     icon: 'document-text-outline',
-    label: 'Gizlilik Politikası',
+    labelKey: 'settingsPrivacy',
     externalUrl: PRIVACY_POLICY_URL,
   },
   {
     icon: 'newspaper-outline',
-    label: 'Kullanım Şartları',
+    labelKey: 'settingsTerms',
     externalUrl: TERMS_OF_USE_URL,
   },
-  { icon: 'information-circle-outline', label: 'Uygulama hakkında', route: 'About' },
-  { icon: 'settings-outline', label: 'Aboneliği yönet' },
+  { icon: 'information-circle-outline', labelKey: 'settingsAbout', route: 'About' },
+  { icon: 'settings-outline', labelKey: 'settingsManageSub', manageSubscription: true },
 ];
 
 function shortenUserId(userId: string): string {
@@ -180,9 +189,10 @@ function AccountRow({
 }
 
 export function ProfileScreen({ navigation, route }: Props) {
+  const { t, i18n } = useTranslation();
   const scrollRef = useRef<ScrollView>(null);
   const authCardOffsetY = useRef(0);
-  const { profile } = useUser();
+  const { profile, resetOnboardingForDev } = useUser();
   const { learningProfile } = useLearning();
   const {
     user,
@@ -198,6 +208,22 @@ export function ProfileScreen({ navigation, route }: Props) {
     clearError,
   } = useAuth();
   const { restorePurchases, isRevenueCatConfigured, isPremium, isRestoring } = usePremium();
+  const [selectedLanguage, setSelectedLanguage] = useState<UiLanguage>(getUiLanguage());
+  const [isLanguagePickerVisible, setIsLanguagePickerVisible] = useState(false);
+
+  useEffect(() => {
+    const sync = (lng: string) => {
+      const code = lng.split(/[-_]/)[0]?.toLowerCase();
+      if (SUPPORTED_UI_LANGUAGES.includes(code as UiLanguage)) {
+        setSelectedLanguage(code as UiLanguage);
+      }
+    };
+    sync(i18n.language);
+    i18n.on('languageChanged', sync);
+    return () => {
+      i18n.off('languageChanged', sync);
+    };
+  }, [i18n]);
   const { count: vocabularyCount, limit: vocabularyLimit, isPremium: isVocabPremium, refresh: refreshVocabulary } =
     useVocabulary();
 
@@ -282,7 +308,7 @@ export function ProfileScreen({ navigation, route }: Props) {
       isGuest,
     }) ?? (isGuest ? 'Misafir' : DEFAULT_SIGNED_IN_DISPLAY_NAME);
   const avatarLetter = displayName.charAt(0).toUpperCase();
-  const levelGoalLabel = `${LEVEL_LABELS[profile.level]} • ${GOAL_LABELS[profile.goal]}`;
+  const levelGoalLabel = `${tLevelLabel(t, profile.level)} • ${tUserGoalLabel(t, profile.goal)}`;
 
   const openNameEditor = () => {
     // Only prefill a real saved name — never the email local-part.
@@ -399,7 +425,7 @@ export function ProfileScreen({ navigation, route }: Props) {
   };
 
   const handleSettingsPress = (item: SettingsItem) => {
-    if (item.label === 'Aboneliği yönet') {
+    if (item.manageSubscription) {
       void openManageSubscriptions();
       return;
     }
@@ -487,7 +513,7 @@ export function ProfileScreen({ navigation, route }: Props) {
       const result = await deleteAccount();
       if (!result.ok) {
         showAppFeedback({
-          title: 'Hesap silinemedi',
+          title: t('profile.deleteFailTitle'),
           message: result.messageTr,
           variant: 'error',
         });
@@ -496,8 +522,8 @@ export function ProfileScreen({ navigation, route }: Props) {
 
       void refreshVocabulary();
       showAppFeedback({
-        title: 'Hesabın silindi',
-        message: 'Hesabın ve bu cihazdaki uygulama verilerin temizlendi. İstersen misafir olarak devam edebilirsin.',
+        title: t('profile.deleteSuccessTitle'),
+        message: t('profile.deleteSuccessBody'),
         variant: 'success',
       });
     } finally {
@@ -507,18 +533,18 @@ export function ProfileScreen({ navigation, route }: Props) {
 
   const handleDeleteAccount = () => {
     showAppConfirm({
-      title: 'Hesabını silmek istiyor musun?',
+      title: t('profile.deleteConfirmTitle'),
       message: getAccountDeletionConfirmBody(),
       destructive: true,
-      confirmLabel: 'Hesabı Sil',
-      cancelLabel: 'Vazgeç',
+      confirmLabel: t('profile.deleteConfirmLabel'),
+      cancelLabel: t('common.cancel'),
       onConfirm: () => {
         showAppConfirm({
-          title: 'Son onay',
-          message: 'Hesap silme işlemi geri alınamaz.',
+          title: t('profile.deleteFinalTitle'),
+          message: t('profile.deleteFinalMessage'),
           destructive: true,
-          confirmLabel: 'Kalıcı olarak sil',
-          cancelLabel: 'Vazgeç',
+          confirmLabel: t('profile.deleteFinalLabel'),
+          cancelLabel: t('common.cancel'),
           onConfirm: () => {
             void runAccountDeletion();
           },
@@ -608,6 +634,30 @@ export function ProfileScreen({ navigation, route }: Props) {
       </TouchableOpacity>
 
       <PremiumDebugPanel />
+
+      {__DEV__ ? (
+        <View style={styles.devSection}>
+          <Text style={styles.devSectionTitle}>Development</Text>
+          <AppButton
+            title="Reset Onboarding"
+            variant="outline"
+            size="compact"
+            onPress={() => {
+              showAppConfirm({
+                title: 'Reset onboarding?',
+                message:
+                  'Clears onboarding completion and personalization only. Practice history, weak words, vocabulary, and cloud data are kept.',
+                confirmLabel: 'Reset',
+                cancelLabel: 'Cancel',
+                destructive: true,
+                onConfirm: () => {
+                  void resetOnboardingForDev();
+                },
+              });
+            }}
+          />
+        </View>
+      ) : null}
 
       <SectionHeader title="İstatistikler" />
       <View style={styles.statsGrid}>
@@ -774,11 +824,27 @@ export function ProfileScreen({ navigation, route }: Props) {
         </>
       )}
 
-      <SectionHeader title="Ayarlar" />
+      <SectionHeader title={t('profile.sectionSettings')} />
       <AppCard style={styles.settingsCard}>
+        <TouchableOpacity
+          style={[styles.settingRow, styles.rowBorder]}
+          onPress={() => setIsLanguagePickerVisible(true)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.settingIconWrap}>
+            <Ionicons name="language-outline" size={18} color={colors.textSecondary} />
+          </View>
+          <View style={styles.settingTextWrap}>
+            <Text style={styles.settingLabel}>{t('profile.language')}</Text>
+            <Text style={styles.settingSubtitle}>
+              {t(`language.options.${selectedLanguage}`)}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+        </TouchableOpacity>
         {SETTINGS_ITEMS.map((item, index) => (
           <TouchableOpacity
-            key={item.label}
+            key={item.labelKey}
             style={[styles.settingRow, index < SETTINGS_ITEMS.length - 1 && styles.rowBorder]}
             onPress={() => handleSettingsPress(item)}
             activeOpacity={0.7}
@@ -787,17 +853,20 @@ export function ProfileScreen({ navigation, route }: Props) {
               <Ionicons name={item.icon} size={18} color={colors.textSecondary} />
             </View>
             <View style={styles.settingTextWrap}>
-              <Text style={styles.settingLabel}>{item.label}</Text>
+              <Text style={styles.settingLabel}>{t(`profile.${item.labelKey}`)}</Text>
               {item.route === 'Vocabulary' ? (
                 <Text style={styles.settingSubtitle}>
                   {vocabularyCount > 0
                     ? isVocabPremium
-                      ? `${vocabularyCount} kelime`
-                      : `${vocabularyCount} / ${vocabularyLimit} kelime`
-                    : item.subtitle ?? 'Kaydettiğin kelime ve ifadeler'}
+                      ? t('home.vocabCountPremium', { n: vocabularyCount })
+                      : t('home.vocabCountFree', {
+                          n: vocabularyCount,
+                          limit: vocabularyLimit,
+                        })
+                    : t('profile.settingsVocabularySub')}
                 </Text>
-              ) : item.subtitle ? (
-                <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
+              ) : item.subtitleKey ? (
+                <Text style={styles.settingSubtitle}>{t(`profile.${item.subtitleKey}`)}</Text>
               ) : null}
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -806,6 +875,44 @@ export function ProfileScreen({ navigation, route }: Props) {
       </AppCard>
 
       <Text style={styles.versionText}>Voira v{APP_VERSION}</Text>
+
+      <VoiraDialog
+        visible={isLanguagePickerVisible}
+        variant="neutral"
+        icon="language-outline"
+        title={t('language.title')}
+        dismissible
+        onDismiss={() => setIsLanguagePickerVisible(false)}
+        tertiaryButton={{
+          label: t('common.cancel'),
+          variant: 'tertiary',
+          onPress: () => setIsLanguagePickerVisible(false),
+        }}
+      >
+        <Text style={styles.settingSubtitle}>{t('language.subtitle')}</Text>
+        {SUPPORTED_UI_LANGUAGES.map((code) => {
+          const active = selectedLanguage === code;
+          return (
+            <TouchableOpacity
+              key={code}
+              style={[styles.settingRow, active && styles.languageRowActive]}
+              onPress={() => {
+                void (async () => {
+                  await setUiLanguage(code);
+                  setSelectedLanguage(code);
+                  setIsLanguagePickerVisible(false);
+                })();
+              }}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.settingLabel}>{t(`language.options.${code}`)}</Text>
+              {active ? (
+                <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+              ) : null}
+            </TouchableOpacity>
+          );
+        })}
+      </VoiraDialog>
 
       <VoiraDialog
         visible={isNameEditorVisible}
@@ -940,6 +1047,23 @@ const styles = StyleSheet.create({
   },
   premiumTouchable: {
     marginBottom: spacing.md,
+  },
+  devSection: {
+    marginBottom: spacing.md,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.25)',
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    gap: spacing.sm,
+  },
+  devSectionTitle: {
+    ...typography.meta,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
   },
   premiumCard: {
     borderRadius: borderRadius.xl,
@@ -1209,6 +1333,9 @@ const styles = StyleSheet.create({
   settingSubtitle: {
     fontSize: 11,
     color: colors.textMuted,
+  },
+  languageRowActive: {
+    backgroundColor: 'rgba(91, 95, 239, 0.08)',
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,

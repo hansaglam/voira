@@ -42,6 +42,8 @@ export interface CoachCopy {
   nativePartial: (matchScore: number) => string;
   wordError: (word: string) => string;
   wordWeak: (word: string) => string;
+  wordSkipped: (word: string) => string;
+  wordUncertain: (word: string) => string;
   phonemeTh: string;
   phonemeWeak: (phoneme: string) => string;
 }
@@ -83,10 +85,10 @@ const en: CoachCopy = {
   wrongSentence:
     'You said something different from the target sentence. Focus first on saying the full target sentence with the correct words.',
   missingWordsLead:
-    'Some words in the sentence were missing. Focus first on finishing the full target sentence.',
+    'You skipped part of the target phrase. Try completing the full sentence first.',
   missingWordsList: (words) => ` Missing words: ${words}.`,
   weakPronunciation: (phrase) =>
-    `You mostly finished the sentence, but some words were weak. Focus especially on saying ${phrase} more clearly.`,
+    `You mostly finished the sentence, but some words need clearer pronunciation. Focus especially on ${phrase}.`,
   fluencyIssue:
     'You said the words correctly, but fluency was low. Try saying the sentence as one connected piece instead of word by word.',
   prosodyIssue:
@@ -109,7 +111,9 @@ const en: CoachCopy = {
   nativePartial: (matchScore) =>
     `Most of the sentence is clear (${matchScore}% match). On your next try, aim to say the missing words more clearly.`,
   wordError: (word) => `A pronunciation issue was detected in '${word}'.`,
-  wordWeak: (word) => `The pronunciation of '${word}' was weak.`,
+  wordWeak: (word) => `Pronunciation needs work for '${word}'.`,
+  wordSkipped: (word) => `'${word}' was skipped.`,
+  wordUncertain: (word) => `We couldn't confidently evaluate '${word}'.`,
   phonemeTh: 'The TH sound was weak; try lightly biting the tip of your tongue.',
   phonemeWeak: (phoneme) => `Try making the '${phoneme}' sound clearer.`,
 };
@@ -147,7 +151,7 @@ const tr: CoachCopy = {
   wrongSentence:
     'Hedef cümleden farklı bir şey söyledin. Önce hedef cümleyi baştan sona doğru kelimelerle söylemeye odaklan.',
   missingWordsLead:
-    'Cümlenin bazı kelimeleri eksik kaldı. Önce hedef cümleyi baştan sona tamamlamaya odaklan.',
+    'Hedef cümlenin bir kısmını atladın. Önce cümleyi baştan sona tamamlamayı dene.',
   missingWordsList: (words) => ` Eksik kalan kelimeler: ${words}.`,
   weakPronunciation: (phrase) =>
     `Cümleyi büyük ölçüde tamamladın ama bazı kelimelerin telaffuzu zayıf kaldı. Özellikle ${phrase} kelimelerini daha net söylemeye odaklan.`,
@@ -173,7 +177,9 @@ const tr: CoachCopy = {
   nativePartial: (matchScore) =>
     `Cümlenin büyük kısmı anlaşılır (%${matchScore} eşleşme). Bir sonraki denemede eksik kalan kelimeleri daha net söylemeye çalış.`,
   wordError: (word) => `'${word}' kelimesinde telaffuz hatası görüldü.`,
-  wordWeak: (word) => `'${word}' kelimesinin telaffuzu zayıf kaldı.`,
+  wordWeak: (word) => `'${word}' için telaffuz çalışması gerekiyor.`,
+  wordSkipped: (word) => `'${word}' atlandı.`,
+  wordUncertain: (word) => `'${word}' kelimesini güvenle değerlendiremedik.`,
   phonemeTh: 'TH sesi zayıf kaldı; dil uçlarını hafifçe ısırarak dene.',
   phonemeWeak: (phoneme) => `'${phoneme}' sesinin netliğini artırmayı dene.`,
 };

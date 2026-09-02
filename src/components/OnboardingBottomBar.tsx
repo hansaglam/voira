@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AppButton } from './AppButton';
 import { colors, spacing, typography } from '../theme';
 
@@ -15,11 +16,14 @@ interface OnboardingBottomBarProps {
 export function OnboardingBottomBar({
   onContinue,
   disabled = false,
-  ctaLabel = 'Devam et',
+  ctaLabel,
   selectedCount = 0,
   showSelectedCount = false,
   summaryText,
 }: OnboardingBottomBarProps) {
+  const { t } = useTranslation();
+  const label = ctaLabel ?? t('common.continue');
+
   return (
     <View style={styles.container}>
       {summaryText ? (
@@ -27,10 +31,12 @@ export function OnboardingBottomBar({
       ) : (
         showSelectedCount &&
         selectedCount > 0 && (
-          <Text style={styles.selectedCount}>{selectedCount} seçildi</Text>
+          <Text style={styles.selectedCount}>
+            {t('onboarding.selectedCount', { count: selectedCount })}
+          </Text>
         )
       )}
-      <AppButton title={ctaLabel} onPress={onContinue} disabled={disabled} />
+      <AppButton title={label} onPress={onContinue} disabled={disabled} />
     </View>
   );
 }

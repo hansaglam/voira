@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import {
@@ -14,47 +15,49 @@ import { colors, spacing, borderRadius } from '../theme';
 type Props = RootScreenProps<'Support'>;
 
 export function SupportScreen(_props: Props) {
+  const { t } = useTranslation();
+
   const openEmail = () => {
-    void openExternalLink(`${SUPPORT_MAILTO}?subject=Voira%20Destek`);
+    const subject = encodeURIComponent(t('support.emailSubject'));
+    void openExternalLink(`${SUPPORT_MAILTO}?subject=${subject}`);
   };
 
   return (
     <InfoScreenLayout
-      title="Voira Destek"
-      subtitle="Yardıma mı ihtiyacın var?"
+      title={t('support.title')}
+      subtitle={t('support.subtitle')}
       sections={[
         {
-          title: 'E-posta',
-          body: `${SUPPORT_EMAIL}\n\nSorununu kısaca anlat; cihaz modeli ve uygulama sürümünü eklemen yardımcı olur.`,
+          title: t('support.email'),
+          body: t('support.emailBody', { email: SUPPORT_EMAIL }),
         },
         {
-          title: 'Sık konular',
-          body:
-            '• Mikrofon izni verilmiyor veya kayıt başlamıyor\n• Analiz çalışmıyor veya “Analiz yapılamadı” mesajı\n• Ders sesi çalmıyor veya ses dosyası eksik\n• SpeakPlus / satın alma veya abonelik geri yükleme\n• Veri silme ve gizlilik',
+          title: t('support.topics'),
+          body: t('support.topicsBody'),
         },
         {
-          title: 'Yanıt süresi',
-          body: 'Destek yanıtları birkaç iş günü içinde verilmeye çalışılır.',
+          title: t('support.responseTime'),
+          body: t('support.responseBody'),
         },
       ]}
       footer={
         <>
           <TouchableOpacity style={styles.emailButton} onPress={openEmail} activeOpacity={0.85}>
-            <Text style={styles.emailButtonText}>E-posta gönder</Text>
+            <Text style={styles.emailButtonText}>{t('support.sendEmail')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryLink}
             onPress={() => void openExternalLink(PRIVACY_POLICY_URL)}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryLinkText}>Gizlilik Politikası</Text>
+            <Text style={styles.secondaryLinkText}>{t('support.linkPrivacy')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryLink}
             onPress={() => void openExternalLink(DATA_DELETION_URL)}
             activeOpacity={0.85}
           >
-            <Text style={styles.secondaryLinkText}>Veri silme bilgisi</Text>
+            <Text style={styles.secondaryLinkText}>{t('support.linkDataDeletion')}</Text>
           </TouchableOpacity>
         </>
       }

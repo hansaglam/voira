@@ -1,8 +1,9 @@
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
-import { LogBox } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, LogBox, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { I18nextProvider } from 'react-i18next';
 import { UserProvider } from './src/context/UserContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { LearningProvider } from './src/context/LearningContext';
@@ -18,6 +19,7 @@ import {
 import { printContentQualitySummary, validateCatalog } from './src/services/contentQuality';
 import { initializeServicesConfig } from './src/config/servicesConfig';
 import { logMobileCatalogSummary } from './src/utils/catalogDiagnostics';
+import i18n, { initI18n } from './src/i18n';
 
 const EchoSpeakTheme = {
   ...DarkTheme,
@@ -48,35 +50,65 @@ if (__DEV__) {
 }
 
 export default function App() {
+  const [i18nReady, setI18nReady] = useState(i18n.isInitialized);
+
   useEffect(() => {
-    void initializeContentRepository();
-    void initializeServicesConfig();
+    let mounted = true;
+    void initI18n().then(() => {
+      if (mounted) setI18nReady(true);
+    });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  useEffect(() => {
+    if (!i18nReady) return;
+    void initializeContentRepository();
+    void initializeServicesConfig();
+  }, [i18nReady]);
+
+  if (!i18nReady) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: colors.background,
+        }}
+      >
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaProvider>
-      <DialogProvider>
-        <LearningProvider>
-          <AuthProvider>
-            <PremiumProvider>
-              <UserProvider>
-                <NavigationContainer
-                  ref={navigationRef}
-                  theme={EchoSpeakTheme}
-                  onReady={() => {
-                    if (__DEV__) {
-                      console.log('[Navigation] ready');
-                    }
-                  }}
-                >
-                  <StatusBar style="light" />
-                  <RootNavigator />
-                </NavigationContainer>
-              </UserProvider>
-            </PremiumProvider>
-          </AuthProvider>
-        </LearningProvider>
-      </DialogProvider>
-    </SafeAreaProvider>
+    <I18nextProvider i18n={i18n}>
+      <SafeAreaProvider>
+        <DialogProvider>
+          <LearningProvider>
+            <AuthProvider>
+              <PremiumProvider>
+                <UserProvider>
+                  <NavigationContainer
+                    ref={navigationRef}
+                    theme={EchoSpeakTheme}
+                    onReady={() => {
+                      if (__DEV__) {
+                        console.log('[Navigation] ready');
+                      }
+                    }}
+                  >
+                    <StatusBar style="light" />
+                    <RootNavigator />
+                  </NavigationContainer>
+                </UserProvider>
+              </PremiumProvider>
+            </AuthProvider>
+          </LearningProvider>
+        </DialogProvider>
+      </SafeAreaProvider>
+    </I18nextProvider>
   );
 }

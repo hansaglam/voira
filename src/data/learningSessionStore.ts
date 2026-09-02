@@ -21,17 +21,16 @@ const store: SessionStoreState = {
 
 export const LIBRARY_PRACTICE_RESULTS_KEY = '__library__';
 
-function upsertPracticeResult(
+function appendPracticeResult(
   storageKey: string,
   result: PracticeResult,
 ): PracticeResult[] {
   const prior = store.results.get(storageKey) ?? [];
-  return [
-    ...prior.filter(
-      (entry) => !(entry.lessonId === result.lessonId && entry.segmentId === result.segmentId),
-    ),
-    result,
-  ];
+  const attemptKey = result.attemptId ?? result.resultId;
+  const withoutDuplicate = prior.filter(
+    (entry) => (entry.attemptId ?? entry.resultId) !== attemptKey,
+  );
+  return [...withoutDuplicate, result];
 }
 
 function todayDateKey(): string {
@@ -83,7 +82,7 @@ export function recordPracticeResult(
   let updatedSession: DailyPracticeSession | undefined;
 
   if (storageKey) {
-    const results = upsertPracticeResult(storageKey, result);
+    const results = appendPracticeResult(storageKey, result);
     store.results.set(storageKey, results);
 
     if (result.sessionId) {

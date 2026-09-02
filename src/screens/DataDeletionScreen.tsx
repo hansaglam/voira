@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import { showAppConfirm, showAppFeedback } from '../components/dialog';
@@ -22,6 +23,7 @@ import { colors, spacing, borderRadius } from '../theme';
 type Props = RootScreenProps<'DataDeletion'>;
 
 export function DataDeletionScreen(_props: Props) {
+  const { t } = useTranslation();
   const { resetLocalPracticeData } = useLearning();
   const { isGuest } = useAuth();
   const [isResetting, setIsResetting] = useState(false);
@@ -32,18 +34,18 @@ export function DataDeletionScreen(_props: Props) {
 
   const handleLocalReset = () => {
     showAppConfirm({
-      title: 'Yerel verileri sıfırla',
+      title: t('dataDeletion.resetTitle'),
       message: getDataDeletionLocalResetMessage(),
       destructive: true,
-      confirmLabel: 'Sıfırla',
-      cancelLabel: 'Vazgeç',
+      confirmLabel: t('dataDeletion.resetConfirm'),
+      cancelLabel: t('common.cancel'),
       onConfirm: () => {
         setIsResetting(true);
         try {
           resetLocalPracticeData();
           showAppFeedback({
-            title: 'Tamamlandı',
-            message: 'Yerel pratik verilerin sıfırlandı.',
+            title: t('dataDeletion.doneTitle'),
+            message: t('dataDeletion.doneBody'),
             variant: 'success',
           });
         } finally {
@@ -56,7 +58,7 @@ export function DataDeletionScreen(_props: Props) {
   const sharedFooter = (
     <>
       <TouchableOpacity style={styles.supportButton} onPress={openSupportEmail} activeOpacity={0.85}>
-        <Text style={styles.supportButtonText}>Veri silme talebi e-postası gönder</Text>
+        <Text style={styles.supportButtonText}>{t('dataDeletion.ctaEmail')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.resetButton}
@@ -67,7 +69,7 @@ export function DataDeletionScreen(_props: Props) {
         {isResetting ? (
           <ActivityIndicator color={colors.error} />
         ) : (
-          <Text style={styles.resetButtonText}>Yalnızca yerel pratik verilerini sıfırla</Text>
+          <Text style={styles.resetButtonText}>{t('dataDeletion.ctaLocalReset')}</Text>
         )}
       </TouchableOpacity>
       <TouchableOpacity
@@ -75,35 +77,33 @@ export function DataDeletionScreen(_props: Props) {
         onPress={() => void openExternalLink(DATA_DELETION_URL)}
         activeOpacity={0.85}
       >
-        <Text style={styles.webLinkText}>Veri silme sayfasını aç (web)</Text>
+        <Text style={styles.webLinkText}>{t('dataDeletion.ctaOpenWeb')}</Text>
       </TouchableOpacity>
     </>
   );
 
   const requestSection = {
-    title: 'Hesap ve veri silme talebi',
-    body: `Hesap ve veri silme talebi için Voira Destek’e (${SUPPORT_EMAIL}) yazabilirsin. Uygulamada kullandığın e-posta adresini ekle. Konu: Voira Data Deletion Request. Bu otomatik tek dokunuşla silme değildir; talebin doğrulanarak işlenir.`,
+    title: t('dataDeletion.sectionRequest'),
+    body: t('dataDeletion.requestBody', { email: SUPPORT_EMAIL }),
   };
 
   if (isGuest) {
     return (
       <InfoScreenLayout
-        title="Veri silme"
-        subtitle="Misafir modu — Voira"
+        title={t('dataDeletion.title')}
+        subtitle={t('dataDeletion.subtitleGuest')}
         sections={[
           {
-            title: 'Misafir verileri',
-            body:
-              'Misafir modunda pratik geçmişi, skorlar ve oturum kayıtları bu cihazda tutulur. Hesap oluşturmadan bulut hesabı verisi oluşmayabilir.',
+            title: t('dataDeletion.sectionGuestData'),
+            body: t('dataDeletion.guestBody'),
           },
           {
-            title: 'Yerel sıfırlama',
-            body:
-              'Aşağıdaki düğme yalnızca bu cihazdaki yerel pratik verilerini sıfırlar. Hesap silme değildir ve mağaza aboneliğini iptal etmez.',
+            title: t('dataDeletion.sectionLocalReset'),
+            body: t('dataDeletion.localResetIntro'),
           },
           requestSection,
           {
-            title: 'Abonelik notu',
+            title: t('dataDeletion.sectionSubscriptionNote'),
             body: getDataDeletionSubscriptionNote(),
           },
         ]}
@@ -114,26 +114,24 @@ export function DataDeletionScreen(_props: Props) {
 
   return (
     <InfoScreenLayout
-      title="Veri silme"
-      subtitle="Hesap ve veriler — Voira"
+      title={t('dataDeletion.title')}
+      subtitle={t('dataDeletion.subtitleAccount')}
       sections={[
         requestSection,
         {
-          title: 'Doğrulama sonrası',
-          body:
-            'Doğrulanmış bir silme talebinden sonra, yasal / güvenlik / dolandırıcılık önleme / işlem kaydı zorunlulukları saklı kalmak üzere hesabınla ilişkili veriler silinir veya kimlikten arındırılır. Buna hesap verileri; saklanıyorsa ilerleme, kelime defteri ve analiz geçmişi dahil olabilir.',
+          title: t('dataDeletion.sectionAfterVerify'),
+          body: t('dataDeletion.afterVerifyBody'),
         },
         {
-          title: 'Uygulama içi hesap silme',
-          body:
-            'Kayıtlı hesabını silmek için Profil → Hesabı Sil yolunu kullan. Onayladıktan sonra hesap silme işlemi uygulama içinde tamamlanır.',
+          title: t('dataDeletion.sectionInAppDelete'),
+          body: t('dataDeletion.inAppDeleteBody'),
         },
         {
-          title: 'Kalabilecekler',
+          title: t('dataDeletion.sectionMayRemain'),
           body: getDataDeletionMayRemainBody(),
         },
         {
-          title: 'Abonelik notu',
+          title: t('dataDeletion.sectionSubscriptionNote'),
           body: getDataDeletionSpeakPlusNote(),
         },
       ]}

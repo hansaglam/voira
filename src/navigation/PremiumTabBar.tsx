@@ -3,6 +3,7 @@ import { View, StyleSheet, Platform, TouchableOpacity, Text } from 'react-native
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { TAB_CONFIG, type TabConfigItem } from './tabBarConfig';
 import type { MainTabParamList } from './types';
 import { colors, spacing, layout } from '../theme';
@@ -14,12 +15,13 @@ function isTabRouteName(name: string): name is TabRouteName {
 }
 
 const FALLBACK_TAB_CONFIG: TabConfigItem = {
-  label: 'Tab',
+  labelKey: 'home',
   icon: 'ellipse-outline',
   iconFocused: 'ellipse',
 };
 
 export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, layout.tabBarBottomInset);
 
@@ -63,7 +65,7 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
                 color={isFocused ? colors.primary : colors.textMuted}
               />
               <Text style={[styles.label, isFocused && styles.labelFocused]}>
-                {config.label}
+                {t(`tabs.${config.labelKey}`)}
               </Text>
             </TouchableOpacity>
           );

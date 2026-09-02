@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { RootScreenProps } from '../navigation/types';
 import { ScreenContainer, LibraryLessonCard, SectionHeader, EmptyState } from '../components';
 import {
@@ -18,15 +19,9 @@ import { useLearning } from '../context/LearningContext';
 import { resolveLessonPremium } from '../utils/lessonUtils';
 import { Lesson, LessonLevel } from '../types/lesson';
 import { colors, spacing, typography } from '../theme';
+import { trackWeeklyChallengeEvent } from '../services/analytics/weeklyChallengeAnalytics';
 
 type Props = RootScreenProps<'CategoryLessons'>;
-
-const CATEGORY_GOAL_COPY: Partial<Record<string, { title: string; text: string }>> = {
-  daily: {
-    title: 'Bu pakette ne öğreneceksin?',
-    text: 'Günlük hayatta selamlaşma, kısa sohbet başlatma ve kibarca cevap verme kalıplarını shadowing ile çalışacaksın.',
-  },
-};
 
 function levelSortOrder(level: LessonLevel): number {
   if (level === 'beginner') return 0;
@@ -52,6 +47,7 @@ function sortCompletedLessons(lessons: Lesson[]): Lesson[] {
 }
 
 export function CategoryLessonsScreen({ navigation, route }: Props) {
+  const { t } = useTranslation();
   const { isPremium } = usePremium();
   const { user } = useAuth();
   const registered = isRegisteredUser(user);
@@ -93,9 +89,12 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
     };
   }, [learningProfile.completedLessonIds, practiceResults, stats.lessons]);
 
-  const categoryGoal = CATEGORY_GOAL_COPY[categoryId];
+  const showDailyGoal = categoryId === 'daily';
 
   const handleLessonPress = (lesson: Lesson) => {
+    if (resolveLessonPremium(lesson) && !isPremium) {
+      trackWeeklyChallengeEvent('premium_content_opened', { lessonId: lesson.id, categoryId: lesson.category, level: lesson.level });
+    }
     const progressState = resolveLessonProgressState(
       lesson,
       learningProfile.completedLessonIds,
@@ -116,10 +115,10 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
           <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
         </TouchableOpacity>
         <EmptyState
-          title="Dersler hazırlanıyor"
-          message="Bu paket şu anda yüklenemedi. Birkaç saniye sonra tekrar deneyebilirsin."
+          title={t('categories.emptyTitle')}
+          message={t('categories.emptyMessage')}
           icon="book-outline"
-          actionLabel="Geri dön"
+          actionLabel={t('categories.emptyAction')}
           onAction={() => navigation.goBack()}
         />
       </ScreenContainer>
@@ -138,20 +137,26 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
         <View style={styles.statsRow}>
           <View style={styles.statPill}>
             <Ionicons name="book-outline" size={13} color={colors.primary} />
-            <Text style={styles.statText}>{stats.total} ders</Text>
+            <Text style={styles.statText}>
+              {t('categories.lessonsCount', { count: stats.total })}
+            </Text>
           </View>
           <View style={styles.statPill}>
             <Ionicons name="checkmark-circle-outline" size={13} color={colors.success} />
-            <Text style={styles.statText}>{stats.freeCount} ücretsiz</Text>
+            <Text style={styles.statText}>
+              {t('categories.freeCount', { count: stats.freeCount })}
+            </Text>
           </View>
           <View style={styles.statPill}>
             <Ionicons name="diamond-outline" size={13} color={colors.premium} />
-            <Text style={styles.statText}>{stats.premiumCount} SpeakPlus</Text>
+            <Text style={styles.statText}>
+              {t('categories.premiumCount', { count: stats.premiumCount })}
+            </Text>
           </View>
         </View>
       </View>
 
-      {categoryGoal ? (
+      {showDailyGoal ? (
         <LinearGradient
           colors={['rgba(91, 95, 239, 0.13)', 'rgba(26, 27, 46, 0.94)']}
           start={{ x: 0, y: 0 }}
@@ -160,16 +165,16 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
         >
           <View style={styles.goalHeader}>
             <Ionicons name="sparkles-outline" size={14} color={colors.secondary} />
-            <Text style={styles.goalTitle}>{categoryGoal.title}</Text>
+            <Text style={styles.goalTitle}>{t('categories.goalDailyTitle')}</Text>
           </View>
-          <Text style={styles.goalText}>{categoryGoal.text}</Text>
+          <Text style={styles.goalText}>{t('categories.goalDailyText')}</Text>
         </LinearGradient>
       ) : null}
 
       <View style={styles.sectionBlock}>
         <SectionHeader
-          title="Devam edebileceğin dersler"
-          subtitle={`${activeLessons.length} ders`}
+          title={t('categories.activeTitle')}
+          subtitle={t('categories.activeSubtitle', { count: activeLessons.length })}
         />
         {activeLessons.length > 0 ? (
           activeLessons.map((lesson) => (
@@ -187,17 +192,15 @@ export function CategoryLessonsScreen({ navigation, route }: Props) {
             />
           ))
         ) : (
-          <Text style={styles.emptySectionText}>
-            Bu paketteki tüm dersleri tamamladın. Aşağıdan tekrar çalışabilirsin.
-          </Text>
+          <Text style={styles.emptySectionText}>{t('categories.activeAllDone')}</Text>
         )}
       </View>
 
       {completedLessons.length > 0 ? (
         <View style={styles.sectionBlock}>
           <SectionHeader
-            title="Tamamlanan dersler"
-            subtitle="İstersen tekrar çalışabilirsin."
+            title={t('categories.completedTitle')}
+            subtitle={t('categories.completedSubtitle')}
           />
           {completedLessons.map((lesson) => (
             <LibraryLessonCard

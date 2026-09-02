@@ -2,6 +2,7 @@ export interface SpeechToTextInput {
   audioUri: string;
   durationMillis?: number;
   language?: 'en';
+  userId?: string;
 }
 
 export type SpeechToTextErrorCode =

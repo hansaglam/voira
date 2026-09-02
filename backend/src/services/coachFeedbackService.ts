@@ -12,6 +12,7 @@ import { wordsEquivalentForReconciliation } from './wordFeedbackReconciliationSe
 import type { CoachLanguage } from '../i18n/uiLanguage.js';
 import { DEFAULT_COACH_LANGUAGE } from '../i18n/uiLanguage.js';
 import { getCoachCopy, type CoachCopy } from '../i18n/coachCopy.js';
+import { classifyAzureWordIssue } from './wordIssueClassification.js';
 
 export interface CoachFeedbackInput {
   /** Resolved UI language for coach copy (tr/en/es/pt/id/ar). */
@@ -29,8 +30,6 @@ export interface CoachFeedbackInput {
 
 const WORDS_PER_SECOND_ESTIMATE = 2.4;
 const LOW_ORDER_SCORE_THRESHOLD = 75;
-const WEAK_WORD_ACCURACY_THRESHOLD = 70;
-const SEVERE_WEAK_WORD_ACCURACY_THRESHOLD = 50;
 
 const WRONG_SENTENCE_MATCH_THRESHOLD = 40;
 const WRONG_SENTENCE_COVERAGE_THRESHOLD = 40;
@@ -74,10 +73,10 @@ function getSevereWeakAzureWords(
   }
 
   return [...assessment.wordScores]
-    .filter((word) => (
-      word.accuracyScore !== undefined
-      && word.accuracyScore < SEVERE_WEAK_WORD_ACCURACY_THRESHOLD
-    ))
+    .filter((word) => {
+      const classification = classifyAzureWordIssue(word);
+      return classification.issueType === 'pronunciation' && classification.severity === 'severe';
+    })
     .sort((a, b) => (a.accuracyScore ?? 100) - (b.accuracyScore ?? 100))
     .slice(0, limit)
     .map((word) => word.word);
@@ -94,16 +93,13 @@ function countWeakAzureWords(
   let severeWeakWordCount = 0;
 
   for (const word of assessment.wordScores) {
-    const accuracy = word.accuracyScore;
-    if (accuracy === undefined) {
+    const classification = classifyAzureWordIssue(word);
+    if (classification.issueType !== 'pronunciation') {
       continue;
     }
 
-    if (accuracy < WEAK_WORD_ACCURACY_THRESHOLD) {
-      weakWordCount += 1;
-    }
-
-    if (accuracy < SEVERE_WEAK_WORD_ACCURACY_THRESHOLD) {
+    weakWordCount += 1;
+    if (classification.severity === 'severe') {
       severeWeakWordCount += 1;
     }
   }
@@ -120,9 +116,7 @@ function getWeakAzureWords(
   }
 
   return [...assessment.wordScores]
-    .filter((word) => (
-      word.accuracyScore !== undefined && word.accuracyScore < WEAK_WORD_ACCURACY_THRESHOLD
-    ))
+    .filter((word) => classifyAzureWordIssue(word).issueType === 'pronunciation')
     .sort((a, b) => (a.accuracyScore ?? 100) - (b.accuracyScore ?? 100))
     .slice(0, limit)
     .map((word) => word.word);
@@ -316,10 +310,17 @@ function isMissingWords(input: CoachFeedbackInput): boolean {
     return false;
   }
 
+  // Prefer clear omission patterns over single noisy missing tokens.
+  if (missingWordCount >= 2) {
+    return true;
+  }
+
   return (
-    completenessScore < MISSING_COMPLETENESS_THRESHOLD
-    || missingWordCount >= 1
-    || coveragePercent < MISSING_COVERAGE_THRESHOLD
+    missingWordCount >= 1
+    && (
+      completenessScore < MISSING_COMPLETENESS_THRESHOLD
+      || coveragePercent < MISSING_COVERAGE_THRESHOLD
+    )
   );
 }
 

@@ -5,9 +5,12 @@ import { DEFAULT_COACH_LANGUAGE } from '../i18n/uiLanguage.js';
 import { tokenize } from '../utils/normalize.js';
 import type { PronunciationAssessmentResult, PronunciationWordScore } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 import {
-  WEAK_WORD_ACCURACY_THRESHOLD,
   buildWordPronunciationFeedback,
 } from './pronunciationFeedbackService.js';
+import {
+  classifyAzureWordIssue,
+} from './wordIssueClassification.js';
+import { WORD_OMISSION_ACCURACY_MAX } from '../config/wordIssueThresholds.js';
 
 export interface ReconciledWordFeedback {
   missingWords: string[];
@@ -46,7 +49,7 @@ export function normalizeWordToken(word: string): string {
   return word
     .trim()
     .toLocaleLowerCase('en-US')
-    .replace(/[^\w']/g, '');
+    .replace(/[^\w'-]/g, '');
 }
 
 function compactWordToken(word: string): string {
@@ -111,18 +114,20 @@ export function wordsEquivalentForReconciliation(a: string, b: string): boolean 
 }
 
 function isWeakAzureWord(wordScore: PronunciationWordScore): boolean {
-  const accuracy = wordScore.accuracyScore;
-  const hasWeakAccuracy = accuracy !== undefined && accuracy < WEAK_WORD_ACCURACY_THRESHOLD;
-  const hasPronunciationError = Boolean(wordScore.errorType && wordScore.errorType !== 'None');
-  return hasWeakAccuracy || hasPronunciationError;
+  return classifyAzureWordIssue(wordScore).showAsPronunciationWeak;
 }
 
 function isAzureWordActuallySpoken(wordScore: PronunciationWordScore): boolean {
+  const classification = classifyAzureWordIssue(wordScore);
+  if (classification.issueType === 'missing') {
+    return false;
+  }
+
   if (wordScore.errorType === 'Omission') {
     return false;
   }
 
-  if (wordScore.accuracyScore !== undefined && wordScore.accuracyScore <= 10) {
+  if (wordScore.accuracyScore !== undefined && wordScore.accuracyScore <= WORD_OMISSION_ACCURACY_MAX) {
     return false;
   }
 
@@ -202,10 +207,11 @@ export function reconcileWordFeedback(
   uiLanguage: CoachLanguage = DEFAULT_COACH_LANGUAGE,
 ): ReconciledWordFeedback {
   if (!assessment?.ok || !assessment.wordScores?.length) {
+    // No Azure: keep STT missing; do not promote fuzzy STT improve into persistent weak words.
     return {
       missingWords: [...comparison.missingWords],
-      wordsToImprove: [...comparison.wordsToImprove],
-      wordPronunciationFeedback: buildWordPronunciationFeedback(assessment, uiLanguage),
+      wordsToImprove: [],
+      wordPronunciationFeedback: [],
       movedFromMissingToWeak: [],
     };
   }
@@ -261,19 +267,28 @@ export function reconcileWordFeedback(
       continue;
     }
 
+    const classification = classifyAzureWordIssue(azureMatch);
     wordPronunciationFeedback.push({
       word: movedWord,
       accuracyScore: azureMatch.accuracyScore,
       errorType: azureMatch.errorType,
+      issueType: classification.issueType ?? 'pronunciation',
+      severity: classification.severity ?? undefined,
+      persistAsWeakWord: classification.persistAsWeakWord,
       feedbackTr: getCoachCopy(uiLanguage).wordWeak(movedWord),
     });
   }
 
   wordPronunciationFeedback = dedupeWordFeedback(wordPronunciationFeedback);
 
-  const reconciledImprove = comparison.wordsToImprove.filter(
-    (word) => !isEquivalentToAny(word, reconciledMissing)
-      && !wordPronunciationFeedback.some((entry) => wordsEquivalentForReconciliation(word, entry.word)),
+  // Fuzzy STT "improve" only survives when Azure also supports pronunciation weakness.
+  // Otherwise it is recognition noise — do not treat as pronunciation weak words.
+  const pronunciationWords = wordPronunciationFeedback
+    .filter((entry) => entry.issueType === 'pronunciation' || entry.issueType == null)
+    .map((entry) => entry.word);
+
+  const reconciledImprove = pronunciationWords.filter(
+    (word) => !isEquivalentToAny(word, reconciledMissing),
   );
 
   console.log('[EchoSpeak WordFeedback] reconcile', {

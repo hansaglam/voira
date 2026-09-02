@@ -1,26 +1,22 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { OnboardingScreenProps } from '../../navigation/types';
 import { ScreenContainer, AppButton, VoiraLogo } from '../../components';
-import { colors, spacing, typography, borderRadius } from '../../theme';
+import { colors, spacing, typography } from '../../theme';
 
 type Props = OnboardingScreenProps<'OnboardingWelcome'>;
 
-const FEATURES = [
-  { icon: 'chatbubble-ellipses-outline' as const, text: 'Gerçek konuşma cümleleri' },
-  { icon: 'repeat-outline' as const, text: 'Shadowing ile pratik' },
-  { icon: 'analytics-outline' as const, text: 'Konuşmana göre analiz' },
-];
-
 export function OnboardingWelcomeScreen({ navigation }: Props) {
+  const { t } = useTranslation();
+
   return (
     <ScreenContainer
       contentStyle={styles.content}
       footer={
         <AppButton
-          title="Başlayalım"
+          title={t('onboarding.welcomeCta')}
           onPress={() => navigation.navigate('GoalSelection')}
         />
       }
@@ -30,23 +26,10 @@ export function OnboardingWelcomeScreen({ navigation }: Props) {
           colors={['rgba(91,95,239,0.25)', 'rgba(139,92,246,0.08)', 'transparent']}
           style={styles.glow}
         />
-        <VoiraLogo size={128} style={styles.logo} />
+        <VoiraLogo size={120} style={styles.logo} />
         <Text style={styles.brand}>Voira</Text>
-        <Text style={styles.tagline}>Konuş, analiz al, geliş.</Text>
-        <Text style={styles.subtitle}>
-          İngilizce konuşmanı analiz eden AI konuşma koçu. Dinle, tekrar et, kaydet.
-        </Text>
-      </View>
-
-      <View style={styles.features}>
-        {FEATURES.map((item) => (
-          <View key={item.text} style={styles.featureRow}>
-            <View style={styles.featureIcon}>
-              <Ionicons name={item.icon} size={20} color={colors.secondary} />
-            </View>
-            <Text style={styles.featureText}>{item.text}</Text>
-          </View>
-        ))}
+        <Text style={styles.tagline}>{t('onboarding.welcomeTagline')}</Text>
+        <Text style={styles.subtitle}>{t('onboarding.welcomeSubtitle')}</Text>
       </View>
     </ScreenContainer>
   );
@@ -56,11 +39,11 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingTop: spacing.xl,
+    justifyContent: 'center',
   },
   heroSection: {
     alignItems: 'center',
     position: 'relative',
-    marginBottom: spacing.lg,
   },
   glow: {
     position: 'absolute',
@@ -92,31 +75,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     lineHeight: 24,
     color: colors.textSecondary,
-  },
-  features: {
-    gap: spacing.sm,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  featureIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(139, 92, 246, 0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureText: {
-    ...typography.bodyEmphasis,
-    flex: 1,
-    fontWeight: '500',
   },
 });

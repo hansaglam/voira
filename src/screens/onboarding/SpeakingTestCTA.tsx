@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { AppButton } from '../../components';
 import { colors, spacing } from '../../theme';
@@ -11,13 +12,15 @@ interface SpeakingTestCTAProps {
 }
 
 export function SpeakingTestCTA({ disabled, onPress, showHint }: SpeakingTestCTAProps) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       {showHint && (
-        <Text style={styles.hint}>Analizin hazır — devam edebilirsin</Text>
+        <Text style={styles.hint}>{t('onboarding.analysisHint')}</Text>
       )}
       <AppButton
-        title="İlk analizimi gör"
+        title={t('onboarding.analysisCta')}
         size="compact"
         disabled={disabled}
         elevated={!disabled}

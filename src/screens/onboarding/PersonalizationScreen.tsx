@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LegacyOnboardingScreenProps } from './legacyNavigation';
 import {
   ScreenContainer,
@@ -16,6 +17,12 @@ import {
   PRACTICE_DURATION_OPTIONS,
   ONBOARDING_TOTAL_STEPS,
 } from '../../constants/options';
+import {
+  tChallengeLabel,
+  tConversationGoalLabel,
+  tLevelLabel,
+  tPracticeMinutesLabel,
+} from '../../i18n/optionLabels';
 import { useUser } from '../../context/UserContext';
 import { EnglishLevel } from '../../types';
 import { spacing } from '../../theme';
@@ -23,6 +30,7 @@ import { spacing } from '../../theme';
 type Props = LegacyOnboardingScreenProps<'Personalization'>;
 
 export function PersonalizationScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const { setLevel, setGoals, setSpeakingChallenges, setDailyPracticeMinutes } = useUser();
 
   const [level, setLevelLocal] = useState<EnglishLevel | null>(null);
@@ -55,38 +63,45 @@ export function PersonalizationScreen({ navigation }: Props) {
       contentStyle={styles.content}
       footer={
         <OnboardingBottomBar
-          ctaLabel="Pratiğimi hazırla"
+          ctaLabel={t('onboarding.personalizationCta')}
           onContinue={handleContinue}
           disabled={!isReady}
-          summaryText={isReady ? 'Seçimlerin hazır' : undefined}
+          summaryText={isReady ? t('onboarding.personalizationReady') : undefined}
         />
       }
     >
       <OnboardingHeader
-        title="Pratiğini kişiselleştirelim"
-        subtitle="Sana uygun dersleri ve AI koç önerilerini hazırlayalım."
+        title={t('onboarding.personalizationTitle')}
+        subtitle={t('onboarding.personalizationSubtitle')}
         step={2}
         totalSteps={ONBOARDING_TOTAL_STEPS}
         onBack={() => navigation.goBack()}
       />
 
       <PersonalizationSection
-        sectionTitle="SEVİYE"
-        question="İngilizce seviyen nedir?"
+        sectionTitle={t('onboarding.sectionLevel')}
+        question={t('onboarding.sectionLevelQ')}
       >
         <SingleSelectChipGroup
-          options={LEVEL_OPTIONS}
+          options={LEVEL_OPTIONS.map((option) => ({
+            id: option.id,
+            label: tLevelLabel(t, option.id),
+            icon: option.icon,
+          }))}
           selectedId={level}
           onSelect={(id) => setLevelLocal(id as EnglishLevel)}
         />
       </PersonalizationSection>
 
-      <PersonalizationSection sectionTitle="HEDEF" question="Hedefin ne?">
+      <PersonalizationSection
+        sectionTitle={t('onboarding.sectionGoal')}
+        question={t('onboarding.sectionGoalQ')}
+      >
         <View style={styles.chipWrap}>
           {GOAL_CONVERSATION_OPTIONS.map((option) => (
             <SelectableChip
               key={option.id}
-              label={option.label}
+              label={tConversationGoalLabel(t, option.id)}
               icon={option.icon}
               selected={goals.includes(option.id)}
               onPress={() => toggleMulti(option.id, setGoalsLocal)}
@@ -96,14 +111,14 @@ export function PersonalizationScreen({ navigation }: Props) {
       </PersonalizationSection>
 
       <PersonalizationSection
-        sectionTitle="ZORLANDIĞIM ALANLAR"
-        question="En çok nerede zorlanıyorsun?"
+        sectionTitle={t('onboarding.sectionChallenges')}
+        question={t('onboarding.sectionChallengesQ')}
       >
         <View style={styles.chipWrap}>
           {PERSONALIZATION_CHALLENGE_OPTIONS.map((option) => (
             <SelectableChip
               key={option.id}
-              label={option.label}
+              label={tChallengeLabel(t, option.id)}
               icon={option.icon}
               selected={challenges.includes(option.id)}
               onPress={() => toggleMulti(option.id, setChallengesLocal)}
@@ -113,13 +128,13 @@ export function PersonalizationScreen({ navigation }: Props) {
       </PersonalizationSection>
 
       <PersonalizationSection
-        sectionTitle="GÜNLÜK HEDEF"
-        question="Günde kaç dakika pratik yapmak istersin?"
+        sectionTitle={t('onboarding.sectionDaily')}
+        question={t('onboarding.sectionDailyQ')}
       >
         <SingleSelectChipGroup
           options={PRACTICE_DURATION_OPTIONS.map((o) => ({
             id: String(o.minutes),
-            label: o.label,
+            label: tPracticeMinutesLabel(t, o.minutes),
             icon: o.icon,
           }))}
           selectedId={dailyMinutes !== null ? String(dailyMinutes) : null}

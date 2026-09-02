@@ -1,66 +1,228 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, InteractionManager } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { InteractionManager } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { TabScreenProps } from '../navigation/types';
+import { ScreenContainer } from '../components';
 import {
-  ScreenContainer,
-  AppButton,
-  AppCard,
-  SectionHeader,
-  LibraryLessonCard,
-  FuturePracticeCard,
-} from '../components';
+  HomeHeader,
+  SpeakingSnapshot,
+  TodayPracticeHero,
+  HomeCoachInsightCard,
+  WeakWordsPreview,
+  ContinueLearningCard,
+  WeeklyProgressPreview,
+  ContextualPremiumCard,
+  RoleplayRecommendationCard,
+} from '../components/home';
 import { useUser } from '../context/UserContext';
 import { usePremium } from '../context/PremiumContext';
 import { useAuth } from '../context/AuthContext';
 import { isRegisteredUser } from '../utils/authAccess';
-import { getHomeGreeting, getUserDisplayName } from '../utils/userDisplayName';
+import { getUserDisplayName } from '../utils/userDisplayName';
 import { useLearning } from '../context/LearningContext';
-import { useVocabulary } from '../hooks/useVocabulary';
 import {
   getContinueLessonEntry,
-  getRecommendedLessons,
   openLessonFromLibrary,
 } from '../data/lessonLibrary';
-import { colors, spacing, typography, borderRadius, layout, gradients, shadows } from '../theme';
+import { lessons } from '../data/lessons';
+import { getAllPracticeResults } from '../data/learningSessionStore';
+import {
+  buildHomeCoachInsight,
+  buildHomeSpeakingSnapshot,
+  buildHomeWeeklyProgress,
+  recommendTodayPractice,
+  shouldShowHomePremiumTeaser,
+  type TodayPracticeReason,
+} from '../services/home';
+import { useWeakWordsCatalog, buildHomeWeakWordsPreviewItems } from '../hooks/useWeakWordsCatalog';
+import { trackHomeEvent } from '../services/analytics/homeAnalytics';
+import { recommendRoleplayScenario, resolveRoleplayAccess } from '../services/roleplay';
+import { trackRoleplayEvent } from '../services/analytics/roleplayAnalytics';
+import { useWeeklyChallenge } from '../hooks/useWeeklyChallenge';
+import { WeeklyChallengeCard } from '../components/weeklyChallenge/WeeklyChallengeCard';
+import { localizedLessonFocus, localizedLessonTitle } from '../utils/lessonLocalization';
 
 type Props = TabScreenProps<'Home'>;
 
-const VALUE_BULLETS = [
-  'Gerçek telaffuz analizi',
-  'Zayıf kelimelerini gör',
-  'Türkçe AI koç yorumu',
-  'Kısa derslerle pratik yap',
-] as const;
+function timeOfDayGreetingKey(now = new Date()): 'greetingMorning' | 'greetingAfternoon' | 'greetingEvening' {
+  const hour = now.getHours();
+  if (hour < 12) return 'greetingMorning';
+  if (hour < 18) return 'greetingAfternoon';
+  return 'greetingEvening';
+}
 
-const SPEAKPLUS_BENEFITS = [
-  'Premium derslere erişim',
-  'Daha fazla pratik yolu',
-] as const;
+function focusLabelKey(
+  priorities: string[],
+): 'focusFluency' | 'focusPronunciation' | 'focusConfidence' | 'focusSpeaking' {
+  if (priorities.includes('fluency')) return 'focusFluency';
+  if (priorities.includes('pronunciation')) return 'focusPronunciation';
+  if (priorities.includes('confidence')) return 'focusConfidence';
+  return 'focusSpeaking';
+}
 
 export function HomeScreen({ navigation }: Props) {
-  const { pendingFirstLesson, clearPendingFirstLesson } = useUser();
+  const { t, i18n } = useTranslation();
+  const { pendingFirstLesson, clearPendingFirstLesson, speakingPriorities, primaryGoal } =
+    useUser();
   const { isPremium } = usePremium();
   const { user, isGuest } = useAuth();
   const registered = isRegisteredUser(user);
   const openedPendingLessonRef = useRef(false);
-  const { learningProfile, getDailySession } = useLearning();
-  const { count: vocabularyCount, limit: vocabularyLimit, limitReached: vocabularyLimitReached } =
-    useVocabulary();
-  const session = getDailySession();
-  const continueEntry = getContinueLessonEntry(learningProfile);
-  const continueLesson = continueEntry.lesson;
-  const recommended = getRecommendedLessons(learningProfile);
+  const homeViewedRef = useRef(false);
+  const { learningProfile, lastLessonState, isLearningHydrated, getDailySession } = useLearning();
+  const { challenge: weeklyChallenge } = useWeeklyChallenge();
+
+  const practiceResults = useMemo(() => getAllPracticeResults(), [
+    learningProfile.averageScore,
+    learningProfile.completedLessonIds,
+    learningProfile.currentStreak,
+    learningProfile.lastPracticeDate,
+    isLearningHydrated,
+  ]);
+
+  const showPremiumTeaser = shouldShowHomePremiumTeaser({
+    isPremium,
+    analyzedPracticeCount: practiceResults.length,
+  });
+
+  const recommendation = useMemo(
+    () =>
+      recommendTodayPractice({
+        profile: {
+          ...learningProfile,
+          speakingPriorities:
+            learningProfile.speakingPriorities?.length
+              ? learningProfile.speakingPriorities
+              : speakingPriorities,
+          goals:
+            learningProfile.goals?.length
+              ? learningProfile.goals
+              : primaryGoal
+                ? [primaryGoal]
+                : learningProfile.goals,
+        },
+        lessons,
+        practiceResults,
+        lastLessonState,
+      }),
+    [lastLessonState, learningProfile, practiceResults, primaryGoal, speakingPriorities],
+  );
+
+  const snapshot = useMemo(
+    () =>
+      buildHomeSpeakingSnapshot({
+        profile: learningProfile,
+        practiceResults,
+      }),
+    [learningProfile, practiceResults],
+  );
+
+  const { activeWords, queue, catalog } = useWeakWordsCatalog();
+
+  const coachInsight = useMemo(
+    () => buildHomeCoachInsight({ practiceResults, weakWordCatalog: catalog }),
+    [practiceResults, catalog],
+  );
+
+  const weakWords = useMemo(
+    () =>
+      buildHomeWeakWordsPreviewItems(activeWords, 3).map((item) => ({
+        word: item.word,
+        score: item.score,
+      })),
+    [activeWords],
+  );
+
+  const weekly = useMemo(
+    () =>
+      buildHomeWeeklyProgress({
+        practiceResults,
+        lessons,
+      }),
+    [practiceResults],
+  );
+
+  const continueEntry = useMemo(
+    () => getContinueLessonEntry(learningProfile),
+    [learningProfile, practiceResults, lastLessonState],
+  );
+
+  const roleplayRecommendation = useMemo(
+    () => recommendRoleplayScenario({
+      level: learningProfile.level,
+      goal: primaryGoal ?? learningProfile.goals?.[0],
+      detectedFocusAreas: learningProfile.weakAreas as never,
+      isPremium,
+    }),
+    [isPremium, learningProfile.goals, learningProfile.level, learningProfile.weakAreas, primaryGoal],
+  );
+  const roleplayAccess = resolveRoleplayAccess({
+    isGuest,
+    isPremium,
+    scenarioPremium: roleplayRecommendation.premium,
+  });
+
+  const showContinue =
+    Boolean(continueEntry.lesson) &&
+    recommendation.lesson?.id !== continueEntry.lesson.id &&
+    !learningProfile.completedLessonIds.includes(continueEntry.lesson.id) &&
+    (Boolean(lastLessonState?.lessonId) ||
+      practiceResults.some((result) => result.lessonId === continueEntry.lesson.id));
 
   const displayName = getUserDisplayName({
     user,
     localName: learningProfile.name,
     isGuest,
   });
-  const greeting = getHomeGreeting(displayName);
 
-  const dailyGoalLabel = session.focusSkill?.trim() || 'Daha akıcı konuşma';
+  const greetingBase = t(`home.${timeOfDayGreetingKey()}`);
+  const greeting = displayName
+    ? t('home.greetingNamed', { greeting: greetingBase, name: displayName })
+    : t('home.greetingGeneric', { greeting: greetingBase });
+
+  const greetingSub = t('home.greetingSubPersonalized', {
+    minutes: learningProfile.dailyMinutes,
+    focus: t(`home.${focusLabelKey(speakingPriorities)}`),
+  });
+
+  const translateReason = useCallback(
+    (reason: TodayPracticeReason): string => {
+      const priority =
+        reason.params?.priority != null
+          ? t(`home.priority_${reason.params.priority}`)
+          : undefined;
+      const goal =
+        reason.params?.goal != null ? t(`home.goal_${reason.params.goal}`, {
+          defaultValue: reason.params.goal,
+        }) : undefined;
+      return t(`home.reason_${reason.id}`, {
+        priority,
+        goal,
+        weakArea: reason.params?.weakArea,
+      });
+    },
+    [t],
+  );
+
+  const coachBody = useMemo(() => {
+    const skill =
+      coachInsight.params?.skill != null
+        ? t(`home.skill_${coachInsight.params.skill}`)
+        : undefined;
+    return t(`home.coach_${coachInsight.kind}`, {
+      word: coachInsight.params?.word,
+      skill,
+    });
+  }, [coachInsight, t]);
+
+  useEffect(() => {
+    if (!isLearningHydrated || homeViewedRef.current) return;
+    homeViewedRef.current = true;
+    trackHomeEvent('home_viewed', {
+      hasHistory: practiceResults.length > 0,
+      isPremium,
+    });
+  }, [isLearningHydrated, isPremium, practiceResults.length]);
 
   useEffect(() => {
     if (!pendingFirstLesson || openedPendingLessonRef.current) {
@@ -80,577 +242,226 @@ export function HomeScreen({ navigation }: Props) {
     };
   }, [clearPendingFirstLesson, navigation, pendingFirstLesson]);
 
+  const openTodayPractice = useCallback(() => {
+    if (!recommendation.lesson) return;
+    trackHomeEvent('today_practice_started', {
+      lessonId: recommendation.lesson.id,
+      reason: recommendation.reason.id,
+    });
+    openLessonFromLibrary(
+      navigation,
+      recommendation.lesson,
+      isPremium,
+      registered,
+      recommendation.lesson.category,
+    );
+  }, [isPremium, navigation, recommendation, registered]);
+
+  const levelLabel =
+    recommendation.level != null
+      ? t(`home.level_${recommendation.level}`, {
+          defaultValue: recommendation.level,
+        })
+      : null;
+
+  const todayMeta =
+    levelLabel != null
+      ? t('home.todayMeta', {
+          minutes: recommendation.durationMinutes,
+          level: levelLabel,
+        })
+      : t('home.todayMetaMinutes', { minutes: recommendation.durationMinutes });
+
   return (
     <ScreenContainer withTabBar>
-      <View style={styles.greeting}>
-        <View style={styles.greetingText}>
-          <Text style={styles.brandLabel}>VOIRA</Text>
-          <Text style={typography.h1}>{greeting}</Text>
-          <Text style={styles.greetingSub}>
-            Bugün kısa bir pratik yap, telaffuzunu analiz et ve zayıf kelimelerini gör.
-          </Text>
-        </View>
-        {!isPremium ? (
-          <TouchableOpacity
-            style={styles.premiumBadge}
-            onPress={() => navigation.navigate('Premium')}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="diamond-outline" size={14} color={colors.premium} />
-            <Text style={styles.premiumText}>Plus</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+      <HomeHeader
+        greeting={greeting}
+        subtitle={greetingSub}
+        showPremiumBadge={!isPremium}
+        premiumBadgeLabel={t('home.plusBadge')}
+        onPressPremium={() => {
+          trackHomeEvent('home_premium_tapped', { source: 'badge' });
+          navigation.navigate('Premium');
+        }}
+      />
 
-      <View style={styles.streakRow}>
-        <View style={styles.streakPill}>
-          <Ionicons name="flame" size={14} color={colors.streak} />
-          <Text style={styles.streakText}>{learningProfile.currentStreak} gün seri</Text>
-        </View>
-        <View style={styles.streakPill}>
-          <Ionicons name="stats-chart-outline" size={14} color={colors.secondary} />
-          <Text style={styles.streakText}>Ort. {learningProfile.averageScore} Skor</Text>
-        </View>
-      </View>
+      <SpeakingSnapshot
+        snapshot={snapshot}
+        labels={{
+          streak: t('home.snapshotStreak'),
+          average: t('home.snapshotAverage'),
+          weekly: t('home.snapshotWeekly'),
+          buildingBaseline: t('home.snapshotBuildingBaseline'),
+        }}
+      />
 
-      {/* A. Daily Practice */}
-      <TouchableOpacity
-        activeOpacity={0.92}
-        onPress={() =>
-          navigation.navigate('DailyPracticeSession', { sessionId: session.sessionId })
+      <TodayPracticeHero
+        eyebrow={t('home.todayEyebrow')}
+        title={recommendation.lesson ? localizedLessonTitle(recommendation.lesson, i18n.language) : t('home.todayUnavailableTitle')}
+        meta={todayMeta}
+        focusLabel={t('home.todayFocus')}
+        focusValue={
+          recommendation.lesson
+            ? localizedLessonFocus(recommendation.lesson, i18n.language)
+            : '—'
         }
-      >
-        <LinearGradient
-          colors={[...gradients.hero]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.dailyCard}
-        >
-          <View style={styles.dailyTop}>
-            <View style={styles.dailyIconWrap}>
-              <Ionicons name="mic" size={22} color={colors.textPrimary} />
-            </View>
-            <View style={styles.dailyBadge}>
-              <Text style={styles.dailyBadgeText}>Günlük görev</Text>
-            </View>
-          </View>
-          <Text style={styles.dailyLabel}>{session.title}</Text>
-          <Text style={styles.dailySubtitle}>
-            {session.totalLessons} kısa pratik • {session.estimatedMinutes} dakika
-          </Text>
-          <Text style={styles.dailyGoal}>Hedef: {dailyGoalLabel}</Text>
-          <View style={styles.dailyCta}>
-            <Text style={styles.dailyCtaText}>Pratiğe başla</Text>
-            <View style={styles.dailyCtaIcon}>
-              <Ionicons name="arrow-forward" size={18} color={colors.textPrimary} />
-            </View>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
+        reasonLabel={t('home.todayReason')}
+        reasonText={
+          recommendation.lesson
+            ? translateReason(recommendation.reason)
+            : t('home.todayUnavailableReason')
+        }
+        ctaLabel={t('home.todayCta')}
+        disabled={!recommendation.lesson}
+        onPress={openTodayPractice}
+      />
 
-      <View style={styles.valueCard}>
-        <LinearGradient
-          colors={['rgba(91, 95, 239, 0.14)', 'rgba(26, 27, 46, 0.92)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.valueCardInner}
-        >
-          <View style={styles.valueHeader}>
-            <View style={styles.valueIcon}>
-              <Ionicons name="sparkles" size={14} color={colors.secondary} />
-            </View>
-            <Text style={styles.valueTitle}>Neden Voira?</Text>
-          </View>
-          <View style={styles.valueBullets}>
-            {VALUE_BULLETS.map((bullet) => (
-              <View key={bullet} style={styles.valueBulletRow}>
-                <Ionicons name="checkmark-circle" size={12} color={colors.primary} />
-                <Text style={styles.valueBulletText}>{bullet}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
-      </View>
+      <HomeCoachInsightCard
+        title={t('home.coachTitle')}
+        body={coachBody}
+        onViewed={() =>
+          trackHomeEvent('coach_insight_viewed', { kind: coachInsight.kind })
+        }
+      />
 
-      <TouchableOpacity
-        activeOpacity={0.88}
-        onPress={() => navigation.navigate('Vocabulary')}
-        style={styles.vocabCard}
-      >
-        <LinearGradient
-          colors={['rgba(139, 92, 246, 0.16)', 'rgba(26, 27, 46, 0.94)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.vocabCardInner}
-        >
-          <View style={styles.vocabLeft}>
-            <View style={styles.vocabIcon}>
-              <Ionicons name="bookmark" size={14} color={colors.secondary} />
-            </View>
-            <View style={styles.vocabTextWrap}>
-              <View style={styles.vocabTitleRow}>
-                <Text style={styles.vocabTitle}>Kelime Defterim</Text>
-                {!isPremium && vocabularyLimitReached ? (
-                  <View style={styles.vocabLimitBadge}>
-                    <Text style={styles.vocabLimitBadgeText}>Limit doldu</Text>
-                  </View>
-                ) : null}
-              </View>
-              <Text style={styles.vocabSubtitle}>
-                Kaydettiğin kelime ve ifadeleri tekrar et.
-              </Text>
-              <Text style={styles.vocabCount}>
-                {vocabularyCount === 0
-                  ? 'Henüz kelime eklemedin'
-                  : isPremium
-                    ? `${vocabularyCount} kelime kayıtlı`
-                    : `${vocabularyCount} / ${vocabularyLimit} kelime kayıtlı`}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.vocabCta}>
-            <Text style={styles.vocabCtaText}>Defteri aç</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.secondary} />
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
+      {weeklyChallenge ? (
+        <WeeklyChallengeCard
+          challenge={weeklyChallenge}
+          source="home"
+          onPress={() => {
+            if (weeklyChallenge.status === 'completed') { navigation.navigate('WeeklyReport'); return; }
+            if (weeklyChallenge.type === 'weak_word_practice') { navigation.navigate('WeakWords'); return; }
+            if (weeklyChallenge.type === 'roleplay_sessions') { navigation.navigate('RoleplayDiscover'); return; }
+            if (weeklyChallenge.type === 'retry_improvement') {
+              const latest = [...practiceResults]
+                .filter((result) => result.lessonId && result.segmentId)
+                .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
+              if (latest?.segmentId) {
+                navigation.navigate('Lesson', {
+                  lessonId: latest.lessonId,
+                  segmentId: latest.segmentId,
+                  sessionId: latest.sessionId,
+                  source: latest.mode === 'daily' ? 'dailySession' : 'library',
+                });
+                return;
+              }
+            }
+            const session = getDailySession();
+            navigation.navigate('DailyPracticeSession', { sessionId: session.sessionId });
+          }}
+        />
+      ) : null}
 
-      {/* B. Continue Learning */}
-      <AppCard style={styles.continueCard} elevated>
-        <Text style={styles.continueLabel}>Kaldığın yerden devam et</Text>
-        <Text style={styles.continueTitle}>{continueLesson.title}</Text>
-        <Text style={styles.continueFocus}>{continueLesson.focusSkill}</Text>
-        <AppButton
-          title="Devam et"
-          size="compact"
-          onPress={() =>
+      <RoleplayRecommendationCard
+        eyebrow={t('roleplay.discoverTitle')}
+        title={t(roleplayRecommendation.titleKey)}
+        description={t(roleplayRecommendation.descriptionKey)}
+        meta={`${t(`roleplay.difficulty.${roleplayRecommendation.difficulty}`)} · ${t('roleplay.minutes', { count: roleplayRecommendation.estimatedMinutes })}`}
+        cta={roleplayAccess.allowed ? t('roleplay.start') : t('roleplay.premiumBadge')}
+        locked={!roleplayAccess.allowed}
+        onPress={() => {
+          trackRoleplayEvent('roleplay_scenario_selected', {
+            scenarioId: roleplayRecommendation.id,
+            level: roleplayRecommendation.difficulty,
+            accessTier: roleplayAccess.tier,
+          });
+          if (!roleplayAccess.allowed) {
+            navigation.navigate('Premium');
+            return;
+          }
+          navigation.navigate('RoleplaySession', { scenarioId: roleplayRecommendation.id });
+        }}
+      />
+
+      <WeakWordsPreview
+        title={t('home.weakWordsTitle')}
+        items={weakWords}
+        ctaLabel={t('weakWords.startPractice')}
+        onPressSection={() => {
+          trackHomeEvent('weak_words_preview_tapped', { count: weakWords.length });
+          navigation.navigate('WeakWords');
+        }}
+        onPressCta={() => {
+          trackHomeEvent('weak_words_preview_tapped', { count: weakWords.length });
+          if (queue.isEmpty || queue.items.length === 0) {
+            navigation.navigate('WeakWords');
+            return;
+          }
+          const first = queue.items[0];
+          navigation.navigate('WeakWordPractice', {
+            normalizedWord: first.normalizedWord,
+            displayWord: first.displayWord,
+            queueWords: queue.items.map((item) => item.normalizedWord),
+            queueIndex: 0,
+          });
+        }}
+      />
+
+      {showContinue ? (
+        <ContinueLearningCard
+          label={t('home.continueLabel')}
+          title={localizedLessonTitle(continueEntry.lesson, i18n.language)}
+          focus={localizedLessonFocus(continueEntry.lesson, i18n.language)}
+          ctaLabel={t('home.continueCta')}
+          onPress={() => {
+            trackHomeEvent('continue_learning_tapped', {
+              lessonId: continueEntry.lesson.id,
+            });
             openLessonFromLibrary(
               navigation,
-              continueLesson,
+              continueEntry.lesson,
               isPremium,
               registered,
-              continueLesson.category,
+              continueEntry.lesson.category,
               continueEntry.segmentIndex,
-            )
-          }
-          style={styles.continueButton}
+            );
+          }}
         />
-      </AppCard>
+      ) : null}
 
-      {/* C. Recommended Lessons */}
-      <SectionHeader
-        title="Senin için seçildi"
-        subtitle="Kısa shadowing dersleri"
-        actionLabel="Tümünü gör"
-        onAction={() => navigation.navigate('Categories')}
-      />
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.recommendedContent}
-        style={styles.recommendedScroll}
-        decelerationRate="fast"
-      >
-        {recommended.map((lesson) => (
-          <LibraryLessonCard
-            key={lesson.id}
-            lesson={lesson}
-            isPremiumUser={isPremium}
-            variant="compact"
-            completedLessonIds={learningProfile.completedLessonIds}
-            onPress={() => openLessonFromLibrary(navigation, lesson, isPremium, registered)}
-          />
-        ))}
-      </ScrollView>
-
-      <SectionHeader
-        title="SpeakPlus ile açılanlar"
-        subtitle="Premium dersler, gelişmiş analiz ve kelime bazlı geri bildirim"
-      />
-      <FuturePracticeCard
-        title="Gelişmiş telaffuz analizi"
-        subtitle="Telaffuz, doğruluk, akıcılık ve tamamlama skorlarını detaylı gör."
-        icon="analytics-outline"
-        benefits={['Detaylı skorlar', 'Kelime bazlı geri bildirim']}
-        onPress={() => navigation.navigate('Premium')}
+      <WeeklyProgressPreview
+        title={t('home.weeklyTitle')}
+        progress={weekly}
+        practicesLabel={t('home.weeklyPractices', { n: weekly.practiceCount })}
+        minutesLabel={
+          weekly.speakingMinutes != null
+            ? t('home.weeklyMinutes', { n: weekly.speakingMinutes })
+            : null
+        }
+        averageLabel={
+          weekly.averageFrom != null && weekly.averageTo != null
+            ? t('home.weeklyAverage', {
+                from: weekly.averageFrom,
+                to: weekly.averageTo,
+              })
+            : null
+        }
+        emptyLabel={t('home.weeklyEmpty')}
+        ctaLabel={t('home.weeklyCta')}
+        onPress={() => {
+          trackHomeEvent('weekly_progress_tapped', {
+            practices: weekly.practiceCount,
+          });
+          navigation.navigate('WeeklyReport');
+        }}
       />
 
-      <TouchableOpacity
-        activeOpacity={0.9}
-        onPress={() => navigation.navigate('Premium')}
-      >
-        <LinearGradient
-          colors={['rgba(229, 184, 74, 0.14)', 'rgba(139, 92, 246, 0.16)', 'rgba(26, 27, 46, 0.95)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.plusCard}
-        >
-          <View style={styles.plusRow}>
-            <View style={styles.plusIcon}>
-              <Ionicons name="diamond" size={16} color={colors.premium} />
-            </View>
-            <View style={styles.plusTextWrap}>
-              <Text style={styles.plusTitle}>Premium ders paketleri</Text>
-              <Text style={styles.plusSubtitle} numberOfLines={2}>
-                Günlük konuşma, seyahat, iş ve telaffuz derslerinde daha fazla pratik yap.
-              </Text>
-              <View style={styles.plusBenefits}>
-                {SPEAKPLUS_BENEFITS.map((benefit) => (
-                  <View key={benefit} style={styles.plusBenefitRow}>
-                    <Ionicons name="ellipse" size={5} color={colors.premium} />
-                    <Text style={styles.plusBenefitText}>{benefit}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.premium} style={styles.plusChevron} />
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
+      {showPremiumTeaser ? (
+        <ContextualPremiumCard
+          title={t('home.premiumTitle')}
+          subtitle={t('home.premiumSub')}
+          bullets={[
+            t('home.premiumBullet1'),
+            t('home.premiumBullet2'),
+            t('home.premiumBullet3'),
+          ]}
+          ctaLabel={t('home.premiumCta')}
+          onPress={() => {
+            trackHomeEvent('home_premium_tapped', { source: 'teaser' });
+            navigation.navigate('Premium');
+          }}
+        />
+      ) : null}
     </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  greeting: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  greetingText: {
-    flex: 1,
-    paddingRight: spacing.md,
-  },
-  brandLabel: {
-    ...typography.label,
-    color: colors.primary,
-    marginBottom: spacing.xs,
-    letterSpacing: 2.2,
-    textTransform: 'uppercase',
-  },
-  greetingSub: {
-    ...typography.body,
-    marginTop: spacing.sm,
-    lineHeight: 22,
-  },
-  premiumBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.card,
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(196, 181, 253, 0.25)',
-  },
-  premiumText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.premium,
-  },
-  streakRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  streakPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  streakText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  dailyCard: {
-    borderRadius: borderRadius.xl,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    ...shadows.hero,
-  },
-  dailyTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  dailyIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dailyBadge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.full,
-  },
-  dailyBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
-    letterSpacing: 0.3,
-  },
-  dailyLabel: {
-    ...typography.label,
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: spacing.xs,
-  },
-  dailySubtitle: {
-    ...typography.body,
-    color: 'rgba(255,255,255,0.86)',
-    lineHeight: 20,
-    marginBottom: spacing.xs,
-  },
-  dailyGoal: {
-    ...typography.captionBright,
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: spacing.md,
-  },
-  dailyCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 4,
-    borderRadius: borderRadius.lg,
-  },
-  dailyCtaText: {
-    ...typography.button,
-    fontSize: 15,
-  },
-  dailyCtaIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  valueCard: {
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(91, 95, 239, 0.22)',
-  },
-  valueCardInner: {
-    padding: spacing.sm + 4,
-  },
-  valueHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  valueIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(139, 92, 246, 0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  valueTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  valueBullets: {
-    gap: 5,
-  },
-  valueBulletRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  valueBulletText: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  vocabCard: {
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.28)',
-  },
-  vocabCardInner: {
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.sm + 4,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  vocabLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minWidth: 0,
-  },
-  vocabIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(139, 92, 246, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  vocabTextWrap: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  vocabTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-  },
-  vocabTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  vocabLimitBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.35)',
-  },
-  vocabLimitBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#FBBF24',
-  },
-  vocabSubtitle: {
-    fontSize: 11,
-    lineHeight: 15,
-    color: colors.textSecondary,
-  },
-  vocabCount: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.secondary,
-    marginTop: 1,
-  },
-  vocabCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(139, 92, 246, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.28)',
-  },
-  vocabCtaText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.secondary,
-  },
-  continueCard: {
-    marginBottom: spacing.md,
-    padding: spacing.sm + 4,
-  },
-  continueLabel: {
-    ...typography.label,
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
-  continueTitle: {
-    ...typography.h3,
-    marginBottom: 4,
-  },
-  continueFocus: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-  continueButton: {
-    alignSelf: 'flex-start',
-    minWidth: 140,
-  },
-  recommendedScroll: {
-    marginHorizontal: -layout.screenPadding,
-    marginBottom: spacing.md,
-  },
-  recommendedContent: {
-    paddingHorizontal: layout.screenPadding,
-    paddingRight: layout.screenPadding + spacing.xl,
-    gap: spacing.sm,
-  },
-  plusCard: {
-    borderRadius: borderRadius.lg,
-    padding: spacing.sm + 4,
-    marginBottom: spacing.xs,
-    borderWidth: 1,
-    borderColor: 'rgba(229, 184, 74, 0.28)',
-  },
-  plusRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-  },
-  plusIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(229, 184, 74, 0.14)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  plusTextWrap: {
-    flex: 1,
-    minWidth: 0,
-  },
-  plusTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 2,
-  },
-  plusSubtitle: {
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  plusBenefits: {
-    gap: 2,
-    marginTop: 2,
-  },
-  plusBenefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-  },
-  plusBenefitText: {
-    fontSize: 10,
-    color: colors.textMuted,
-    lineHeight: 14,
-  },
-  plusChevron: {
-    marginTop: 8,
-  },
-});

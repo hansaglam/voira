@@ -1,24 +1,49 @@
-import { Platform } from 'react-native';
-import {
-  PACKAGE_TYPE,
-  type PurchasesOffering,
-  type PurchasesOfferings,
-  type PurchasesPackage,
+import type {
+  PurchasesOffering,
+  PurchasesOfferings,
+  PurchasesPackage,
 } from 'react-native-purchases';
-import { getRevenueCatApiKey } from './premiumConfig';
+import {
+  calculateAnnualSavingsPercent,
+  detectFreeTrial,
+  formatMonthlyEquivalentPrice,
+  readProductPriceSnapshot,
+  sortPackagesByPeriod,
+} from './paywallPricing';
 import type { PremiumPackageOption, PremiumPackagePeriod } from './premiumTypes';
 
-const LOG_PREFIX = '[EchoSpeak Premium]';
+/** Mirrors react-native-purchases PACKAGE_TYPE without importing the native module in Node tests. */
+const RC_PACKAGE_TYPE = {
+  ANNUAL: 2,
+  MONTHLY: 6,
+  WEEKLY: 7,
+} as const;
 
 function normalizeId(value: string | undefined | null): string {
   return (value ?? '').trim().toLowerCase();
+}
+
+function packageTypeMatches(pkg: PurchasesPackage, expected: number): boolean {
+  return Number(pkg.packageType) === expected;
+}
+
+export function isWeeklyPackage(pkg: PurchasesPackage): boolean {
+  const packageId = normalizeId(pkg.identifier);
+  const productId = normalizeId(pkg.product?.identifier);
+
+  if (packageTypeMatches(pkg, RC_PACKAGE_TYPE.WEEKLY)) return true;
+  if (packageId === '$rc_weekly' || packageId === 'weekly') return true;
+  if (packageId.includes('weekly')) return true;
+  if (productId.includes('speakplus_weekly') || productId.includes('weekly')) return true;
+  return false;
 }
 
 export function isMonthlyPackage(pkg: PurchasesPackage): boolean {
   const packageId = normalizeId(pkg.identifier);
   const productId = normalizeId(pkg.product?.identifier);
 
-  if (pkg.packageType === PACKAGE_TYPE.MONTHLY) return true;
+  if (isWeeklyPackage(pkg)) return false;
+  if (packageTypeMatches(pkg, RC_PACKAGE_TYPE.MONTHLY)) return true;
   if (packageId === '$rc_monthly' || packageId === 'monthly') return true;
   if (packageId.includes('monthly')) return true;
   if (productId.includes('speakplus_monthly') || productId.includes('monthly')) return true;
@@ -29,7 +54,7 @@ export function isYearlyPackage(pkg: PurchasesPackage): boolean {
   const packageId = normalizeId(pkg.identifier);
   const productId = normalizeId(pkg.product?.identifier);
 
-  if (pkg.packageType === PACKAGE_TYPE.ANNUAL) return true;
+  if (packageTypeMatches(pkg, RC_PACKAGE_TYPE.ANNUAL)) return true;
   if (
     packageId === '$rc_annual' ||
     packageId === 'annual' ||
@@ -48,15 +73,25 @@ export function isYearlyPackage(pkg: PurchasesPackage): boolean {
   return false;
 }
 
-export function findMonthlyPackage(
-  packages: PurchasesPackage[],
-): PurchasesPackage | null {
+export function resolvePackagePeriod(pkg: PurchasesPackage): PremiumPackagePeriod | null {
+  if (isWeeklyPackage(pkg)) return 'weekly';
+  if (isYearlyPackage(pkg)) return 'yearly';
+  if (isMonthlyPackage(pkg)) return 'monthly';
+  if (packageTypeMatches(pkg, RC_PACKAGE_TYPE.ANNUAL)) return 'yearly';
+  if (packageTypeMatches(pkg, RC_PACKAGE_TYPE.MONTHLY)) return 'monthly';
+  if (packageTypeMatches(pkg, RC_PACKAGE_TYPE.WEEKLY)) return 'weekly';
+  return null;
+}
+
+export function findWeeklyPackage(packages: PurchasesPackage[]): PurchasesPackage | null {
+  return packages.find((pkg) => isWeeklyPackage(pkg)) ?? null;
+}
+
+export function findMonthlyPackage(packages: PurchasesPackage[]): PurchasesPackage | null {
   return packages.find((pkg) => isMonthlyPackage(pkg)) ?? null;
 }
 
-export function findYearlyPackage(
-  packages: PurchasesPackage[],
-): PurchasesPackage | null {
+export function findYearlyPackage(packages: PurchasesPackage[]): PurchasesPackage | null {
   return packages.find((pkg) => isYearlyPackage(pkg)) ?? null;
 }
 
@@ -76,49 +111,71 @@ export function resolveCurrentOffering(
   return first ?? null;
 }
 
-function subscriptionPeriodLabelTr(period: PremiumPackagePeriod): string {
-  return period === 'yearly' ? 'Yıllık abonelik' : 'Aylık abonelik';
-}
-
 function toOption(
   pkg: PurchasesPackage,
   period: PremiumPackagePeriod,
+  extras?: {
+    savingsPercent?: number | null;
+    monthlyEquivalentPriceString?: string | null;
+  },
 ): PremiumPackageOption {
+  const priceSnapshot = readProductPriceSnapshot(pkg.product);
+  const trial = detectFreeTrial(pkg.product);
+
   return {
     period,
-    labelTr: period === 'yearly' ? 'Yıllık' : 'Aylık',
     package: pkg,
     priceString: pkg.product.priceString,
-    subscriptionPeriodLabel: subscriptionPeriodLabelTr(period),
+    currencyCode: priceSnapshot?.currencyCode ?? pkg.product.currencyCode ?? null,
+    price: priceSnapshot?.price ?? null,
+    hasFreeTrial: trial.hasFreeTrial,
+    freeTrialDays: trial.trialDays,
+    savingsPercent: extras?.savingsPercent ?? null,
+    monthlyEquivalentPriceString: extras?.monthlyEquivalentPriceString ?? null,
   };
 }
 
-export function resolveMonthlyAndYearlyPackages(offering: PurchasesOffering | null): {
+export function resolveWeeklyMonthlyYearlyPackages(offering: PurchasesOffering | null): {
+  weekly: PurchasesPackage | null;
   monthly: PurchasesPackage | null;
   yearly: PurchasesPackage | null;
 } {
   if (!offering) {
-    return { monthly: null, yearly: null };
+    return { weekly: null, monthly: null, yearly: null };
   }
 
   const packages = offering.availablePackages ?? [];
 
+  const weeklyFromShortcut =
+    offering.weekly && isWeeklyPackage(offering.weekly) ? offering.weekly : null;
   const monthlyFromShortcut =
     offering.monthly && isMonthlyPackage(offering.monthly) ? offering.monthly : null;
   const yearlyFromShortcut =
     offering.annual && isYearlyPackage(offering.annual) ? offering.annual : null;
 
+  const weekly = weeklyFromShortcut ?? findWeeklyPackage(packages);
   const monthly = monthlyFromShortcut ?? findMonthlyPackage(packages);
   let yearly = yearlyFromShortcut ?? findYearlyPackage(packages);
 
-  // Avoid using the same package for both periods.
-  if (monthly && yearly && monthly.identifier === yearly.identifier) {
+  const usedIds = new Set(
+    [weekly, monthly].filter(Boolean).map((pkg) => pkg!.identifier),
+  );
+  if (yearly && usedIds.has(yearly.identifier)) {
     yearly =
       packages.find(
-        (pkg) => pkg.identifier !== monthly.identifier && isYearlyPackage(pkg),
+        (pkg) => !usedIds.has(pkg.identifier) && isYearlyPackage(pkg),
       ) ?? null;
   }
 
+  return { weekly, monthly, yearly };
+}
+
+/** @deprecated use resolveWeeklyMonthlyYearlyPackages */
+export function resolveMonthlyAndYearlyPackages(offering: PurchasesOffering | null): {
+  monthly: PurchasesPackage | null;
+  yearly: PurchasesPackage | null;
+} {
+  const { monthly, yearly } = resolveWeeklyMonthlyYearlyPackages(offering);
   return { monthly, yearly };
 }
 
@@ -127,59 +184,40 @@ export function buildPackageOptions(
 ): PremiumPackageOption[] {
   if (!offering) return [];
 
-  const { monthly, yearly } = resolveMonthlyAndYearlyPackages(offering);
+  const { weekly, monthly, yearly } = resolveWeeklyMonthlyYearlyPackages(offering);
+  const monthlySnapshot = monthly ? readProductPriceSnapshot(monthly.product) : null;
+  const yearlySnapshot = yearly ? readProductPriceSnapshot(yearly.product) : null;
+  const savingsPercent = calculateAnnualSavingsPercent(monthlySnapshot, yearlySnapshot);
+  const monthlyEquivalentPriceString = formatMonthlyEquivalentPrice(yearlySnapshot);
+
   const options: PremiumPackageOption[] = [];
 
+  if (weekly) {
+    options.push(toOption(weekly, 'weekly'));
+  }
   if (monthly) {
     options.push(toOption(monthly, 'monthly'));
   }
   if (yearly) {
-    options.push(toOption(yearly, 'yearly'));
+    options.push(
+      toOption(yearly, 'yearly', {
+        savingsPercent,
+        monthlyEquivalentPriceString,
+      }),
+    );
   }
 
   if (options.length > 0) {
-    return options;
+    return sortPackagesByPeriod(options);
   }
 
-  // Last resort: unknown custom packages that did not match helpers.
   const packages = offering.availablePackages ?? [];
-  return packages.map((pkg) => {
-    const period: PremiumPackagePeriod =
-      pkg.packageType === PACKAGE_TYPE.ANNUAL || isYearlyPackage(pkg)
-        ? 'yearly'
-        : 'monthly';
-    return toOption(pkg, period);
-  });
-}
+  const fallback = packages
+    .map((pkg) => {
+      const period = resolvePackagePeriod(pkg);
+      return period ? toOption(pkg, period) : null;
+    })
+    .filter((item): item is PremiumPackageOption => item != null);
 
-function packagePriceDiagnostics(pkg: PurchasesPackage) {
-  return {
-    packageIdentifier: pkg.identifier,
-    productIdentifier: pkg.product.identifier,
-    priceString: pkg.product.priceString,
-    currencyCode: pkg.product.currencyCode ?? null,
-  };
-}
-
-/** __DEV__ only — never logs API key values. */
-export function logOfferingsDiagnostics(
-  offering: PurchasesOffering | null,
-  monthly: PurchasesPackage | null,
-  yearly: PurchasesPackage | null,
-): void {
-  if (!__DEV__) return;
-
-  const packages = offering?.availablePackages ?? [];
-
-  console.log(`${LOG_PREFIX} offerings diagnostics`, {
-    platform: Platform.OS,
-    apiKeyPresent: getRevenueCatApiKey().length > 0,
-    offeringIdentifier: offering?.identifier ?? null,
-    packageIdentifiers: packages.map((pkg) => pkg.identifier),
-    productIdentifiers: packages.map((pkg) => pkg.product.identifier),
-    packageTypes: packages.map((pkg) => pkg.packageType),
-    packagePrices: packages.map((pkg) => packagePriceDiagnostics(pkg)),
-    selectedMonthly: monthly ? packagePriceDiagnostics(monthly) : null,
-    selectedYearly: yearly ? packagePriceDiagnostics(yearly) : null,
-  });
+  return sortPackagesByPeriod(fallback);
 }

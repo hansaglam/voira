@@ -7,15 +7,17 @@ import Constants from 'expo-constants';
  * Entitlement (all stores): speakplus
  *
  * App Store product IDs (configure in App Store Connect + RevenueCat iOS):
+ *   - voira_speakplus_weekly
  *   - voira_speakplus_monthly
  *   - voira_speakplus_yearly
  *
  * Google Play product IDs (configure in Play Console + RevenueCat Android):
+ *   - echospeak_speakplus_weekly
  *   - echospeak_speakplus_monthly
  *   - echospeak_speakplus_yearly
  *
  * The app never hardcodes product IDs or prices — it loads the current
- * RevenueCat offering’s monthly/annual packages for the active platform.
+ * RevenueCat offering’s weekly/monthly/annual packages for the active platform.
  *
  * Note: user-facing store names live in platform-split billingCopy.* files
  * so iOS binaries never include competing-store strings (Guideline 2.3.10).

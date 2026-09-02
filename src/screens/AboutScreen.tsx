@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { RootScreenProps } from '../navigation/types';
 import { InfoScreenLayout } from '../components/InfoScreenLayout';
 import { VoiraLogo } from '../components/VoiraLogo';
@@ -17,29 +18,29 @@ type Props = RootScreenProps<'About'>;
 const APP_VERSION = '1.0.12';
 
 export function AboutScreen(_props: Props) {
+  const { t } = useTranslation();
+
   return (
     <InfoScreenLayout
-      title="Voira hakkında"
-      subtitle="Konuş, analiz al, geliş."
+      title={t('about.title')}
+      subtitle={t('about.subtitle')}
       header={<VoiraLogo size={112} />}
       sections={[
         {
-          title: 'Voira nedir?',
-          body:
-            'Voira, İngilizce konuşmanı analiz eden, telaffuzunu ölçen ve zayıf kelimelerini Türkçe açıklamalarla geliştirmene yardımcı olan AI konuşma koçudur.',
+          title: t('about.what'),
+          body: t('about.whatBody'),
         },
         {
-          title: 'Bu sürüm',
-          body:
-            'Konuşma analizi kelime eşleşmesi, Azure telaffuz değerlendirmesi ve akıcılık ölçümlerine dayanır. Skorlar rehber niteliğindedir; resmi dil sertifikası yerine geçmez.',
+          title: t('about.thisVersion'),
+          body: t('about.versionBody'),
         },
         {
-          title: 'SpeakPlus',
+          title: t('about.speakPlus'),
           body: getAboutSpeakPlusBody(),
         },
         {
-          title: 'İletişim ve yasal',
-          body: `StudioWebia\nVoira Destek: ${SUPPORT_EMAIL}\nGizlilik Politikası ve Kullanım Şartları web sayfalarından okunabilir.`,
+          title: t('about.contactLegal'),
+          body: t('about.contactLegalBody', { email: SUPPORT_EMAIL }),
         },
       ]}
       footer={
@@ -49,16 +50,18 @@ export function AboutScreen(_props: Props) {
             onPress={() => void openExternalLink(PRIVACY_POLICY_URL)}
             activeOpacity={0.85}
           >
-            <Text style={styles.linkButtonText}>Gizlilik Politikası</Text>
+            <Text style={styles.linkButtonText}>{t('about.linkPrivacy')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.linkButton}
             onPress={() => void openExternalLink(TERMS_OF_USE_URL)}
             activeOpacity={0.85}
           >
-            <Text style={styles.linkButtonText}>Kullanım Şartları</Text>
+            <Text style={styles.linkButtonText}>{t('about.linkTerms')}</Text>
           </TouchableOpacity>
-          <Text style={styles.footerVersion}>Voira v{APP_VERSION}</Text>
+          <Text style={styles.footerVersion}>
+            {t('about.versionLabel', { version: APP_VERSION })}
+          </Text>
         </>
       }
     />

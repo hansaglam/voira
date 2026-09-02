@@ -517,7 +517,7 @@ test('azure coach feedback focuses on completion when words are missing', () => 
     pronunciationAssessment,
   });
 
-  assert.match(coach.aiCoachCommentTr, /eksik kaldı/i);
+  assert.match(coach.aiCoachCommentTr, /atladın|eksik/i);
   assert.match(coach.aiCoachCommentTr, /Eksik kalan kelimeler/i);
   assert.doesNotMatch(coach.aiCoachCommentTr, /Kelimeleri doğru sırayla söyledin/i);
 });

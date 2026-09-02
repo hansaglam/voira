@@ -75,17 +75,15 @@ export const safeAsyncStorage = {
   },
 
   /**
-   * Supabase auth storage still expects the legacy multi* tuple API.
-   * Current @react-native-async-storage uses getMany/setMany/removeMany —
-   * adapt here so callers keep the same interface and fallback behavior.
+   * Supabase auth storage expects the classic multi* tuple API.
+   * @react-native-async-storage/async-storage@2.2.0 exposes multiGet/multiSet/multiRemove
+   * (not getMany/setMany/removeMany).
    */
   multiGet(keys: readonly string[]): Promise<readonly [string, string | null][]> {
     return withFallback(
       async () => {
-        const values = await AsyncStorage.getMany([...keys]);
-        return keys.map(
-          (key) => [key, values[key] ?? null] as [string, string | null],
-        );
+        const pairs = await AsyncStorage.multiGet([...keys]);
+        return pairs.map(([key, value]) => [key, value] as [string, string | null]);
       },
       () =>
         keys.map(
@@ -97,11 +95,7 @@ export const safeAsyncStorage = {
   multiSet(keyValuePairs: readonly [string, string][]): Promise<void> {
     return withFallback(
       async () => {
-        const entries: Record<string, string> = {};
-        for (const [key, value] of keyValuePairs) {
-          entries[key] = value;
-        }
-        await AsyncStorage.setMany(entries);
+        await AsyncStorage.multiSet(keyValuePairs.map(([key, value]) => [key, value]));
         for (const [key, value] of keyValuePairs) {
           memoryStore.set(key, value);
         }
@@ -117,7 +111,7 @@ export const safeAsyncStorage = {
   multiRemove(keys: readonly string[]): Promise<void> {
     return withFallback(
       async () => {
-        await AsyncStorage.removeMany([...keys]);
+        await AsyncStorage.multiRemove([...keys]);
         for (const key of keys) {
           memoryStore.delete(key);
         }

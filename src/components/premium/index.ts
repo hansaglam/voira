@@ -1,0 +1,1 @@
+export { PaywallPlanCard } from './PaywallPlanCard';

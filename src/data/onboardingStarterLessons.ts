@@ -21,6 +21,10 @@ export const PRIMARY_GOAL_STARTER_LESSONS: Record<string, StarterLessonConfig> =
     lessonId: 'travel-pack-asking-for-directions',
     benefitTr: 'Seyahatte yön sormayı pratik edeceksin.',
   },
+  work: {
+    lessonId: 'job-pack-introducing-yourself',
+    benefitTr: 'İş ve toplantılarda kendini tanıtmayı çalışacaksın.',
+  },
   job_interview: {
     lessonId: 'job-pack-introducing-yourself',
     benefitTr: 'İş görüşmesinde kendini tanıtmayı çalışacaksın.',
@@ -28,6 +32,10 @@ export const PRIMARY_GOAL_STARTER_LESSONS: Record<string, StarterLessonConfig> =
   pronunciation: {
     lessonId: 'pron-pack-th-sound-basics',
     benefitTr: 'Temel telaffuz egzersiziyle th sesine odaklanacaksın.',
+  },
+  fluency: {
+    lessonId: 'daily-neighbor-greeting',
+    benefitTr: 'Daha akıcı ve özgüvenli konuşmayı çalışacaksın.',
   },
   series_english: {
     lessonId: 'series-reaction-wow',

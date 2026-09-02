@@ -1,0 +1,1 @@
+export { WeakWordCard } from './WeakWordCard';

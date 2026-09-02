@@ -1,9 +1,7 @@
 import type { PronunciationAssessmentResult } from './pronunciationAssessment/pronunciationAssessmentTypes.js';
 import { analysisDebugLog } from '../utils/analysisDebugLog.js';
 import { clampScore } from '../utils/normalize.js';
-
-const WEAK_WORD_ACCURACY_THRESHOLD = 70;
-const SEVERE_WEAK_WORD_ACCURACY_THRESHOLD = 50;
+import { classifyAzureWordIssue } from './wordIssueClassification.js';
 
 export interface AzureScoreMetrics {
   accuracyScore: number;
@@ -38,16 +36,13 @@ export function countAzureWeakWords(
   let severeWeakWordCount = 0;
 
   for (const word of assessment.wordScores) {
-    const accuracy = word.accuracyScore;
-    if (accuracy === undefined) {
+    const classification = classifyAzureWordIssue(word);
+    if (classification.issueType !== 'pronunciation') {
       continue;
     }
 
-    if (accuracy < WEAK_WORD_ACCURACY_THRESHOLD) {
-      weakWordCount += 1;
-    }
-
-    if (accuracy < SEVERE_WEAK_WORD_ACCURACY_THRESHOLD) {
+    weakWordCount += 1;
+    if (classification.severity === 'severe') {
       severeWeakWordCount += 1;
     }
   }
